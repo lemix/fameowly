@@ -1,0 +1,16 @@
+services:
+  family-ai-hub:
+    build: .
+    container_name: family-ai-hub
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - ai-hub-data:/app/data
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  ai-hub-data:
