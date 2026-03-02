@@ -1,126 +1,148 @@
 /**
- * SOCKS5-aware fetch wrapper.
+ * proxyFetch — drop-in замена globalThis.fetch с поддержкой SOCKS5-прокси.
  *
- * When environment contains a SOCKS proxy URL (checked in order:
- * SOCKS_PROXY → ALL_PROXY → HTTPS_PROXY → HTTP_PROXY), all outgoing
- * HTTP/HTTPS requests made via `proxyFetch` are tunnelled through it.
+ * Читает прокси из (в порядке приоритета):
+ *   SOCKS_PROXY, ALL_PROXY, HTTPS_PROXY, HTTP_PROXY
  *
- * If no SOCKS proxy is configured the global `fetch` is used as-is.
+ * Если переменная не задана — использует стандартный fetch без изменений.
  */
 
-import { Agent, fetch as undiciFetch } from "undici";
 import { SocksClient } from "socks";
-import * as tls from "node:tls";
+import { Agent, fetch as undiciFetch } from "undici";
+import type { Dispatcher } from "undici";
+import * as tls from "tls";
+import * as net from "net";
 
-// ---------------------------------------------------------------------------
-// Resolve proxy URL from environment
-// ---------------------------------------------------------------------------
+// ─── helpers ────────────────────────────────────────────────────────────────
 
-function getSocksProxyUrl(): string | undefined {
+function parseSocksProxy(raw: string): { host: string; port: number } | null {
+  try {
+    const normalised = /^socks/.test(raw) ? raw : `socks5://${raw}`;
+    const url = new URL(normalised);
+    if (!url.hostname) return null;
+    return {
+      host: url.hostname,
+      port: url.port ? parseInt(url.port, 10) : 1080,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getSocksProxy(): { host: string; port: number } | null {
   const candidates = [
     process.env.SOCKS_PROXY,
     process.env.ALL_PROXY,
     process.env.HTTPS_PROXY,
     process.env.HTTP_PROXY,
   ];
-  for (const url of candidates) {
-    if (url && /^socks[45h]?:\/\//i.test(url)) {
-      return url;
+  for (const raw of candidates) {
+    if (!raw) continue;
+    if (/^socks/.test(raw)) {
+      const parsed = parseSocksProxy(raw);
+      if (parsed) return parsed;
     }
   }
-  return undefined;
+  return null;
 }
 
-// ---------------------------------------------------------------------------
-// Lazy-initialised undici dispatcher that tunnels via SOCKS5
-// ---------------------------------------------------------------------------
+// ─── undici dispatcher с SOCKS5 ─────────────────────────────────────────────
 
-let _dispatcher: Agent | undefined;
+let _dispatcher: Dispatcher | null = null;
 
-function getDispatcher(): Agent | undefined {
+function getDispatcher(): Dispatcher {
   if (_dispatcher) return _dispatcher;
 
-  const proxyUrl = getSocksProxyUrl();
-  if (!proxyUrl) return undefined;
+  const proxy = getSocksProxy();
 
-  const proxy = new URL(proxyUrl);
-  const proxyHost = proxy.hostname;
-  const proxyPort = Number(proxy.port);
-  const proxyUserId = proxy.username || undefined;
-  const proxyPassword = proxy.password || undefined;
+  if (!proxy) {
+    _dispatcher = new Agent();
+    return _dispatcher;
+  }
 
-  console.log(
-    `[proxy-fetch] SOCKS5 proxy configured: ${proxyHost}:${proxyPort}`,
-  );
+  console.log(`[proxy-fetch] Using SOCKS5 proxy: ${proxy.host}:${proxy.port}`);
 
   _dispatcher = new Agent({
-    connect(
-      opts: {
-        hostname: string;
-        host: string;
-        port: string;
-        protocol: string;
-        servername?: string;
-      },
-      cb: (err: Error | null, socket: unknown) => void,
-    ) {
-      const destHost = opts.hostname || opts.host;
-      const destPort = Number(opts.port);
+    connect(options, callback) {
+      // undici передаёт опции как Record — безопасно читаем через unknown
+      const opts = options as Record<string, unknown>;
 
-      SocksClient.createConnection({
-        proxy: {
-          host: proxyHost,
-          port: proxyPort,
-          type: 5,
-          ...(proxyUserId ? { userId: proxyUserId } : {}),
-          ...(proxyPassword ? { password: proxyPassword } : {}),
+      const targetHost = (opts.hostname as string | undefined) ?? "";
+
+      // Определяем является ли соединение HTTPS
+      const protocol = opts.protocol as string | undefined;
+      const servername = opts.servername as string | undefined;
+      const isHttps = protocol === "https:" || servername != null;
+
+      // Определяем порт — если undici не передал или передал 0, берём дефолт
+      const rawPort = opts.port;
+      let targetPort: number;
+      if (typeof rawPort === "number" && rawPort > 0) {
+        targetPort = rawPort;
+      } else if (typeof rawPort === "string" && parseInt(rawPort, 10) > 0) {
+        targetPort = parseInt(rawPort, 10);
+      } else {
+        targetPort = isHttps ? 443 : 80;
+      }
+
+      console.log(
+        `[proxy-fetch] CONNECT ${targetHost}:${targetPort} via SOCKS5 ${proxy.host}:${proxy.port}`
+      );
+
+      SocksClient.createConnection(
+        {
+          proxy: { host: proxy.host, port: proxy.port, type: 5 },
+          command: "connect",
+          destination: { host: targetHost, port: targetPort },
         },
-        command: "connect",
-        destination: { host: destHost, port: destPort },
-      })
-        .then(({ socket }) => {
-          if (opts.protocol === "https:") {
-            const tlsSocket = tls.connect({
-              socket,
-              servername: opts.servername || destHost,
-            });
-            tlsSocket.once("secureConnect", () => cb(null, tlsSocket));
-            tlsSocket.once("error", (err) => cb(err, null));
-          } else {
-            cb(null, socket);
+        (err, info) => {
+          if (err || !info) {
+            callback(err ?? new Error("SOCKS5: no connection info"), null);
+            return;
           }
-        })
-        .catch((err) => cb(err, null));
+
+          const rawSocket: net.Socket = info.socket;
+
+          if (isHttps) {
+            const tlsSocket = tls.connect({
+              socket: rawSocket,
+              servername: servername ?? targetHost,
+              rejectUnauthorized: opts.rejectUnauthorized !== false,
+            });
+
+            tlsSocket.once("secureConnect", () => {
+              // undici ожидает net.Socket-совместимый объект
+              callback(null, tlsSocket as unknown as net.Socket);
+            });
+
+            tlsSocket.once("error", (tlsErr) => {
+              callback(tlsErr, null);
+            });
+          } else {
+            callback(null, rawSocket);
+          }
+        }
+      );
     },
-  } as ConstructorParameters<typeof Agent>[0]);
+  });
 
   return _dispatcher;
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+// ─── public API ─────────────────────────────────────────────────────────────
 
 /**
- * Drop-in replacement for `fetch()` that routes traffic through the
- * configured SOCKS5 proxy.  Signature matches `typeof globalThis.fetch`
- * so it can be passed directly to AI SDK provider constructors.
+ * Drop-in замена fetch, которая направляет запросы через SOCKS5-прокси,
+ * если задана переменная окружения SOCKS_PROXY / ALL_PROXY / HTTPS_PROXY / HTTP_PROXY.
  */
 export function proxyFetch(
-  input: string | URL | globalThis.Request,
-  init?: globalThis.RequestInit,
-): Promise<globalThis.Response> {
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
   const dispatcher = getDispatcher();
 
-  if (!dispatcher) {
-    // No proxy configured – use the built-in fetch directly
-    return globalThis.fetch(input, init);
-  }
-
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  return undiciFetch(input as any, {
-    ...(init as any),
+  return undiciFetch(input as Parameters<typeof undiciFetch>[0], {
+    ...(init as Parameters<typeof undiciFetch>[1]),
     dispatcher,
-  }) as unknown as Promise<globalThis.Response>;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  }) as unknown as Promise<Response>;
 }
