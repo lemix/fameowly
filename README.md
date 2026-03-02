@@ -1,96 +1,43 @@
-# Family AI Hub
+# 🐈 FaMeooowly
+Purrs up whatever you need
 
-Семейный AI-хаб — self-hosted чат-приложение с поддержкой нескольких LLM-моделей (Google Gemini, OpenRouter: GPT-4o, Claude, Llama, DeepSeek) и генерацией изображений (DALL-E 3).
+**An ultra-lightweight, zero-database AI UI for your family, friends, or small team.**
 
-## Возможности
+Stop paying $20/month per person for premium AI subscriptions. NanoHub AI allows you to securely share your API keys (OpenRouter, Google AI Studio) with your close circle through a beautiful, Next.js-powered interface. You pay per token centrally, and they get a premium ChatGPT-like experience.
 
-- 🔐 **Аутентификация** — JWT-сессии, файловое хранилище пользователей (`data/users.json`)
-- 👨‍👩‍👧‍👦 **Админ-панель** — управление пользователями (добавление, удаление, сброс пароля)
-- 💬 **Мультимодельный чат** — потоковый ответ, Markdown-рендеринг, выбор модели
-- 🎨 **Генерация изображений** — DALL-E 3 через OpenRouter
-- 🐳 **Docker** — готовый Dockerfile и docker-compose
+## ✨ Why NanoHub AI?
+Powerful tools like Open WebUI or LibreChat are amazing, but they require heavy databases (Postgres/MongoDB) and complex orchestration. 
+NanoHub AI takes a different approach: **Zero databases.** All users and chat histories are stored locally in simple JSON files. It takes 1 minute to deploy and uses minimal RAM.
 
-## Технологии
+## 🚀 Features
+- 💳 **Centralized Billing:** You provide the API key. Your users just log in with a password. You control the costs.
+- 🗂️ **Database-Free Architecture:** Everything is saved in a local `./data` folder as JSON. Extremely easy to backup or migrate.
+- 👥 **Multi-User Admin Panel:** Create accounts, set passwords, and manage access directly from the UI.
+- 🎨 **Beautiful & Smart UI:** First-class support for **LaTeX (Math)**, syntax highlighting for code, and seamless markdown tables.
+- 🖼️ **Multimodal:** Copy-paste images directly into the chat or use the dedicated "Image Generation" tab.
+- ⚡ **Buttery Smooth Streaming:** Powered by Next.js 14 and Vercel AI SDK to prevent "chunk errors" and timeouts.
 
-- **Next.js 16** (App Router, TypeScript)
-- **AI SDK v6** (`ai`, `@ai-sdk/openai`, `@ai-sdk/google`, `@ai-sdk/react`)
-- **Tailwind CSS v4**
-- **jose** (JWT)
-- **react-markdown** + **remark-gfm**
-- **lucide-react** (иконки)
+## 🛠️ Quick Start (Docker)
 
-## Быстрый старт
+The easiest way to run NanoHub AI is using Docker.
 
-### 1. Установка зависимостей
-
-```bash
-npm install
+**1. Create a `docker-compose.yml` file:**
+```yaml
+version: '3.8'
+services:
+  nanohub-ai:
+    image: ghcr.io/lemix/fameowly:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data # This saves your chats and users!
+    env_file:
+      - .env
+    restart: unless-stopped
 ```
 
-### 2. Настройка переменных окружения
+## 🤝 Contributing
+Feel free to open issues or submit PRs! This is a weekend project built for my family, but I'm happy to see it grow.
 
-Скопируйте `.env.example` в `.env.local` и заполните:
-
-```bash
-cp .env.example .env.local
-```
-
-Необходимые ключи:
-- `GOOGLE_GENERATIVE_AI_API_KEY` — ключ Google AI Studio
-- `OPENROUTER_API_KEY` — ключ OpenRouter
-- `JWT_SECRET` — секрет для JWT (минимум 32 символа)
-- `ADMIN_INIT_PASS` — пароль администратора при первом запуске
-
-### 3. Запуск
-
-```bash
-npm run dev
-```
-
-Откройте http://localhost:3000. При первом входе используйте логин `admin` и пароль из `ADMIN_INIT_PASS`.
-
-## Docker
-
-```bash
-docker compose up -d
-```
-
-## Структура проекта
-
-```
-app/
-├── api/
-│   ├── auth/login/   — авторизация
-│   ├── auth/logout/  — выход
-│   ├── chat/         — streaming чат
-│   ├── image/        — генерация изображений
-│   └── users/        — управление пользователями
-├── admin/            — админ-панель
-├── login/            — страница входа
-└── page.tsx          — основной чат
-lib/
-├── auth.ts           — JWT, хранение пользователей
-├── models.ts         — список моделей
-└── utils.ts          — утилиты
-middleware.ts          — защита маршрутов
-```
-
-## Доступные модели
-
-### Чат
-| Модель | Провайдер |
-|--------|-----------|
-| Gemini 2.0 Flash | Google |
-| Gemini 2.5 Pro | Google |
-| Gemini 2.5 Flash | Google |
-| GPT-4o | OpenRouter |
-| GPT-4o Mini | OpenRouter |
-| Claude Sonnet 4 | OpenRouter |
-| Claude 3.5 Haiku | OpenRouter |
-| Llama 3.3 70B | OpenRouter |
-| DeepSeek V3 | OpenRouter |
-
-### Изображения
-| Модель | Провайдер |
-|--------|-----------|
-| DALL-E 3 | OpenRouter |
+## 📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Family AI Hub",
-  description: "Self-hosted family AI chat with multiple LLM providers",
+  title: "FaMeowly",
+  description: "Purrs up whatever you need",
 };
 
 export default function RootLayout({
