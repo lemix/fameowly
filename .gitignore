@@ -34,8 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# data (users db)
-/data/
+# data (runtime files, but keep default configs)
+/data/*
+!/data/models.json
 
 # vercel
 .vercel
