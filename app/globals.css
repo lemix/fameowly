@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@plugin "@tailwindcss/typography";
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
@@ -9,11 +12,12 @@ body {
   background: #0f172a;
   color: #e2e8f0;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.65;
 }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -26,23 +30,84 @@ body {
   background: #475569;
 }
 
-/* Prose overrides for chat messages */
+/* ─── Prose overrides for AI message content ─── */
+.prose {
+  --tw-prose-body: #cbd5e1;
+  --tw-prose-headings: #f1f5f9;
+  --tw-prose-links: #60a5fa;
+  --tw-prose-bold: #f1f5f9;
+  --tw-prose-counters: #94a3b8;
+  --tw-prose-bullets: #64748b;
+  --tw-prose-quotes: #94a3b8;
+  --tw-prose-code: #93c5fd;
+  --tw-prose-hr: #334155;
+  --tw-prose-th-borders: #475569;
+  --tw-prose-td-borders: #334155;
+  max-width: none;
+}
+
 .prose pre {
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 0.5rem;
-  padding: 1rem;
-  overflow-x: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
 }
 
 .prose code {
-  background: #1e293b;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.85em;
+  font-size: 0.8125rem;
 }
 
 .prose pre code {
   background: transparent;
   padding: 0;
+  font-size: 0.8125rem;
+}
+
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul, .prose ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose li {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+.prose blockquote {
+  border-left-color: #3b82f6;
+  color: #94a3b8;
+}
+
+.prose table {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* KaTeX overrides */
+.katex-display {
+  margin: 0.75em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex {
+  font-size: 1em !important;
+}
+
+/* Smooth chat scroll */
+.chat-scroll {
+  scroll-behavior: smooth;
+  overflow-anchor: auto;
 }

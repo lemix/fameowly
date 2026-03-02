@@ -4,15 +4,21 @@ import { createOpenAI } from "@ai-sdk/openai";
 
 export const maxDuration = 120;
 
-const SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
+const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { messages, model: modelId, provider } = body as {
+    const {
+      messages,
+      model: modelId,
+      provider,
+      systemPrompt,
+    } = body as {
       messages: UIMessage[];
       model: string;
       provider: string;
+      systemPrompt?: string;
     };
 
     if (!messages || !modelId || !provider) {
@@ -21,6 +27,8 @@ export async function POST(req: Request) {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    const system = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
     // Convert UIMessage[] to ModelMessage[] for the AI SDK
     const modelMessages = await convertToModelMessages(messages);
@@ -33,7 +41,7 @@ export async function POST(req: Request) {
       });
       result = streamText({
         model: google(modelId),
-        system: SYSTEM_PROMPT,
+        system,
         messages: modelMessages,
       });
     } else if (provider === "openrouter") {
@@ -43,7 +51,7 @@ export async function POST(req: Request) {
       });
       result = streamText({
         model: openrouter(modelId),
-        system: SYSTEM_PROMPT,
+        system,
         messages: modelMessages,
       });
     } else {
@@ -63,4 +71,14 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
+}
+
+/** Save completed messages after streaming finishes (called from client) */
+export async function PATCH(req: Request) {
+  // This endpoint is reserved for future server-side message persistence hooks.
+  // Currently persistence is handled via /api/chats PATCH.
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }

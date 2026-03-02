@@ -7,6 +7,8 @@ services:
       - "3001:3000"
     volumes:
       - ai-hub-data:/app/data
+      # Optionally mount a custom models config:
+      # - ./data/models.json:/app/data/models.json:ro
     env_file:
       - .env.local
     environment:
