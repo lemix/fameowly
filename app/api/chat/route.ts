@@ -1,6 +1,7 @@
 import { streamText, convertToModelMessages, UIMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
+import { proxyFetch } from "@/lib/proxy-fetch";
 
 export const maxDuration = 120;
 
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     if (provider === "google") {
       const google = createGoogleGenerativeAI({
         apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        fetch: proxyFetch,
       });
       result = streamText({
         model: google(modelId),
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
       const openrouter = createOpenAI({
         apiKey: process.env.OPENROUTER_API_KEY,
         baseURL: "https://openrouter.ai/api/v1",
+        fetch: proxyFetch,
       });
       result = streamText({
         model: openrouter(modelId),

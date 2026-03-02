@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { readModelsConfig } from "@/lib/models.server";
+import { proxyFetch } from "@/lib/proxy-fetch";
 import {
   addImageHistoryItem,
   saveGeneratedImage,
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const response = await fetch(
+      const response = await proxyFetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
         {
           method: "POST",
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fallback: OpenRouter
-    const response = await fetch(
+    const response = await proxyFetch(
       "https://openrouter.ai/api/v1/images/generations",
       {
         method: "POST",

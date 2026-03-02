@@ -1,4 +1,15 @@
 services:
+  # ── SOCKS5 proxy (Xray) ─────────────────────────────────────────────
+  # Uncomment to enable traffic routing through Xray SOCKS5 proxy.
+  # Place your Xray client config at ./xray-config.json.
+  #
+  # xray-client:
+  #   image: teddysun/xray:latest
+  #   container_name: xray-client
+  #   restart: always
+  #   volumes:
+  #     - ./xray-config.json:/etc/xray/config.json:ro
+
   family-ai-hub:
     build: .
     container_name: family-ai-hub
@@ -13,6 +24,14 @@ services:
       - .env.local
     environment:
       - NODE_ENV=production
+      # ── SOCKS5 proxy for outgoing LLM / image-gen requests ──────────
+      # Set SOCKS_PROXY to route Google & OpenRouter traffic through a
+      # SOCKS5 proxy (e.g. Xray, V2Ray, SSH tunnel).
+      # Example (using the xray-client service above):
+      #   - SOCKS_PROXY=socks5://xray-client:10808
+      # You can also use ALL_PROXY, HTTPS_PROXY, or HTTP_PROXY.
+    # depends_on:
+    #   - xray-client
 
 volumes:
   ai-hub-data:
