@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { readModelsConfig } from "@/lib/models.server";
 import { proxyFetch } from "@/lib/proxy-fetch";
+import { resizeToTarget } from "@/lib/image-resize";
 import {
   addImageHistoryItem,
   saveGeneratedImage,
@@ -22,7 +23,7 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   return session?.userId ?? null;
 }
 
-/** Read a reference image URL and return base64 + mimeType */
+/** Read a reference file URL and return base64 + mimeType */
 function resolveReferenceImage(
   refUrl: string
 ): { data: string; mimeType: string } | null {
@@ -36,12 +37,13 @@ function resolveReferenceImage(
       if (!fs.existsSync(filePath)) return null;
       const buffer = fs.readFileSync(filePath);
       const ext = path.extname(filePath).toLowerCase();
-      const mimeType =
-        ext === ".png"
-          ? "image/png"
-          : ext === ".webp"
-            ? "image/webp"
-            : "image/jpeg";
+      const mimeMap: Record<string, string> = {
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+        ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown",
+        ".json": "application/json", ".csv": "text/csv",
+      };
+      const mimeType = mimeMap[ext] || "application/octet-stream";
       return { data: buffer.toString("base64"), mimeType };
     }
   } catch {
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { prompt, model, referenceImageUrl } = await req.json();
+    const { prompt, model, referenceFiles, aspectRatio, resolution } = await req.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -78,6 +80,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Determine target resolution (longest side in px)
+    const targetLongestSide =
+      resolution === "4K" ? 4096 : resolution === "2K" ? 2048 : 0; // 0 = keep as-is
+
+    // Build reference file list for history
+    const refFilesForHistory = (referenceFiles as Array<{ url: string; name: string; mimeType: string }> | undefined)
+      ?.map((f) => ({ url: f.url, name: f.name, mimeType: f.mimeType }));
+
     // Build history item shell
     const historyItem: ImageHistoryItem = {
       id: `img-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
@@ -86,6 +96,9 @@ export async function POST(req: NextRequest) {
       modelId: modelInfo.id,
       modelName: modelInfo.name,
       createdAt: new Date().toISOString(),
+      referenceFiles: refFilesForHistory,
+      aspectRatio: aspectRatio || "1:1",
+      resolution: resolution || "1K",
     };
 
     if (modelInfo.provider === "google") {
@@ -97,15 +110,30 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Build parts (text + optional reference image)
-      const parts: Array<Record<string, unknown>> = [{ text: prompt }];
+      // Build parts (text + optional reference files)
+      // Include aspect ratio hint in the prompt for Gemini
+      let enrichedPrompt = prompt;
+      if (aspectRatio && aspectRatio !== "1:1") {
+        enrichedPrompt = `${prompt}\n\n[Image aspect ratio: ${aspectRatio}]`;
+      }
+      const parts: Array<Record<string, unknown>> = [{ text: enrichedPrompt }];
 
-      if (referenceImageUrl) {
-        const ref = resolveReferenceImage(referenceImageUrl);
-        if (ref) {
-          parts.push({
-            inlineData: { mimeType: ref.mimeType, data: ref.data },
-          });
+      if (referenceFiles?.length) {
+        for (const refFile of referenceFiles as Array<{ url: string; name: string; mimeType: string; type: string }>) {
+          const ref = resolveReferenceImage(refFile.url);
+          if (ref) {
+            if (ref.mimeType.startsWith("image/") || ref.mimeType === "application/pdf") {
+              parts.push({
+                inlineData: { mimeType: ref.mimeType, data: ref.data },
+              });
+            } else {
+              // Text files: include content as text
+              try {
+                const textContent = Buffer.from(ref.data, "base64").toString("utf-8");
+                parts.push({ text: `[Файл: ${refFile.name}]\n${textContent}` });
+              } catch { /* skip */ }
+            }
+          }
         }
       }
 
@@ -167,8 +195,22 @@ export async function POST(req: NextRequest) {
           data: string;
         };
 
+        // Optionally resize to target resolution
+        let finalB64 = b64;
+        let finalMime = mimeType;
+        if (targetLongestSide > 0) {
+          try {
+            const buf = Buffer.from(b64, "base64");
+            const resized = await resizeToTarget(buf, targetLongestSide);
+            finalB64 = resized.toString("base64");
+            finalMime = "image/png";
+          } catch {
+            // Keep original on resize failure
+          }
+        }
+
         // Save to disk instead of returning base64
-        const imageUrl = saveGeneratedImage(b64, mimeType);
+        const imageUrl = saveGeneratedImage(finalB64, finalMime);
         historyItem.imageUrl = imageUrl;
 
         const textPart = resParts.find(
@@ -202,6 +244,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Fallback: OpenRouter
+    // Map aspect ratio to OpenRouter/DALL-E size parameter
+    let imageSize = "1024x1024";
+    if (aspectRatio === "16:9") imageSize = "1792x1024";
+    else if (aspectRatio === "9:16") imageSize = "1024x1792";
+    else if (aspectRatio === "4:3") imageSize = "1024x768";
+    else if (aspectRatio === "3:4") imageSize = "768x1024";
+    else if (aspectRatio === "3:2") imageSize = "1152x768";
+    else if (aspectRatio === "2:3") imageSize = "768x1152";
+
     const response = await proxyFetch(
       "https://openrouter.ai/api/v1/images/generations",
       {
@@ -214,7 +265,7 @@ export async function POST(req: NextRequest) {
           model: modelId,
           prompt,
           n: 1,
-          size: "1024x1024",
+          size: imageSize,
         }),
       }
     );

@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ModelOption } from "@/lib/models";
 import type { ChatListItem } from "@/lib/chat-store";
+import { ConfirmModal } from "@/components/confirm-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ interface SidebarProps {
   activeImageId: string | null;
   onSelectImageItem: (item: ImageHistoryItem) => void;
   onDeleteImageHistory: (id: string) => void;
+  onNewImageGeneration: () => void;
 }
 
 // ─── Model Dropdown ──────────────────────────────────────────────────
@@ -160,6 +162,7 @@ function ChatItem({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(chat.title);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -270,7 +273,7 @@ function ChatItem({
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    onDelete();
+                    setConfirmDelete(true);
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                 >
@@ -282,6 +285,20 @@ function ChatItem({
           </div>
         </>
       )}
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={confirmDelete}
+        title="Удалить чат?"
+        message={`Чат «${chat.title}» будет удалён без возможности восстановления.`}
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDelete();
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
@@ -311,8 +328,10 @@ export default function Sidebar({
   activeImageId,
   onSelectImageItem,
   onDeleteImageHistory,
+  onNewImageGeneration,
 }: SidebarProps) {
   const router = useRouter();
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -334,7 +353,7 @@ export default function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-700/60 bg-slate-850 transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-700/40 bg-slate-850 transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ backgroundColor: "#0d1525" }}
@@ -451,7 +470,21 @@ export default function Sidebar({
         {/* Image mode — history */}
         {mode === "image" && (
           <div className="flex flex-1 flex-col overflow-hidden">
+            {/* New generation button */}
             <div className="px-3 pt-3 pb-1">
+              <button
+                onClick={() => {
+                  onNewImageGeneration();
+                  onClose();
+                }}
+                className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-600 px-3 py-2 text-sm text-slate-400 transition hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-600/5"
+              >
+                <Plus className="h-4 w-4" />
+                Новая генерация
+              </button>
+            </div>
+
+            <div className="px-3 pt-2 pb-1">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 px-1">
                 <History className="h-3 w-3" />
                 История генераций
@@ -497,20 +530,34 @@ export default function Sidebar({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteImageHistory(item.id);
+                      setDeleteImageId(item.id);
                     }}
-                    className="rounded p-1 text-slate-500 opacity-40 hover:opacity-100 hover:text-red-400 hover:bg-slate-700 transition"
+                    className="rounded p-1 text-slate-400 opacity-60 hover:opacity-100 hover:text-red-400 hover:bg-slate-700 transition"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
             </div>
+
+            {/* Image delete confirmation modal */}
+            <ConfirmModal
+              open={deleteImageId !== null}
+              title="Удалить изображение?"
+              message="Изображение и его история будут удалены без возможности восстановления."
+              confirmLabel="Удалить"
+              variant="danger"
+              onConfirm={() => {
+                if (deleteImageId) onDeleteImageHistory(deleteImageId);
+                setDeleteImageId(null);
+              }}
+              onCancel={() => setDeleteImageId(null)}
+            />
           </div>
         )}
 
         {/* Bottom actions */}
-        <div className="border-t border-slate-700/60 p-3 space-y-1">
+        <div className="border-t border-slate-700/40 p-3 space-y-1">
           <button
             onClick={() => router.push("/admin")}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"
