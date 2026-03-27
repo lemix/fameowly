@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ImagePreviewModalProps {
@@ -17,6 +18,11 @@ export function ImagePreviewModal({
   onClose,
 }: ImagePreviewModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -27,12 +33,12 @@ export function ImagePreviewModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const modal = (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -51,4 +57,6 @@ export function ImagePreviewModal({
       />
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

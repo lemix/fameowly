@@ -131,3 +131,33 @@ select:disabled,
 input:disabled {
   cursor: not-allowed;
 }
+
+/* ─── Modal animations ─── */
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-slide-up-mobile {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-overlay {
+  animation: modal-fade-in 0.15s ease-out;
+}
+
+.modal-content {
+  animation: modal-slide-up 0.2s ease-out;
+}
+
+@media (max-width: 639px) {
+  .modal-content-mobile {
+    animation: modal-slide-up-mobile 0.25s ease-out;
+  }
+}

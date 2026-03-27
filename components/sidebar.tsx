@@ -60,6 +60,7 @@ interface SidebarProps {
   activeImageId: string | null;
   onSelectImageItem: (item: ImageHistoryItem) => void;
   onDeleteImageHistory: (id: string) => void;
+  onNewImageGeneration: () => void;
 }
 
 // ─── Model Dropdown ──────────────────────────────────────────────────
@@ -327,6 +328,7 @@ export default function Sidebar({
   activeImageId,
   onSelectImageItem,
   onDeleteImageHistory,
+  onNewImageGeneration,
 }: SidebarProps) {
   const router = useRouter();
   const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
@@ -468,7 +470,21 @@ export default function Sidebar({
         {/* Image mode — history */}
         {mode === "image" && (
           <div className="flex flex-1 flex-col overflow-hidden">
+            {/* New generation button */}
             <div className="px-3 pt-3 pb-1">
+              <button
+                onClick={() => {
+                  onNewImageGeneration();
+                  onClose();
+                }}
+                className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-600 px-3 py-2 text-sm text-slate-400 transition hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-600/5"
+              >
+                <Plus className="h-4 w-4" />
+                Новая генерация
+              </button>
+            </div>
+
+            <div className="px-3 pt-2 pb-1">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 px-1">
                 <History className="h-3 w-3" />
                 История генераций
