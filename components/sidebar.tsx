@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ModelOption } from "@/lib/models";
 import type { ChatListItem } from "@/lib/chat-store";
+import { ConfirmModal } from "@/components/confirm-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -160,6 +161,7 @@ function ChatItem({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(chat.title);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -270,7 +272,7 @@ function ChatItem({
                 <button
                   onClick={() => {
                     setMenuOpen(false);
-                    onDelete();
+                    setConfirmDelete(true);
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                 >
@@ -282,6 +284,20 @@ function ChatItem({
           </div>
         </>
       )}
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={confirmDelete}
+        title="Удалить чат?"
+        message={`Чат «${chat.title}» будет удалён без возможности восстановления.`}
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDelete();
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
@@ -313,6 +329,7 @@ export default function Sidebar({
   onDeleteImageHistory,
 }: SidebarProps) {
   const router = useRouter();
+  const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -497,15 +514,29 @@ export default function Sidebar({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteImageHistory(item.id);
+                      setDeleteImageId(item.id);
                     }}
-                    className="rounded p-1 text-slate-500 opacity-40 hover:opacity-100 hover:text-red-400 hover:bg-slate-700 transition"
+                    className="rounded p-1 text-slate-400 opacity-60 hover:opacity-100 hover:text-red-400 hover:bg-slate-700 transition"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
             </div>
+
+            {/* Image delete confirmation modal */}
+            <ConfirmModal
+              open={deleteImageId !== null}
+              title="Удалить изображение?"
+              message="Изображение и его история будут удалены без возможности восстановления."
+              confirmLabel="Удалить"
+              variant="danger"
+              onConfirm={() => {
+                if (deleteImageId) onDeleteImageHistory(deleteImageId);
+                setDeleteImageId(null);
+              }}
+              onCancel={() => setDeleteImageId(null)}
+            />
           </div>
         )}
 

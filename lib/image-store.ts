@@ -12,6 +12,9 @@ export interface ImageHistoryItem {
   modelId: string;
   modelName: string;
   createdAt: string;
+  referenceFiles?: Array<{ url: string; name: string; mimeType: string }>;
+  aspectRatio?: string;
+  resolution?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────

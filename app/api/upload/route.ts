@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { saveUploadedFile } from "@/lib/chat-store";
+import { resizeImageBuffer } from "@/lib/image-resize";
 
 const COOKIE_NAME = "session";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -33,14 +34,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const url = saveUploadedFile(buffer, file.name, file.type);
+    let buffer: Buffer = Buffer.from(await file.arrayBuffer());
+    let mimeType = file.type;
+    let fileName = file.name;
+
+    // Resize images on upload to save storage and reduce payload
+    if (mimeType.startsWith("image/") && mimeType !== "image/svg+xml") {
+      try {
+        const resized = await resizeImageBuffer(buffer);
+        buffer = Buffer.from(resized.buffer);
+        if (resized.mimeType !== mimeType) {
+          mimeType = resized.mimeType;
+          fileName = fileName.replace(/\.[^.]+$/, ".jpg");
+        }
+      } catch {
+        // Keep original on resize failure
+      }
+    }
+
+    const url = saveUploadedFile(buffer, fileName, mimeType);
 
     return NextResponse.json({
       url,
       name: file.name,
-      mimeType: file.type,
-      type: file.type.startsWith("image/") ? "image" : "file",
+      mimeType,
+      type: mimeType.startsWith("image/") ? "image" : "file",
     });
   } catch (error) {
     console.error("Upload error:", error);

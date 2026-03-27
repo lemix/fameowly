@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { proxyFetch } from "@/lib/proxy-fetch";
+import { resizeBase64Image } from "@/lib/image-resize";
 import fs from "fs";
 import path from "path";
 
@@ -99,15 +100,37 @@ export async function POST(req: Request) {
         if (msg.attachments?.length) {
           for (const att of msg.attachments) {
             if (att.mimeType.startsWith("image/")) {
-              // Images: resolve to base64 data URL for the model
+              // Images: extract raw base64 + mimeType, resize for smaller payload
+              let imgBase64: string | null = null;
+              let imgMime = att.mimeType;
+
               if (att.url.startsWith("data:")) {
-                contentParts.push({ type: "image", image: att.url });
+                const match = att.url.match(/^data:(.*?);base64,(.*)$/);
+                if (match) {
+                  imgBase64 = match[2];
+                  imgMime = match[1];
+                }
               } else {
                 const resolved = resolveFileUrl(att.url);
                 if (resolved) {
+                  imgBase64 = resolved.data;
+                  imgMime = resolved.mimeType;
+                }
+              }
+
+              if (imgBase64) {
+                try {
+                  const resized = await resizeBase64Image(imgBase64, imgMime);
                   contentParts.push({
                     type: "image",
-                    image: `data:${resolved.mimeType};base64,${resolved.data}`,
+                    image: resized.data,
+                    mimeType: resized.mimeType,
+                  });
+                } catch {
+                  contentParts.push({
+                    type: "image",
+                    image: imgBase64,
+                    mimeType: imgMime,
                   });
                 }
               }
