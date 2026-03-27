@@ -111,3 +111,23 @@ body {
   scroll-behavior: smooth;
   overflow-anchor: auto;
 }
+
+/* ─── Global cursor styles ─── */
+button,
+[role="button"],
+a,
+select,
+label[for],
+input[type="checkbox"],
+input[type="radio"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"]:disabled,
+a[aria-disabled="true"],
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
