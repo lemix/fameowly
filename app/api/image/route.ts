@@ -22,7 +22,7 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   return session?.userId ?? null;
 }
 
-/** Read a reference image URL and return base64 + mimeType */
+/** Read a reference file URL and return base64 + mimeType */
 function resolveReferenceImage(
   refUrl: string
 ): { data: string; mimeType: string } | null {
@@ -36,12 +36,13 @@ function resolveReferenceImage(
       if (!fs.existsSync(filePath)) return null;
       const buffer = fs.readFileSync(filePath);
       const ext = path.extname(filePath).toLowerCase();
-      const mimeType =
-        ext === ".png"
-          ? "image/png"
-          : ext === ".webp"
-            ? "image/webp"
-            : "image/jpeg";
+      const mimeMap: Record<string, string> = {
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+        ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown",
+        ".json": "application/json", ".csv": "text/csv",
+      };
+      const mimeType = mimeMap[ext] || "application/octet-stream";
       return { data: buffer.toString("base64"), mimeType };
     }
   } catch {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { prompt, model, referenceImageUrl } = await req.json();
+    const { prompt, model, referenceFiles } = await req.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -97,15 +98,25 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Build parts (text + optional reference image)
+      // Build parts (text + optional reference files)
       const parts: Array<Record<string, unknown>> = [{ text: prompt }];
 
-      if (referenceImageUrl) {
-        const ref = resolveReferenceImage(referenceImageUrl);
-        if (ref) {
-          parts.push({
-            inlineData: { mimeType: ref.mimeType, data: ref.data },
-          });
+      if (referenceFiles?.length) {
+        for (const refFile of referenceFiles as Array<{ url: string; name: string; mimeType: string; type: string }>) {
+          const ref = resolveReferenceImage(refFile.url);
+          if (ref) {
+            if (ref.mimeType.startsWith("image/") || ref.mimeType === "application/pdf") {
+              parts.push({
+                inlineData: { mimeType: ref.mimeType, data: ref.data },
+              });
+            } else {
+              // Text files: include content as text
+              try {
+                const textContent = Buffer.from(ref.data, "base64").toString("utf-8");
+                parts.push({ text: `[Файл: ${refFile.name}]\n${textContent}` });
+              } catch { /* skip */ }
+            }
+          }
         }
       }
 

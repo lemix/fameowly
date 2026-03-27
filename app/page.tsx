@@ -261,25 +261,14 @@ function usePersistentChat() {
       setStatus("submitted");
       setError(null);
 
-      // Build API messages
+      // Build API messages — send content + attachments, server resolves files
       const allMsgs = [...messages, userMsg];
-      const apiMessages = allMsgs.map((m) => {
-        const parts: Array<Record<string, unknown>> = [
-          { type: "text" as const, text: m.content },
-        ];
-        // Add image parts for multimodal
-        if (m.attachments) {
-          for (const att of m.attachments) {
-            if (att.type === "image") {
-              parts.push({
-                type: "image" as const,
-                image: att.url,
-              });
-            }
-          }
-        }
-        return { id: m.id, role: m.role, parts };
-      });
+      const apiMessages = allMsgs.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        attachments: m.attachments,
+      }));
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -559,7 +548,7 @@ function ChatPage() {
   const [imageError, setImageError] = useState("");
   const [imageHistory, setImageHistory] = useState<ImageHistoryItem[]>([]);
   const [selectedImageItem, setSelectedImageItem] = useState<ImageHistoryItem | null>(null);
-  const [imageRefAttachment, setImageRefAttachment] = useState<PendingAttachment | null>(null);
+  const [imageRefAttachments, setImageRefAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAllChats, setShowAllChats] = useState(false);
   const [input, setInput] = useState("");
@@ -734,8 +723,10 @@ function ChatPage() {
   }
 
   function addFiles(files: FileList | File[]) {
+    const remaining = 10 - pendingAttachments.length;
+    if (remaining <= 0) return;
     const newPending: PendingAttachment[] = [];
-    for (const file of Array.from(files)) {
+    for (const file of Array.from(files).slice(0, remaining)) {
       const preview = file.type.startsWith("image/")
         ? URL.createObjectURL(file)
         : "";
@@ -775,6 +766,48 @@ function ChatPage() {
     });
   }
 
+  // ─── Image Reference Files ──────────────────────────────────────
+
+  function addImageRefFiles(files: File[]) {
+    const remaining = 10 - imageRefAttachments.length;
+    if (remaining <= 0) return;
+    const filesToAdd = files.slice(0, remaining);
+    const newPending: PendingAttachment[] = filesToAdd.map((file) => ({
+      file,
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+      uploading: true,
+    }));
+
+    setImageRefAttachments((prev) => {
+      const startIdx = prev.length;
+      newPending.forEach(async (pa, idx) => {
+        const uploaded = await uploadFile(pa.file);
+        setImageRefAttachments((current) => {
+          const updated = [...current];
+          const globalIdx = startIdx + idx;
+          if (updated[globalIdx]) {
+            updated[globalIdx] = {
+              ...updated[globalIdx],
+              uploading: false,
+              uploaded: uploaded || undefined,
+            };
+          }
+          return updated;
+        });
+      });
+      return [...prev, ...newPending];
+    });
+  }
+
+  function removeImageRefAttachment(idx: number) {
+    setImageRefAttachments((prev) => {
+      const updated = [...prev];
+      if (updated[idx]?.preview) URL.revokeObjectURL(updated[idx].preview);
+      updated.splice(idx, 1);
+      return updated;
+    });
+  }
+
   // Paste handler for images (mode-aware)
   useEffect(() => {
     function handlePaste(e: ClipboardEvent) {
@@ -793,16 +826,8 @@ function ChatPage() {
         if (mode === "chat") {
           addFiles(imageFiles);
         } else {
-          // Image mode: set as reference image
-          const file = imageFiles[0];
-          const preview = URL.createObjectURL(file);
-          const pa: PendingAttachment = { file, preview, uploading: true };
-          setImageRefAttachment(pa);
-          uploadFile(file).then((uploaded) => {
-            setImageRefAttachment((prev) =>
-              prev ? { ...prev, uploading: false, uploaded: uploaded || undefined } : null
-            );
-          });
+          // Image mode: add as reference files
+          addImageRefFiles(imageFiles);
         }
       }
     }
@@ -822,8 +847,15 @@ function ChatPage() {
     setImageUrl(null);
     setSelectedImageItem(null);
 
-    // Get reference image URL if attached
-    const refUrl = imageRefAttachment?.uploaded?.url || undefined;
+    // Get reference file URLs if attached
+    const refFiles = imageRefAttachments
+      .filter((pa) => pa.uploaded)
+      .map((pa) => ({
+        url: pa.uploaded!.url,
+        name: pa.uploaded!.name,
+        mimeType: pa.uploaded!.mimeType,
+        type: pa.uploaded!.type,
+      }));
 
     try {
       const res = await fetch("/api/image", {
@@ -832,7 +864,7 @@ function ChatPage() {
         body: JSON.stringify({
           prompt: imagePrompt,
           model: selectedImageModel.id,
-          referenceImageUrl: refUrl,
+          referenceFiles: refFiles.length ? refFiles : undefined,
         }),
       });
       const data = await res.json();
@@ -853,8 +885,8 @@ function ChatPage() {
       setImageError("Ошибка сети");
     } finally {
       setImageLoading(false);
-      // Clear reference and reload history from server
-      setImageRefAttachment(null);
+      // Clear references and reload history from server
+      setImageRefAttachments([]);
       setImagePrompt("");
       await loadImageHistory();
     }
@@ -1232,32 +1264,44 @@ function ChatPage() {
                 Генерация изображений
               </h2>
 
-              {/* Reference image preview */}
-              {imageRefAttachment && (
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imageRefAttachment.preview}
-                      alt="Референс"
-                      className="h-20 w-20 rounded-lg object-cover border border-slate-600"
-                    />
-                    {imageRefAttachment.uploading && (
-                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
-                        <Loader2 className="h-4 w-4 animate-spin text-white" />
+              {/* Reference files preview */}
+              {imageRefAttachments.length > 0 && (
+                <div className="mb-3">
+                  <div className="flex flex-wrap gap-2">
+                    {imageRefAttachments.map((pa, idx) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-lg border border-slate-600 bg-slate-800 p-1"
+                      >
+                        {pa.preview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={pa.preview}
+                            alt={pa.file.name}
+                            className="h-16 w-16 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-700 text-xs text-slate-400">
+                            {pa.file.name.split(".").pop()?.toUpperCase() || "FILE"}
+                          </div>
+                        )}
+                        {pa.uploading && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded bg-black/50">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeImageRefAttachment(idx)}
+                          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-red-500 hover:text-white transition"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (imageRefAttachment.preview) URL.revokeObjectURL(imageRefAttachment.preview);
-                        setImageRefAttachment(null);
-                      }}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-red-500 hover:text-white transition"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    ))}
                   </div>
-                  <span className="text-xs text-slate-400">Референс для генерации</span>
+                  <span className="mt-1 block text-xs text-slate-500">
+                    Файлы для контекста ({imageRefAttachments.length}/10)
+                  </span>
                 </div>
               )}
 
@@ -1267,26 +1311,19 @@ function ChatPage() {
                   type="button"
                   onClick={() => imageFileInputRef.current?.click()}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-white"
-                  title="Прикрепить референс"
+                  title="Прикрепить файлы"
                 >
                   <Paperclip className="h-4 w-4" />
                 </button>
                 <input
                   ref={imageFileInputRef}
                   type="file"
-                  accept="image/*"
+                  multiple
+                  accept="image/*,.pdf,.txt,.md,.json,.csv"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const preview = URL.createObjectURL(file);
-                      const pa: PendingAttachment = { file, preview, uploading: true };
-                      setImageRefAttachment(pa);
-                      uploadFile(file).then((uploaded) => {
-                        setImageRefAttachment((prev) =>
-                          prev ? { ...prev, uploading: false, uploaded: uploaded || undefined } : null
-                        );
-                      });
+                    if (e.target.files?.length) {
+                      addImageRefFiles(Array.from(e.target.files));
                     }
                     e.target.value = "";
                   }}
@@ -1380,7 +1417,7 @@ function ChatPage() {
                       Введите описание и нажмите «Создать»
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
-                      Можно прикрепить референс или вставить через Ctrl+V
+                      Можно прикрепить до 10 файлов или вставить через Ctrl+V
                     </p>
                   </div>
                 </div>
