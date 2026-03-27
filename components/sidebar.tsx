@@ -353,7 +353,7 @@ export default function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-700/60 bg-slate-850 transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-700/40 bg-slate-850 transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ backgroundColor: "#0d1525" }}
@@ -557,7 +557,7 @@ export default function Sidebar({
         )}
 
         {/* Bottom actions */}
-        <div className="border-t border-slate-700/60 p-3 space-y-1">
+        <div className="border-t border-slate-700/40 p-3 space-y-1">
           <button
             onClick={() => router.push("/admin")}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"

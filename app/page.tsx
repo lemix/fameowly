@@ -1034,7 +1034,7 @@ function ChatPage() {
       {/* Main */}
       <main className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-6">
+        <header className="flex items-center justify-between border-b border-slate-700/40 px-4 py-2.5 md:px-6">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white md:hidden"
@@ -1244,115 +1244,119 @@ function ChatPage() {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-slate-700/60 px-3 py-3 md:px-4">
-              {/* Pending attachments preview */}
-              {pendingAttachments.length > 0 && (
-                <div
-                  className="mx-auto mb-2 flex flex-wrap gap-2"
-                  style={{ maxWidth: "52rem" }}
-                >
-                  {pendingAttachments.map((pa, idx) => (
-                    <div
-                      key={idx}
-                      className="relative rounded-lg border border-slate-600 bg-slate-800 p-1"
-                    >
-                      {pa.preview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={pa.preview}
-                          alt={pa.file.name}
-                          className="h-16 w-16 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-700 text-xs text-slate-400">
-                          {pa.file.name.slice(0, 8)}
-                        </div>
-                      )}
-                      {pa.uploading && (
-                        <div className="absolute inset-0 flex items-center justify-center rounded bg-black/50">
-                          <Loader2 className="h-4 w-4 animate-spin text-white" />
-                        </div>
-                      )}
-                      <button
-                        onClick={() => removeAttachment(idx)}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-red-500 hover:text-white transition"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="relative px-3 pb-4 pt-2 md:px-4">
+              {/* Gradient fade above input */}
+              <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
-              <form
-                onSubmit={handleChatSubmit}
-                className="mx-auto flex items-end gap-2"
+              <div
+                className="mx-auto rounded-2xl bg-slate-800/80 shadow-lg shadow-black/20 ring-1 ring-slate-700/50"
                 style={{ maxWidth: "52rem" }}
               >
-                {/* File upload button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-white"
-                  title="Прикрепить файл"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.txt,.md,.json,.csv"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.length) {
-                      addFiles(e.target.files);
-                      e.target.value = "";
-                    }
-                  }}
-                />
+                {/* Pending attachments preview */}
+                {pendingAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-3 pt-3">
+                    {pendingAttachments.map((pa, idx) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-lg bg-slate-700/60 p-1"
+                      >
+                        {pa.preview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={pa.preview}
+                            alt={pa.file.name}
+                            className="h-14 w-14 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded bg-slate-700 text-xs text-slate-400">
+                            {pa.file.name.slice(0, 8)}
+                          </div>
+                        )}
+                        {pa.uploading && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded bg-black/50">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeAttachment(idx)}
+                          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-slate-300 hover:bg-red-500 hover:text-white transition"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Напишите сообщение..."
-                  rows={1}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleChatSubmit(e as unknown as React.FormEvent);
-                    }
-                  }}
-                  className="flex-1 resize-none rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  style={{ maxHeight: "140px" }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = "auto";
-                    target.style.height = target.scrollHeight + "px";
-                  }}
-                />
-                <button
-                  type={isLoading ? "button" : "submit"}
-                  onClick={isLoading ? stop : undefined}
-                  disabled={
-                    !isLoading &&
-                    !input.trim() && pendingAttachments.length === 0
-                  }
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition",
-                    isLoading
-                      ? "bg-red-500 hover:bg-red-400"
-                      : "bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                  title={isLoading ? "Остановить генерацию" : "Отправить"}
+                <form
+                  onSubmit={handleChatSubmit}
+                  className="flex items-end gap-1 p-2"
                 >
-                  {isLoading ? (
-                    <div className="h-3.5 w-3.5 rounded-sm bg-white" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
-              </form>
+                  {/* File upload button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:text-white hover:bg-slate-700/60"
+                    title="Прикрепить файл"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.txt,.md,.json,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.length) {
+                        addFiles(e.target.files);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Напишите сообщение..."
+                    rows={1}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleChatSubmit(e as unknown as React.FormEvent);
+                      }
+                    }}
+                    className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white placeholder-slate-500 outline-none"
+                    style={{ maxHeight: "140px" }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = "auto";
+                      target.style.height = target.scrollHeight + "px";
+                    }}
+                  />
+                  <button
+                    type={isLoading ? "button" : "submit"}
+                    onClick={isLoading ? stop : undefined}
+                    disabled={
+                      !isLoading &&
+                      !input.trim() && pendingAttachments.length === 0
+                    }
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition",
+                      isLoading
+                        ? "bg-red-500 hover:bg-red-400"
+                        : "bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                    )}
+                    title={isLoading ? "Остановить генерацию" : "Отправить"}
+                  >
+                    {isLoading ? (
+                      <div className="h-3.5 w-3.5 rounded-sm bg-white" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </button>
+                </form>
+              </div>
             </div>
           </>
         )}
@@ -1514,98 +1518,58 @@ function ChatPage() {
 
             {/* Input area pinned to bottom — only in generation mode */}
             {!selectedImageItem && (
-            <div className="border-t border-slate-700/60 px-3 py-3 md:px-4">
-              <div className="mx-auto w-full max-w-xl">
-                {/* Aspect ratio & Resolution selectors */}
-                <div className="mb-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Пропорции</span>
-                    <div className="flex flex-wrap gap-1">
-                      {ASPECT_RATIOS.map((ar) => (
-                        <button
-                          key={ar.id}
-                          type="button"
-                          onClick={() => setImageAspectRatio(ar.id)}
-                          className={cn(
-                            "rounded-md px-2 py-1 text-[11px] font-medium transition",
-                            imageAspectRatio === ar.id
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
-                          )}
-                        >
-                          {ar.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Размер</span>
-                    <div className="flex flex-wrap gap-1">
-                      {RESOLUTIONS.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setImageResolution(r.id)}
-                          className={cn(
-                            "rounded-md px-2 py-1 text-[11px] font-medium transition",
-                            imageResolution === r.id
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
-                          )}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            <div className="relative px-3 pb-4 pt-2 md:px-4">
+              {/* Gradient fade above input */}
+              <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
+              <div className="mx-auto w-full max-w-xl rounded-2xl bg-slate-800/80 shadow-lg shadow-black/20 ring-1 ring-slate-700/50">
                 {/* Reference files preview */}
                 {imageRefAttachments.length > 0 && (
-                  <div className="mb-2">
+                  <div className="px-3 pt-3">
                     <div className="flex flex-wrap gap-2">
                       {imageRefAttachments.map((pa, idx) => (
                         <div
                           key={idx}
-                          className="relative rounded-lg border border-slate-600 bg-slate-800 p-1"
+                          className="relative rounded-lg bg-slate-700/60 p-1"
                         >
                           {pa.preview ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={pa.preview}
                               alt={pa.file.name}
-                              className="h-14 w-14 rounded object-cover"
+                              className="h-12 w-12 rounded object-cover"
                             />
                           ) : (
-                            <div className="flex h-14 w-14 items-center justify-center rounded bg-slate-700 text-xs text-slate-400">
+                            <div className="flex h-12 w-12 items-center justify-center rounded bg-slate-700 text-[10px] text-slate-400">
                               {pa.file.name.split(".").pop()?.toUpperCase() || "FILE"}
                             </div>
                           )}
                           {pa.uploading && (
                             <div className="absolute inset-0 flex items-center justify-center rounded bg-black/50">
-                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                             </div>
                           )}
                           <button
                             onClick={() => removeImageRefAttachment(idx)}
-                            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-red-500 hover:text-white transition"
+                            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-slate-300 hover:bg-red-500 hover:text-white transition"
                           >
                             <X className="h-3 w-3" />
                           </button>
                         </div>
                       ))}
                     </div>
-                    <span className="mt-1 block text-xs text-slate-500">
+                    <span className="mt-1 block text-[10px] text-slate-500">
                       Файлы для контекста ({imageRefAttachments.length}/10)
                     </span>
                   </div>
                 )}
 
-                <form onSubmit={handleImageGenerate} className="flex items-end gap-2">
+                {/* Input row */}
+                <form onSubmit={handleImageGenerate} className="flex items-end gap-1 p-2">
                   <button
                     type="button"
                     onClick={() => imageFileInputRef.current?.click()}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition cursor-pointer hover:bg-slate-800 hover:text-white"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition cursor-pointer hover:text-white hover:bg-slate-700/60"
                     title="Прикрепить файлы"
                   >
                     <Paperclip className="h-4 w-4" />
@@ -1635,7 +1599,7 @@ function ChatPage() {
                         handleImageGenerate(e as unknown as React.FormEvent);
                       }
                     }}
-                    className="flex-1 resize-none rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white placeholder-slate-500 outline-none"
                     style={{ maxHeight: "140px" }}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
@@ -1646,7 +1610,7 @@ function ChatPage() {
                   <button
                     type="submit"
                     disabled={imageLoading || !imagePrompt.trim()}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 transition cursor-pointer hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 transition cursor-pointer hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Создать"
                   >
                     {imageLoading ? (
@@ -1656,12 +1620,56 @@ function ChatPage() {
                     )}
                   </button>
                 </form>
-                {imageError && (
-                  <div className="mt-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
-                    {imageError}
+
+                {/* Compact settings row — scrollable on mobile */}
+                <div className="flex items-center gap-3 overflow-x-auto px-3 pb-2.5 scrollbar-none">
+                  <div className="flex shrink-0 items-center gap-1.5">
+                   <div className="flex gap-0.5">
+                      {ASPECT_RATIOS.map((ar) => (
+                        <button
+                          key={ar.id}
+                          type="button"
+                          onClick={() => setImageAspectRatio(ar.id)}
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-[10px] font-medium transition",
+                            imageAspectRatio === ar.id
+                              ? "bg-blue-600 text-white"
+                              : "text-slate-500 hover:text-white hover:bg-slate-700/60"
+                          )}
+                        >
+                          {ar.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
+                  <div className="h-3 w-px shrink-0 bg-slate-700/60" />
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="flex gap-0.5">
+                      {RESOLUTIONS.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setImageResolution(r.id)}
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-[10px] font-medium transition",
+                            imageResolution === r.id
+                              ? "bg-blue-600 text-white"
+                              : "text-slate-500 hover:text-white hover:bg-slate-700/60"
+                          )}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {imageError && (
+                <div className="mx-auto mt-2 max-w-xl rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+                  {imageError}
+                </div>
+              )}
             </div>
             )}
 
