@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { XCircle } from "lucide-react";
 
 interface ConfirmModalProps {
@@ -25,6 +26,11 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -35,17 +41,19 @@ export function ConfirmModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onCancel]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const modal = (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4 modal-overlay"
       onClick={(e) => {
         if (e.target === overlayRef.current) onCancel();
       }}
     >
-      <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800 p-5 shadow-2xl">
+      <div className="w-full max-w-sm rounded-t-2xl border border-slate-700 bg-slate-800 p-5 shadow-2xl sm:rounded-xl modal-content modal-content-mobile">
+        {/* Mobile drag handle */}
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-600 sm:hidden" />
         <div className="mb-3 flex items-start gap-3">
           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${variant === "danger" ? "bg-red-500/15" : "bg-blue-500/15"}`}>
             <XCircle className={`h-5 w-5 ${variant === "danger" ? "text-red-400" : "text-blue-400"}`} />
@@ -58,13 +66,13 @@ export function ConfirmModal({
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onCancel}
-            className="rounded-lg bg-slate-700 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-600"
+            className="rounded-lg bg-slate-700 px-4 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-slate-600 sm:py-2"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-xs font-medium text-white transition ${
+            className={`rounded-lg px-4 py-2.5 text-xs font-medium text-white transition sm:py-2 ${
               variant === "danger"
                 ? "bg-red-600 hover:bg-red-500"
                 : "bg-blue-600 hover:bg-blue-500"
@@ -76,4 +84,6 @@ export function ConfirmModal({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
