@@ -1,22 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import type { ChatAttachment, Mode } from "@/lib/types";
-import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
 import { Sidebar } from "@/components/sidebar/sidebar";
 import { AppHeader } from "@/components/app-header";
-import { usePersistentChat } from "@/hooks/use-persistent-chat";
-import { useFileUpload } from "@/hooks/use-file-upload";
-import { useImageGeneration } from "@/hooks/use-image-generation";
-import { useImageHistory } from "@/hooks/use-image-history";
-import { useModels } from "@/hooks/use-models";
 import { ChatView } from "@/app/(chat)/_components/chat-view";
 import { ImageView } from "@/app/(image)/_components/image-view";
-
-// Types, constants, and SSE parser imported from lib/
-// Hooks imported from hooks/
+import { usePageState } from "@/hooks/use-page-state";
 
 // ─── Main Component ──────────────────────────────────────────────────
 
@@ -29,287 +19,100 @@ export default function ChatPageWrapper() {
 }
 
 function ChatPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  // ─── Hooks ─────────────────────────────────────────────────────
-  const {
-    chatModels, imageModels,
-    selectedModel, setSelectedModel,
-    selectedImageModel, setSelectedImageModel,
-  } = useModels();
-
-  const { imageHistory, loadImageHistory } = useImageHistory();
-
-  const [mode, setMode] = useState<Mode>(
-    searchParams.get("mode") === "image" ? "image" : "chat"
-  );
-  const [selectedPresetId, setSelectedPresetId] = useState("default");
-  const [customSystemPrompt, setCustomSystemPrompt] = useState("");
-  const [showSystemPromptPanel, setShowSystemPromptPanel] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showAllChats, setShowAllChats] = useState(false);
-  const [input, setInput] = useState("");
-  const [reasoningEnabled, setReasoningEnabled] = useState(true);
-  const [temperature, setTemperature] = useState(0.6);
-
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  const {
-    messages,
-    status,
-    error: chatError,
-    activeChatId,
-    chatList,
-    chatSystemPrompt,
-    setChatSystemPrompt,
-    sendMessage,
-    stop,
-    retry,
-    deleteMessage,
-    deleteLastExchange,
-    clearChat,
-    loadChatList,
-    loadChat,
-    createNewChat,
-    deleteChat,
-    renameChat,
-    updateSystemPrompt,
-  } = usePersistentChat();
-
-  const isLoading = status === "streaming" || status === "submitted";
-  const isLocalModel = selectedModel.provider === "local";
-
-  // Derive reasoning phase: streaming + last assistant msg has reasoning but no content
-  const isReasoningPhase = status === "streaming" && (() => {
-    const last = messages[messages.length - 1];
-    return last?.role === "assistant" && !!last.reasoning && !last.content;
-  })();
-
-  // ─── Helper: compute current system prompt ──────────────────────
-  const currentSystemPrompt = selectedPresetId === "custom"
-    ? customSystemPrompt
-    : SYSTEM_PROMPT_PRESETS.find((p) => p.id === selectedPresetId)?.prompt || SYSTEM_PROMPT_PRESETS[0].prompt;
-
-  // ─── Route sync: read URL on mount ─────────────────────────────
-  const initialRouteLoaded = useRef(false);
-  useEffect(() => {
-    if (initialRouteLoaded.current) return;
-    initialRouteLoaded.current = true;
-
-    const chatId = searchParams.get("chat");
-    if (chatId) {
-      loadChat(chatId);
-    }
-  }, [searchParams, loadChat]);
-
-  // ─── Route sync: push URL on state change ──────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (mode === "image") params.set("mode", "image");
-    if (mode === "chat" && activeChatId) params.set("chat", activeChatId);
-    const newUrl = params.toString() ? `/?${params.toString()}` : "/";
-    const currentUrl = window.location.pathname + window.location.search;
-    if (currentUrl !== newUrl) {
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [mode, activeChatId, router]);
-
-  // ─── Sync system prompt preset when loading a chat ──────────────
-  useEffect(() => {
-    if (!chatSystemPrompt) {
-      setSelectedPresetId("default");
-      setCustomSystemPrompt("");
-      return;
-    }
-    const matched = SYSTEM_PROMPT_PRESETS.find(
-      (p) => p.id !== "custom" && p.prompt === chatSystemPrompt
-    );
-    if (matched) {
-      setSelectedPresetId(matched.id);
-      setCustomSystemPrompt("");
-    } else {
-      setSelectedPresetId("custom");
-      setCustomSystemPrompt(chatSystemPrompt);
-    }
-  }, [chatSystemPrompt]);
-
-  // Load chats on mount
-  useEffect(() => {
-    loadChatList();
-  }, [loadChatList]);
-
-  // ─── File Upload & Image Hooks ─────────────────────────────────
-  const {
-    pendingAttachments, setPendingAttachments,
-    imageRefAttachments, setImageRefAttachments,
-    addFiles, removeAttachment,
-    addImageRefFiles, removeImageRefAttachment,
-  } = useFileUpload(mode);
-
-  const {
-    imagePrompt, setImagePrompt,
-    imageUrl, setImageUrl,
-    imageLoading, imageError, setImageError,
-    imageAspectRatio, setImageAspectRatio,
-    imageResolution, setImageResolution,
-    selectedImageItem, setSelectedImageItem,
-    confirmDeleteImageId, setConfirmDeleteImageId,
-    previewImage, setPreviewImage,
-    handleImageGenerate, deleteImageHistoryItem,
-  } = useImageGeneration({
-    selectedImageModel,
-    imageRefAttachments,
-    setImageRefAttachments,
-    loadImageHistory,
-  });
-
-  // ─── Handlers ──────────────────────────────────────────────────
-
-  function handleChatSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const attachments: ChatAttachment[] = pendingAttachments
-      .filter((pa) => pa.uploaded)
-      .map((pa) => pa.uploaded!);
-
-    // Pass system prompt only when starting a new chat (no messages yet)
-    const sp = messages.length === 0 ? currentSystemPrompt : undefined;
-    const localOpts = isLocalModel ? { temperature, reasoningEnabled } : undefined;
-    sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOpts);
-    setInput("");
-    setPendingAttachments([]);
-  }
-
-  function handleNewChat() {
-    clearChat();
-    setSelectedPresetId("default");
-    setCustomSystemPrompt("");
-    setShowSystemPromptPanel(false);
-    setSidebarOpen(false);
-  }
-
-  function handleSelectChat(chatId: string) {
-    loadChat(chatId);
-    setMode("chat");
-    setSidebarOpen(false);
-  }
+  const s = usePageState();
 
   return (
-    <div className="flex h-dvh bg-slate-900 text-white" ref={chatContainerRef}>
-      {/* Sidebar */}
+    <div className="flex h-dvh bg-slate-900 text-white">
       <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        mode={mode}
-        onModeChange={setMode}
-        chatModels={chatModels}
-        imageModels={imageModels}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        selectedImageModel={selectedImageModel}
-        onImageModelChange={setSelectedImageModel}
-        chats={chatList}
-        activeChatId={activeChatId}
-        onSelectChat={handleSelectChat}
-        onNewChat={handleNewChat}
-        onDeleteChat={deleteChat}
-        onRenameChat={renameChat}
-        showAllChats={showAllChats}
-        onToggleAllChats={() => setShowAllChats(!showAllChats)}
-        imageHistory={imageHistory}
-        activeImageId={selectedImageItem?.id || null}
-        onSelectImageItem={(item) => {
-          setSelectedImageItem(item);
-          setImageUrl(item.imageUrl);
-          setImageError("");
-          setSidebarOpen(false);
-        }}
-        onDeleteImageHistory={deleteImageHistoryItem}
-        onNewImageGeneration={() => {
-          setSelectedImageItem(null);
-          setImageUrl(null);
-          setImageError("");
-        }}
+        isOpen={s.sidebarOpen}
+        onClose={() => s.setSidebarOpen(false)}
+        mode={s.mode}
+        onModeChange={s.setMode}
+        chatModels={s.chatModels}
+        imageModels={s.imageModels}
+        selectedModel={s.selectedModel}
+        onModelChange={s.setSelectedModel}
+        selectedImageModel={s.selectedImageModel}
+        onImageModelChange={s.setSelectedImageModel}
+        chats={s.chatList}
+        activeChatId={s.activeChatId}
+        onSelectChat={s.handleSelectChat}
+        onNewChat={s.handleNewChat}
+        onDeleteChat={s.deleteChat}
+        onRenameChat={s.renameChat}
+        showAllChats={s.showAllChats}
+        onToggleAllChats={() => s.setShowAllChats(!s.showAllChats)}
+        imageHistory={s.imageHistory}
+        activeImageId={s.selectedImageItem?.id || null}
+        onSelectImageItem={s.handleSelectImageItem}
+        onDeleteImageHistory={s.deleteImageHistoryItem}
+        onNewImageGeneration={s.handleNewImageGeneration}
       />
 
-      {/* Main */}
       <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
         <AppHeader
-          mode={mode}
-          selectedModel={selectedModel}
-          selectedImageModel={selectedImageModel}
-          isLoading={isLoading}
-          status={status}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          mode={s.mode}
+          selectedModel={s.selectedModel}
+          selectedImageModel={s.selectedImageModel}
+          isLoading={s.isLoading}
+          status={s.status}
+          onToggleSidebar={() => s.setSidebarOpen(!s.sidebarOpen)}
         />
 
-        {/* Chat Mode */}
-        {mode === "chat" && (
+        {s.mode === "chat" && (
           <ChatView
-            messages={messages}
-            status={status}
-            error={chatError}
-            chatSystemPrompt={chatSystemPrompt}
-            isLoading={isLoading}
-            isReasoningPhase={isReasoningPhase}
-            input={input}
-            onInputChange={setInput}
-            onSubmit={handleChatSubmit}
-            onStop={stop}
-            onDeleteMessage={deleteMessage}
-            onRetry={() => retry(selectedModel, isLocalModel ? { temperature, reasoningEnabled } : undefined)}
-            onDeleteLastExchange={deleteLastExchange}
-            onUpdateSystemPrompt={updateSystemPrompt}
-            pendingAttachments={pendingAttachments}
-            onAddFiles={addFiles}
-            onRemoveAttachment={removeAttachment}
-            selectedPresetId={selectedPresetId}
-            onSelectPreset={setSelectedPresetId}
-            customSystemPrompt={customSystemPrompt}
-            onCustomPromptChange={setCustomSystemPrompt}
-            showSystemPromptPanel={showSystemPromptPanel}
-            onShowPanelChange={setShowSystemPromptPanel}
-            isLocalModel={isLocalModel}
-            reasoningEnabled={reasoningEnabled}
-            onReasoningToggle={() => {
-              const next = !reasoningEnabled;
-              setReasoningEnabled(next);
-              setTemperature(next ? 0.6 : 0.7);
-            }}
-            temperature={temperature}
-            onTemperatureChange={setTemperature}
+            messages={s.messages}
+            status={s.status}
+            error={s.error}
+            chatSystemPrompt={s.chatSystemPrompt}
+            isLoading={s.isLoading}
+            isReasoningPhase={s.isReasoningPhase}
+            input={s.input}
+            onInputChange={s.setInput}
+            onSubmit={s.handleChatSubmit}
+            onStop={s.stop}
+            onDeleteMessage={s.deleteMessage}
+            onRetry={() => s.retry(s.selectedModel, s.isLocalModel ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
+            onDeleteLastExchange={s.deleteLastExchange}
+            onUpdateSystemPrompt={s.updateSystemPrompt}
+            pendingAttachments={s.pendingAttachments}
+            onAddFiles={s.addFiles}
+            onRemoveAttachment={s.removeAttachment}
+            selectedPresetId={s.selectedPresetId}
+            onSelectPreset={s.setSelectedPresetId}
+            customSystemPrompt={s.customSystemPrompt}
+            onCustomPromptChange={s.setCustomSystemPrompt}
+            showSystemPromptPanel={s.showSystemPromptPanel}
+            onShowPanelChange={s.setShowSystemPromptPanel}
+            isLocalModel={s.isLocalModel}
+            reasoningEnabled={s.reasoningEnabled}
+            onReasoningToggle={s.handleReasoningToggle}
+            temperature={s.temperature}
+            onTemperatureChange={s.setTemperature}
           />
         )}
 
-        {/* Image Mode */}
-        {mode === "image" && (
+        {s.mode === "image" && (
           <ImageView
-            selectedItem={selectedImageItem}
-            imageLoading={imageLoading}
-            imageError={imageError}
-            imagePrompt={imagePrompt}
-            onPromptChange={setImagePrompt}
-            onGenerate={handleImageGenerate}
-            onDelete={deleteImageHistoryItem}
-            onNewGeneration={() => {
-              setSelectedImageItem(null);
-              setImageUrl(null);
-              setImageError("");
-            }}
-            refAttachments={imageRefAttachments}
-            onAddRefFiles={addImageRefFiles}
-            onRemoveRefAttachment={removeImageRefAttachment}
-            aspectRatio={imageAspectRatio}
-            onAspectRatioChange={setImageAspectRatio}
-            resolution={imageResolution}
-            onResolutionChange={setImageResolution}
-            previewImage={previewImage}
-            onPreviewChange={setPreviewImage}
-            confirmDeleteId={confirmDeleteImageId}
-            onConfirmDeleteChange={setConfirmDeleteImageId}
+            selectedItem={s.selectedImageItem}
+            imageLoading={s.imageLoading}
+            imageError={s.imageError}
+            imagePrompt={s.imagePrompt}
+            onPromptChange={s.setImagePrompt}
+            onGenerate={s.handleImageGenerate}
+            onDelete={s.deleteImageHistoryItem}
+            onNewGeneration={s.handleNewImageGeneration}
+            refAttachments={s.imageRefAttachments}
+            onAddRefFiles={s.addImageRefFiles}
+            onRemoveRefAttachment={s.removeImageRefAttachment}
+            aspectRatio={s.imageAspectRatio}
+            onAspectRatioChange={s.setImageAspectRatio}
+            resolution={s.imageResolution}
+            onResolutionChange={s.setImageResolution}
+            previewImage={s.previewImage}
+            onPreviewChange={s.setPreviewImage}
+            confirmDeleteId={s.confirmDeleteImageId}
+            onConfirmDeleteChange={s.setConfirmDeleteImageId}
           />
         )}
       </main>
