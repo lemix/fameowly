@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
 import type { MessageData, ChatStatus, PendingAttachment, SystemPromptPreset } from "@/lib/types";
-import ChatMessage from "@/components/chat-message";
+import { ChatMessage } from "@/components/chat-message/chat-message";
 import { ChatEmptyState } from "./chat-empty-state";
 import { SystemPromptDisplay } from "./system-prompt-display";
 import { ThinkingIndicator } from "./thinking-indicator";
