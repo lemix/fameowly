@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
-import { saveUploadedFile } from "@/lib/chat-store";
+import { saveUploadedFile } from "@/lib/file-storage";
 import { resizeImageBuffer } from "@/lib/image-resize";
 
 const COOKIE_NAME = "session";
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const url = saveUploadedFile(buffer, fileName, mimeType);
+    const url = saveUploadedFile(buffer, fileName, mimeType, session.userId);
 
     return NextResponse.json({
       url,

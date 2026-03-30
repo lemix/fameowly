@@ -6,6 +6,7 @@ import { verifySession } from "@/lib/auth";
 import { readModelsConfig } from "@/lib/models.server";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { resizeToTarget } from "@/lib/image-resize";
+import { resolveFileUrl } from "@/lib/file-storage";
 import {
   addImageHistoryItem,
   saveGeneratedImage,
@@ -21,35 +22,6 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   if (!token) return null;
   const session = await verifySession(token);
   return session?.userId ?? null;
-}
-
-/** Read a reference file URL and return base64 + mimeType */
-function resolveReferenceImage(
-  refUrl: string
-): { data: string; mimeType: string } | null {
-  try {
-    if (refUrl.startsWith("data:")) {
-      const match = refUrl.match(/^data:(.*?);base64,(.*)$/);
-      if (match) return { mimeType: match[1], data: match[2] };
-    } else if (refUrl.startsWith("/api/files/")) {
-      const relativePath = refUrl.replace("/api/files/", "");
-      const filePath = path.join(process.cwd(), "data", "uploads", relativePath);
-      if (!fs.existsSync(filePath)) return null;
-      const buffer = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const mimeMap: Record<string, string> = {
-        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
-        ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown",
-        ".json": "application/json", ".csv": "text/csv",
-      };
-      const mimeType = mimeMap[ext] || "application/octet-stream";
-      return { data: buffer.toString("base64"), mimeType };
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -120,7 +92,7 @@ export async function POST(req: NextRequest) {
 
       if (referenceFiles?.length) {
         for (const refFile of referenceFiles as Array<{ url: string; name: string; mimeType: string; type: string }>) {
-          const ref = resolveReferenceImage(refFile.url);
+          const ref = resolveFileUrl(refFile.url);
           if (ref) {
             if (ref.mimeType.startsWith("image/") || ref.mimeType === "application/pdf") {
               parts.push({

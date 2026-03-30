@@ -4,49 +4,12 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
 import { resizeBase64Image } from "@/lib/image-resize";
-import fs from "fs";
-import path from "path";
+import { resolveFileUrl } from "@/lib/file-storage";
+import type { ChatAttachment } from "@/lib/chat-store";
 
 export const maxDuration = 120;
 
 const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
-
-const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
-
-/** Resolve a file URL (/api/files/... or data:...) to raw base64 + mimeType */
-function resolveFileUrl(url: string): { data: string; mimeType: string } | null {
-  try {
-    if (url.startsWith("data:")) {
-      const match = url.match(/^data:(.*?);base64,(.*)$/);
-      if (match) return { mimeType: match[1], data: match[2] };
-      return null;
-    }
-    if (url.startsWith("/api/files/")) {
-      const relativePath = url.replace("/api/files/", "");
-      const filePath = path.resolve(UPLOADS_DIR, relativePath);
-      if (!filePath.startsWith(UPLOADS_DIR)) return null;
-      if (!fs.existsSync(filePath)) return null;
-      const buffer = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const mimeMap: Record<string, string> = {
-        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
-        ".pdf": "application/pdf", ".txt": "text/plain", ".md": "text/markdown",
-        ".json": "application/json", ".csv": "text/csv",
-      };
-      const mimeType = mimeMap[ext] || "application/octet-stream";
-      return { data: buffer.toString("base64"), mimeType };
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-interface ChatAttachment {
-  type: "image" | "file";
-  name: string;
-  mimeType: string;
-  url: string;
-}
 
 interface ApiMessage {
   id: string;
