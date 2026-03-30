@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo } from "react";
+import { useState, memo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -41,6 +41,7 @@ interface ChatMessageProps {
   message: MessageData;
   isLoading?: boolean;
   isStreaming?: boolean;
+  isReasoning?: boolean;
   onDelete?: (messageId: string) => void;
 }
 
@@ -245,11 +246,19 @@ const ChatMessage = memo(function ChatMessage({
   message: m,
   isLoading,
   isStreaming,
+  isReasoning,
   onDelete,
 }: ChatMessageProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Auto-expand reasoning during streaming
+  const autoExpandedRef = useRef(false);
+  if (isReasoning && !autoExpandedRef.current) {
+    autoExpandedRef.current = true;
+  }
+  const showExpanded = expanded || (isReasoning && autoExpandedRef.current);
 
   function handleCopyMessage() {
     navigator.clipboard.writeText(m.content);
@@ -280,22 +289,37 @@ const ChatMessage = memo(function ChatMessage({
         )}
 
         {/* Reasoning block */}
-        {!isUser && m.reasoning && (
-          <div className="w-full rounded-lg border border-purple-500/20 bg-purple-500/5">
+        {!isUser && (m.reasoning || isReasoning) && (
+          <div className={cn(
+            "w-full rounded-lg border bg-purple-500/5",
+            isReasoning ? "border-purple-500/40" : "border-purple-500/20"
+          )}>
             <button
               onClick={() => setExpanded(!expanded)}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-purple-300 hover:text-purple-200 transition"
             >
-              <Brain className="h-3 w-3" />
-              <span>Размышления</span>
+              <Brain className={cn("h-3 w-3", isReasoning && "animate-pulse")} />
+              <span>{isReasoning ? "Нейросеть рассуждает..." : "Размышления"}</span>
+              {m.reasoning && (
+                <span className="text-[10px] text-purple-400/60 ml-1">
+                  ~{Math.ceil(m.reasoning.length / 3)} токенов
+                </span>
+              )}
+              {isReasoning && (
+                <span className="ml-1 flex gap-0.5">
+                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </span>
+              )}
               <ChevronDown
                 className={cn(
                   "ml-auto h-3 w-3 transition-transform",
-                  expanded && "rotate-180"
+                  showExpanded && "rotate-180"
                 )}
               />
             </button>
-            {expanded && (
+            {showExpanded && m.reasoning && (
               <div className="border-t border-purple-500/20 px-3 py-2 text-xs text-slate-400 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
                 {m.reasoning}
               </div>
@@ -330,7 +354,7 @@ const ChatMessage = memo(function ChatMessage({
             ) : (isLoading || isStreaming) ? (
               <div className="flex items-center gap-2 text-slate-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Генерация ответа...</span>
+                <span>{isReasoning ? "Ожидание ответа..." : "Генерация ответа..."}</span>
               </div>
             ) : m.error ? null : (
               <div className="text-slate-500 italic text-xs">Пустой ответ</div>
