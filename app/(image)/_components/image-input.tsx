@@ -31,7 +31,7 @@ export function ImageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="relative px-3 pb-4 pt-2 md:px-4">
+    <div className="safe-area-bottom relative px-3 pb-4 pt-2 md:px-4">
       <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
       <div className="mx-auto w-full max-w-xl rounded-2xl bg-slate-800/80 shadow-lg shadow-black/20 ring-1 ring-slate-700/50">

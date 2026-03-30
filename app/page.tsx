@@ -22,7 +22,7 @@ import { ImageView } from "@/app/(image)/_components/image-view";
 
 export default function ChatPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-slate-900 text-white"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
+    <Suspense fallback={<div className="flex h-dvh items-center justify-center bg-slate-900 text-white"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
       <ChatPage />
     </Suspense>
   );
@@ -197,7 +197,7 @@ function ChatPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-900 text-white" ref={chatContainerRef}>
+    <div className="flex h-dvh bg-slate-900 text-white" ref={chatContainerRef}>
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
