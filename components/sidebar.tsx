@@ -19,24 +19,13 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ModelOption } from "@/lib/models";
+import type { ModelOption } from "@/lib/types";
 import { PROVIDER_LABELS, PROVIDER_ORDER, PROVIDER_COLORS } from "@/lib/models";
-import type { ChatListItem } from "@/lib/chat-store";
+import type { ChatListItem } from "@/lib/types";
+import type { Mode, ImageHistoryItemClient } from "@/lib/types";
 import { ConfirmModal } from "@/components/confirm-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────
-
-type Mode = "chat" | "image";
-
-interface ImageHistoryItem {
-  id: string;
-  prompt: string;
-  imageUrl: string | null;
-  error?: string;
-  modelId: string;
-  modelName: string;
-  createdAt: Date;
-}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -57,9 +46,9 @@ interface SidebarProps {
   onRenameChat: (chatId: string, title: string) => void;
   showAllChats: boolean;
   onToggleAllChats: () => void;
-  imageHistory: ImageHistoryItem[];
+  imageHistory: ImageHistoryItemClient[];
   activeImageId: string | null;
-  onSelectImageItem: (item: ImageHistoryItem) => void;
+  onSelectImageItem: (item: ImageHistoryItemClient) => void;
   onDeleteImageHistory: (id: string) => void;
   onNewImageGeneration: () => void;
 }

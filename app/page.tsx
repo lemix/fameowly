@@ -22,129 +22,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AVAILABLE_MODELS, IMAGE_MODELS, PROVIDER_COLORS } from "@/lib/models";
-import type { ModelOption, ModelsConfig } from "@/lib/models";
-import type { ChatListItem, ChatAttachment } from "@/lib/chat-store";
+import type { ModelOption, ModelsConfig } from "@/lib/types";
+import type { ChatListItem, ChatAttachment } from "@/lib/types";
+import type { MessageData, ChatStatus, Mode, PendingAttachment, ImageHistoryItemClient } from "@/lib/types";
+import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
+import { ASPECT_RATIOS, RESOLUTIONS } from "@/lib/constants/image-options";
+import { parseSSEStream } from "@/lib/sse-parser";
 import ChatMessage from "@/components/chat-message";
-import type { MessageData } from "@/components/chat-message";
 import Sidebar from "@/components/sidebar";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
 
-// ─── Types ───────────────────────────────────────────────────────────
-
-type Mode = "chat" | "image";
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
-
-interface PendingAttachment {
-  file: File;
-  preview: string;
-  uploading: boolean;
-  uploaded?: ChatAttachment;
-}
-
-interface ImageHistoryItem {
-  id: string;
-  prompt: string;
-  imageUrl: string | null;
-  error?: string;
-  modelId: string;
-  modelName: string;
-  createdAt: Date;
-  referenceFiles?: Array<{ url: string; name: string; mimeType: string }>;
-  aspectRatio?: string;
-  resolution?: string;
-}
-
-// ─── SSE Stream Parser ──────────────────────────────────────────────
-
-// ─── System Prompt Presets ───────────────────────────────────────────
-
-interface SystemPromptPreset {
-  id: string;
-  name: string;
-  prompt: string;
-}
-
-const SYSTEM_PROMPT_PRESETS: SystemPromptPreset[] = [
-  {
-    id: "default",
-    name: "🤖 Общий ассистент",
-    prompt: "Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.",
-  },
-  {
-    id: "science",
-    name: "🔬 Учёный / Учитель",
-    prompt: "Ты — опытный учёный и преподаватель. Отвечай на вопросы по науке подробно, точно и доступным языком. Приводи примеры, аналогии и ссылки на научные факты. Если вопрос касается школьной программы — объясняй пошагово, как хороший учитель. Отвечай на русском языке, если пользователь пишет на русском.",
-  },
-  {
-    id: "coding",
-    name: "💻 Программист",
-    prompt: "Ты — опытный программист-эксперт. Помогай писать код, отлаживать ошибки, объяснять алгоритмы и архитектурные решения. Пиши чистый, идиоматичный код с комментариями. Если пользователь не указал язык программирования — уточни. Отвечай на русском языке, если пользователь пишет на русском.",
-  },
-  {
-    id: "teacher",
-    name: "📚 Помощник по учёбе",
-    prompt: "Ты — терпеливый помощник по учёбе для школьников и студентов. Объясняй сложные темы простым языком, приводи примеры из жизни. Помогай решать задачи пошагово, не давая сразу готовый ответ, а направляя к решению. Отвечай на русском языке.",
-  },
-  {
-    id: "custom",
-    name: "✏️ Свой промпт",
-    prompt: "",
-  },
-];
-
-// ─── Image Generation Options ────────────────────────────────────────
-
-const ASPECT_RATIOS = [
-  { id: "4:3", label: "4:3" },
-  { id: "16:9", label: "16:9" },
-  { id: "1:1", label: "1:1" },
-  { id: "3:2", label: "3:2" },
-  { id: "9:16", label: "9:16" },
-  { id: "3:4", label: "3:4" },
-  { id: "2:3", label: "2:3" },
-];
-
-const RESOLUTIONS = [
-  { id: "1K", label: "1К" },
-  { id: "2K", label: "2К" },
-  { id: "4K", label: "4К" },
-];
-
-// ─── SSE Stream Parser (continued) ──────────────────────────────────
-
-async function* parseSSEStream(
-  response: Response
-): AsyncGenerator<{ type: string; [key: string]: unknown }> {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") return;
-        try {
-          yield JSON.parse(data);
-        } catch {
-          // skip
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+// Types, constants, and SSE parser imported from lib/
 
 // ─── Chat Hook with Persistence ──────────────────────────────────────
 
@@ -624,8 +513,8 @@ function ChatPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState("");
-  const [imageHistory, setImageHistory] = useState<ImageHistoryItem[]>([]);
-  const [selectedImageItem, setSelectedImageItem] = useState<ImageHistoryItem | null>(null);
+  const [imageHistory, setImageHistory] = useState<ImageHistoryItemClient[]>([]);
+  const [selectedImageItem, setSelectedImageItem] = useState<ImageHistoryItemClient | null>(null);
   const [imageRefAttachments, setImageRefAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAllChats, setShowAllChats] = useState(false);
@@ -767,7 +656,7 @@ function ChatPage() {
       if (res.ok) {
         const data = await res.json();
         setImageHistory(
-          (data.history || []).map((item: ImageHistoryItem & { createdAt: string }) => ({
+          (data.history || []).map((item: ImageHistoryItemClient & { createdAt: string }) => ({
             ...item,
             createdAt: new Date(item.createdAt),
           }))

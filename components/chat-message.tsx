@@ -23,19 +23,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
-import type { ChatAttachment } from "@/lib/chat-store";
+import type { ChatAttachment } from "@/lib/types";
+import type { MessageData } from "@/lib/types";
 
-// ─── Types ───────────────────────────────────────────────────────────
-
-export interface MessageData {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  reasoning?: string;
-  error?: string;
-  attachments?: ChatAttachment[];
-  createdAt?: Date | string;
-}
+// Re-export for backward compatibility
+export type { MessageData } from "@/lib/types";
 
 interface ChatMessageProps {
   message: MessageData;
