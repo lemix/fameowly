@@ -1,25 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
+import { MIME_TYPES } from "@/lib/file-storage";
 import fs from "fs";
 import path from "path";
 
 const COOKIE_NAME = "session";
 
 const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
-
-const MIME_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-  ".pdf": "application/pdf",
-  ".txt": "text/plain",
-  ".md": "text/markdown",
-  ".json": "application/json",
-  ".csv": "text/csv",
-};
 
 export async function GET(
   request: NextRequest,
@@ -37,6 +24,16 @@ export async function GET(
 
   const { path: segments } = await params;
   const relativePath = segments.join("/");
+
+  // Ownership check for per-user files (new format: /api/files/{userId}/{filename})
+  // Allow generated images for all authenticated users
+  // Legacy flat files (single segment) are accessible to all authenticated users
+  if (segments.length >= 2 && !relativePath.startsWith("generated/")) {
+    const [fileUserId] = segments;
+    if (fileUserId !== session.userId) {
+      return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+    }
+  }
 
   // Security: prevent directory traversal
   const resolved = path.resolve(UPLOADS_DIR, relativePath);
