@@ -21,464 +21,22 @@ import {
   Thermometer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AVAILABLE_MODELS, IMAGE_MODELS, PROVIDER_COLORS } from "@/lib/models";
-import type { ModelOption, ModelsConfig } from "@/lib/types";
-import type { ChatListItem, ChatAttachment } from "@/lib/types";
-import type { MessageData, ChatStatus, Mode, PendingAttachment, ImageHistoryItemClient } from "@/lib/types";
+import { PROVIDER_COLORS } from "@/lib/models";
+import type { ChatAttachment, Mode } from "@/lib/types";
 import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
 import { ASPECT_RATIOS, RESOLUTIONS } from "@/lib/constants/image-options";
-import { parseSSEStream } from "@/lib/sse-parser";
 import ChatMessage from "@/components/chat-message";
 import Sidebar from "@/components/sidebar";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ImagePreviewModal } from "@/components/image-preview-modal";
+import { usePersistentChat } from "@/hooks/use-persistent-chat";
+import { useFileUpload } from "@/hooks/use-file-upload";
+import { useImageGeneration } from "@/hooks/use-image-generation";
+import { useImageHistory } from "@/hooks/use-image-history";
+import { useModels } from "@/hooks/use-models";
 
 // Types, constants, and SSE parser imported from lib/
-
-// ─── Chat Hook with Persistence ──────────────────────────────────────
-
-function usePersistentChat() {
-  const [messages, setMessages] = useState<MessageData[]>([]);
-  const [status, setStatus] = useState<ChatStatus>("ready");
-  const [error, setError] = useState<string | null>(null);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [chatList, setChatList] = useState<ChatListItem[]>([]);
-  const [chatSystemPrompt, setChatSystemPrompt] = useState<string | undefined>(undefined);
-  const abortRef = useRef<AbortController | null>(null);
-  const messagesRef = useRef<MessageData[]>([]);
-  const activeChatIdRef = useRef<string | null>(null);
-
-  // Keep refs in sync — prevents stale closures in async callbacks
-  messagesRef.current = messages;
-  activeChatIdRef.current = activeChatId;
-
-  // Load chat list
-  const loadChatList = useCallback(async () => {
-    try {
-      const res = await fetch("/api/chats");
-      if (res.ok) {
-        const data = await res.json();
-        setChatList(data.chats || []);
-      }
-    } catch {
-      // silent
-    }
-  }, []);
-
-  // Load a specific chat
-  const loadChat = useCallback(async (chatId: string) => {
-    try {
-      const res = await fetch(`/api/chats?id=${chatId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const chat = data.chat;
-        const loaded: MessageData[] = chat.messages.map(
-          (m: MessageData & { createdAt: string }) => ({
-            ...m,
-            createdAt: new Date(m.createdAt),
-          })
-        );
-        // Update refs BEFORE state — prevents stale reads if sendMessage fires immediately
-        messagesRef.current = loaded;
-        activeChatIdRef.current = chatId;
-        setMessages(loaded);
-        setActiveChatId(chatId);
-        setChatSystemPrompt(chat.systemPrompt || undefined);
-        setError(null);
-        setStatus("ready");
-      }
-    } catch {
-      // silent
-    }
-  }, []);
-
-  // Create new chat
-  const createNewChat = useCallback(
-    async (modelId: string, systemPrompt?: string) => {
-      try {
-        const res = await fetch("/api/chats", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ modelId, systemPrompt }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // Update refs BEFORE state
-          messagesRef.current = [];
-          activeChatIdRef.current = data.chat.id;
-          setActiveChatId(data.chat.id);
-          setMessages([]);
-          setChatSystemPrompt(systemPrompt);
-          setError(null);
-          setStatus("ready");
-          await loadChatList();
-          return data.chat.id as string;
-        }
-      } catch {
-        // silent
-      }
-      return null;
-    },
-    [loadChatList]
-  );
-
-  // Persist messages to storage
-  const persistMessages = useCallback(
-    async (chatId: string, msgs: MessageData[]) => {
-      try {
-        await fetch("/api/chats", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chatId,
-            messages: msgs.map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-              reasoning: m.reasoning,
-              attachments: m.attachments,
-              createdAt:
-                m.createdAt instanceof Date
-                  ? m.createdAt.toISOString()
-                  : m.createdAt || new Date().toISOString(),
-            })),
-          }),
-        });
-        await loadChatList();
-      } catch {
-        // silent
-      }
-    },
-    [loadChatList]
-  );
-
-  // Send message
-  const sendMessage = useCallback(
-    async (
-      text: string,
-      model: ModelOption,
-      attachments?: ChatAttachment[],
-      systemPrompt?: string,
-      localOptions?: { temperature?: number; reasoningEnabled?: boolean }
-    ) => {
-      let chatId = activeChatIdRef.current;
-
-      // Create chat if none active
-      if (!chatId) {
-        chatId = await createNewChat(model.id, systemPrompt);
-        if (!chatId) return;
-      }
-
-      const userMsg: MessageData = {
-        id: `user-${Date.now()}`,
-        role: "user",
-        content: text,
-        attachments: attachments?.length ? attachments : undefined,
-        createdAt: new Date(),
-      };
-
-      const assistantMsg: MessageData = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: "",
-        createdAt: new Date(),
-      };
-
-      setMessages((prev) => [...prev, userMsg]);
-      setStatus("submitted");
-      setError(null);
-
-      // Build API messages from ref (not stale closure)
-      const currentMessages = messagesRef.current;
-      const allMsgs = [...currentMessages, userMsg];
-      const apiMessages = allMsgs.map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        attachments: m.attachments,
-      }));
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: apiMessages,
-            model: model.id,
-            provider: model.provider,
-            systemPrompt: systemPrompt || chatSystemPrompt,
-            ...(model.provider === "local" && localOptions ? {
-              temperature: localOptions.temperature,
-              reasoningEnabled: localOptions.reasoningEnabled,
-            } : {}),
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(
-            errData.error || `Ошибка сервера: ${response.status}`
-          );
-        }
-
-        if (!response.body) throw new Error("Пустой ответ от сервера");
-
-        setMessages((prev) => [...prev, { ...assistantMsg }]);
-        setStatus("streaming");
-
-        let fullText = "";
-        let fullReasoning = "";
-        let streamError = "";
-
-        for await (const event of parseSSEStream(response)) {
-          if (controller.signal.aborted) break;
-
-          switch (event.type) {
-            case "text-delta":
-              fullText += event.delta as string;
-              setMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last?.role === "assistant") {
-                  updated[updated.length - 1] = { ...last, content: fullText };
-                }
-                return updated;
-              });
-              break;
-            case "reasoning-delta":
-              fullReasoning += event.delta as string;
-              setMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last?.role === "assistant") {
-                  updated[updated.length - 1] = {
-                    ...last,
-                    reasoning: fullReasoning,
-                  };
-                }
-                return updated;
-              });
-              break;
-            case "error":
-              streamError =
-                (event.errorText as string) || "Неизвестная ошибка";
-              break;
-          }
-        }
-
-        if (streamError) {
-          setError(streamError);
-          setMessages((prev) => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last?.role === "assistant") {
-              updated[updated.length - 1] = { ...last, error: streamError };
-            }
-            return updated;
-          });
-          setStatus("error");
-        } else if (!fullText && !controller.signal.aborted) {
-          setError("Модель не вернула ответ. Попробуйте повторить запрос.");
-          setStatus("error");
-        } else {
-          setStatus("ready");
-        }
-
-        // Persist all messages including new ones
-        const finalMessages = [
-          ...allMsgs,
-          {
-            ...assistantMsg,
-            content: fullText,
-            reasoning: fullReasoning || undefined,
-            error: streamError || undefined,
-          },
-        ];
-        await persistMessages(chatId, finalMessages);
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          setStatus("ready");
-          return;
-        }
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Ошибка сети. Проверьте соединение.";
-        setError(message);
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.role === "assistant" && !last.content) {
-            return prev.slice(0, -1);
-          }
-          return prev;
-        });
-        setStatus("error");
-      } finally {
-        abortRef.current = null;
-      }
-    },
-    [createNewChat, persistMessages, chatSystemPrompt]
-  );
-
-  const stop = useCallback(() => {
-    abortRef.current?.abort();
-    setStatus("ready");
-  }, []);
-
-  const retry = useCallback(
-    (
-      model: ModelOption,
-      localOptions?: { temperature?: number; reasoningEnabled?: boolean }
-    ) => {
-      setError(null);
-      const currentMsgs = messagesRef.current;
-      const lastUserIdx = currentMsgs.findLastIndex((m) => m.role === "user");
-      if (lastUserIdx === -1) return;
-      const lastUserMsg = currentMsgs[lastUserIdx];
-      const trimmed = currentMsgs.slice(0, lastUserIdx);
-      // Update ref immediately so sendMessage reads clean state
-      messagesRef.current = trimmed;
-      setMessages(trimmed);
-      sendMessage(
-        lastUserMsg.content,
-        model,
-        lastUserMsg.attachments,
-        undefined,
-        localOptions
-      );
-    },
-    [sendMessage]
-  );
-
-  const deleteMessage = useCallback(
-    async (messageId: string) => {
-      setMessages((prev) => {
-        const updated = prev.filter((m) => m.id !== messageId);
-        if (activeChatId) {
-          persistMessages(activeChatId, updated);
-        }
-        return updated;
-      });
-    },
-    [activeChatId, persistMessages]
-  );
-
-  const deleteLastExchange = useCallback(() => {
-    setError(null);
-    setMessages((prev) => {
-      const updated = [...prev];
-      while (
-        updated.length > 0 &&
-        updated[updated.length - 1].role === "assistant"
-      ) {
-        updated.pop();
-      }
-      if (
-        updated.length > 0 &&
-        updated[updated.length - 1].role === "user"
-      ) {
-        updated.pop();
-      }
-      if (activeChatId) persistMessages(activeChatId, updated);
-      return updated;
-    });
-    setStatus("ready");
-  }, [activeChatId, persistMessages]);
-
-  const clearChat = useCallback(() => {
-    messagesRef.current = [];
-    activeChatIdRef.current = null;
-    setMessages([]);
-    setActiveChatId(null);
-    setChatSystemPrompt(undefined);
-    setError(null);
-    setStatus("ready");
-  }, []);
-
-  const deleteChat = useCallback(
-    async (chatId: string) => {
-      try {
-        await fetch("/api/chats", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId }),
-        });
-        if (activeChatIdRef.current === chatId) {
-          messagesRef.current = [];
-          activeChatIdRef.current = null;
-          setMessages([]);
-          setActiveChatId(null);
-          setError(null);
-        }
-        await loadChatList();
-      } catch {
-        // silent
-      }
-    },
-    [loadChatList]
-  );
-
-  const renameChat = useCallback(
-    async (chatId: string, title: string) => {
-      try {
-        await fetch("/api/chats", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId, title }),
-        });
-        await loadChatList();
-      } catch {
-        // silent
-      }
-    },
-    [loadChatList]
-  );
-
-  // Update system prompt (persists to server)
-  const updateSystemPrompt = useCallback(
-    async (newPrompt: string) => {
-      setChatSystemPrompt(newPrompt);
-      if (activeChatId) {
-        try {
-          await fetch("/api/chats", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId: activeChatId, systemPrompt: newPrompt }),
-          });
-        } catch {
-          // silent
-        }
-      }
-    },
-    [activeChatId]
-  );
-
-  return {
-    messages,
-    status,
-    error,
-    activeChatId,
-    chatList,
-    chatSystemPrompt,
-    setChatSystemPrompt,
-    sendMessage,
-    stop,
-    retry,
-    deleteMessage,
-    deleteLastExchange,
-    clearChat,
-    loadChatList,
-    loadChat,
-    createNewChat,
-    deleteChat,
-    renameChat,
-    updateSystemPrompt,
-  };
-}
+// Hooks imported from hooks/
 
 // ─── Main Component ──────────────────────────────────────────────────
 
@@ -494,40 +52,26 @@ function ChatPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // ─── Models (loaded from API, fallback to built-in defaults) ─────
-  const [chatModels, setChatModels] = useState<ModelOption[]>(AVAILABLE_MODELS);
-  const [imageModels, setImageModels] = useState<ModelOption[]>(IMAGE_MODELS);
-  const [selectedModel, setSelectedModel] = useState<ModelOption>(
-    AVAILABLE_MODELS[0]
-  );
-  const [selectedImageModel, setSelectedImageModel] = useState<ModelOption>(
-    IMAGE_MODELS[0]
-  );
+  // ─── Hooks ─────────────────────────────────────────────────────
+  const {
+    chatModels, imageModels,
+    selectedModel, setSelectedModel,
+    selectedImageModel, setSelectedImageModel,
+  } = useModels();
+
+  const { imageHistory, loadImageHistory } = useImageHistory();
+
   const [mode, setMode] = useState<Mode>(
     searchParams.get("mode") === "image" ? "image" : "chat"
   );
   const [selectedPresetId, setSelectedPresetId] = useState("default");
   const [customSystemPrompt, setCustomSystemPrompt] = useState("");
   const [showSystemPromptPanel, setShowSystemPromptPanel] = useState(false);
-  const [imagePrompt, setImagePrompt] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError] = useState("");
-  const [imageHistory, setImageHistory] = useState<ImageHistoryItemClient[]>([]);
-  const [selectedImageItem, setSelectedImageItem] = useState<ImageHistoryItemClient | null>(null);
-  const [imageRefAttachments, setImageRefAttachments] = useState<PendingAttachment[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAllChats, setShowAllChats] = useState(false);
   const [input, setInput] = useState("");
-  const [imageAspectRatio, setImageAspectRatio] = useState("4:3");
-  const [imageResolution, setImageResolution] = useState("1K");
   const [editingSystemPrompt, setEditingSystemPrompt] = useState(false);
   const [editingPromptText, setEditingPromptText] = useState("");
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [confirmDeleteImageId, setConfirmDeleteImageId] = useState<string | null>(null);
-  const [pendingAttachments, setPendingAttachments] = useState<
-    PendingAttachment[]
-  >([]);
   const [reasoningEnabled, setReasoningEnabled] = useState(true);
   const [temperature, setTemperature] = useState(0.6);
 
@@ -620,56 +164,30 @@ function ChatPage() {
     loadChatList();
   }, [loadChatList]);
 
-  // Load models config from API
-  useEffect(() => {
-    async function loadModels() {
-      try {
-        const res = await fetch("/api/models");
-        if (res.ok) {
-          const data: ModelsConfig = await res.json();
-          if (data.chatModels?.length) {
-            setChatModels(data.chatModels);
-            setSelectedModel((prev) =>
-              data.chatModels.find((m) => m.id === prev.id) ||
-              data.chatModels[0]
-            );
-          }
-          if (data.imageModels?.length) {
-            setImageModels(data.imageModels);
-            setSelectedImageModel((prev) =>
-              data.imageModels.find((m) => m.id === prev.id) ||
-              data.imageModels[0]
-            );
-          }
-        }
-      } catch {
-        // use defaults
-      }
-    }
-    loadModels();
-  }, []);
+  // ─── File Upload & Image Hooks ─────────────────────────────────
+  const {
+    pendingAttachments, setPendingAttachments,
+    imageRefAttachments, setImageRefAttachments,
+    addFiles, removeAttachment,
+    addImageRefFiles, removeImageRefAttachment,
+  } = useFileUpload(mode);
 
-  // Load image history from server
-  const loadImageHistory = useCallback(async () => {
-    try {
-      const res = await fetch("/api/images");
-      if (res.ok) {
-        const data = await res.json();
-        setImageHistory(
-          (data.history || []).map((item: ImageHistoryItemClient & { createdAt: string }) => ({
-            ...item,
-            createdAt: new Date(item.createdAt),
-          }))
-        );
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    loadImageHistory();
-  }, [loadImageHistory]);
+  const {
+    imagePrompt, setImagePrompt,
+    imageUrl, setImageUrl,
+    imageLoading, imageError, setImageError,
+    imageAspectRatio, setImageAspectRatio,
+    imageResolution, setImageResolution,
+    selectedImageItem, setSelectedImageItem,
+    confirmDeleteImageId, setConfirmDeleteImageId,
+    previewImage, setPreviewImage,
+    handleImageGenerate, deleteImageHistoryItem,
+  } = useImageGeneration({
+    selectedImageModel,
+    imageRefAttachments,
+    setImageRefAttachments,
+    loadImageHistory,
+  });
 
   // Auto-scroll
   const scrollToBottom = useCallback(() => {
@@ -680,220 +198,7 @@ function ChatPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // ─── File Upload Logic ──────────────────────────────────────────
-
-  async function uploadFile(file: File): Promise<ChatAttachment | null> {
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return {
-          type: data.type,
-          name: data.name,
-          mimeType: data.mimeType,
-          url: data.url,
-        };
-      }
-    } catch {
-      // silent
-    }
-    return null;
-  }
-
-  function addFiles(files: FileList | File[]) {
-    const remaining = 10 - pendingAttachments.length;
-    if (remaining <= 0) return;
-    const newPending: PendingAttachment[] = [];
-    for (const file of Array.from(files).slice(0, remaining)) {
-      const preview = file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : "";
-      newPending.push({ file, preview, uploading: true });
-    }
-
-    setPendingAttachments((prev) => {
-      const startIdx = prev.length;
-      // Upload each file
-      newPending.forEach(async (pa, idx) => {
-        const uploaded = await uploadFile(pa.file);
-        setPendingAttachments((current) => {
-          const updated = [...current];
-          const globalIdx = startIdx + idx;
-          if (updated[globalIdx]) {
-            updated[globalIdx] = {
-              ...updated[globalIdx],
-              uploading: false,
-              uploaded: uploaded || undefined,
-            };
-          }
-          return updated;
-        });
-      });
-      return [...prev, ...newPending];
-    });
-  }
-
-  function removeAttachment(idx: number) {
-    setPendingAttachments((prev) => {
-      const updated = [...prev];
-      if (updated[idx]?.preview) {
-        URL.revokeObjectURL(updated[idx].preview);
-      }
-      updated.splice(idx, 1);
-      return updated;
-    });
-  }
-
-  // ─── Image Reference Files ──────────────────────────────────────
-
-  function addImageRefFiles(files: File[]) {
-    const remaining = 10 - imageRefAttachments.length;
-    if (remaining <= 0) return;
-    const filesToAdd = files.slice(0, remaining);
-    const newPending: PendingAttachment[] = filesToAdd.map((file) => ({
-      file,
-      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
-      uploading: true,
-    }));
-
-    setImageRefAttachments((prev) => {
-      const startIdx = prev.length;
-      newPending.forEach(async (pa, idx) => {
-        const uploaded = await uploadFile(pa.file);
-        setImageRefAttachments((current) => {
-          const updated = [...current];
-          const globalIdx = startIdx + idx;
-          if (updated[globalIdx]) {
-            updated[globalIdx] = {
-              ...updated[globalIdx],
-              uploading: false,
-              uploaded: uploaded || undefined,
-            };
-          }
-          return updated;
-        });
-      });
-      return [...prev, ...newPending];
-    });
-  }
-
-  function removeImageRefAttachment(idx: number) {
-    setImageRefAttachments((prev) => {
-      const updated = [...prev];
-      if (updated[idx]?.preview) URL.revokeObjectURL(updated[idx].preview);
-      updated.splice(idx, 1);
-      return updated;
-    });
-  }
-
-  // Paste handler for images (mode-aware)
-  useEffect(() => {
-    function handlePaste(e: ClipboardEvent) {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const imageFiles: File[] = [];
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) imageFiles.push(file);
-        }
-      }
-      if (imageFiles.length > 0) {
-        e.preventDefault();
-        if (mode === "chat") {
-          addFiles(imageFiles);
-        } else {
-          // Image mode: add as reference files
-          addImageRefFiles(imageFiles);
-        }
-      }
-    }
-
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
   // ─── Handlers ──────────────────────────────────────────────────
-
-  async function handleImageGenerate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!imagePrompt.trim()) return;
-    setImageLoading(true);
-    setImageError("");
-    setImageUrl(null);
-    setSelectedImageItem(null);
-
-    // Get reference file URLs if attached
-    const refFiles = imageRefAttachments
-      .filter((pa) => pa.uploaded)
-      .map((pa) => ({
-        url: pa.uploaded!.url,
-        name: pa.uploaded!.name,
-        mimeType: pa.uploaded!.mimeType,
-        type: pa.uploaded!.type,
-      }));
-
-    try {
-      const res = await fetch("/api/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: imagePrompt,
-          model: selectedImageModel.id,
-          referenceFiles: refFiles.length ? refFiles : undefined,
-          aspectRatio: imageAspectRatio,
-          resolution: imageResolution,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const errMsg = data.error || "Ошибка генерации";
-        setImageError(errMsg);
-      } else {
-        setImageUrl(data.imageUrl);
-        // Show the generated image
-        if (data.historyItem) {
-          setSelectedImageItem({
-            ...data.historyItem,
-            createdAt: new Date(data.historyItem.createdAt),
-          });
-        }
-      }
-    } catch {
-      setImageError("Ошибка сети");
-    } finally {
-      setImageLoading(false);
-      // Clear references and reload history from server
-      setImageRefAttachments([]);
-      setImagePrompt("");
-      await loadImageHistory();
-    }
-  }
-
-  async function deleteImageHistoryItem(id: string) {
-    try {
-      await fetch("/api/images", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-    } catch {
-      // ignore
-    }
-    // Clear selection if deleting the viewed item
-    if (selectedImageItem?.id === id) {
-      setSelectedImageItem(null);
-      setImageUrl(null);
-    }
-    await loadImageHistory();
-  }
 
   function handleChatSubmit(e: React.FormEvent) {
     e.preventDefault();
