@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { proxyFetch } from "@/lib/proxy-fetch";
+import { createLocalLLMResponse } from "@/lib/local-llm-stream";
 import { resizeBase64Image } from "@/lib/image-resize";
 import fs from "fs";
 import path from "path";
@@ -62,11 +63,15 @@ export async function POST(req: Request) {
       model: modelId,
       provider,
       systemPrompt,
+      temperature: rawTemperature,
+      reasoningEnabled: rawReasoningEnabled,
     } = body as {
       messages: ApiMessage[];
       model: string;
       provider: string;
       systemPrompt?: string;
+      temperature?: number;
+      reasoningEnabled?: boolean;
     };
 
     if (!messages || !modelId || !provider) {
@@ -202,6 +207,7 @@ export async function POST(req: Request) {
         model: google(modelId),
         system,
         messages: coreMessages,
+        abortSignal: req.signal,
       });
     } else if (provider === "openrouter") {
       const openrouter = createOpenAI({
@@ -213,6 +219,37 @@ export async function POST(req: Request) {
         model: openrouter.chat(modelId),
         system,
         messages: coreMessages,
+        abortSignal: req.signal,
+      });
+    } else if (provider === "local") {
+      const localBaseURL =
+        process.env.LOCAL_LLM_URL || "http://127.0.0.1:8080/v1";
+      const local = createOpenAI({
+        apiKey: "no-key-required",
+        baseURL: localBaseURL,
+      });
+      // IMPORTANT: keep `local.chat(modelId)` here.
+      // In Vercel AI SDK, `.chat()` targets `/chat/completions`, while
+      // `.completion()` would target `/completions`, which is not suitable
+      // for the strict chat message structure used by ik_llama.cpp.
+
+      // Local-specific settings
+      const reasoningEnabled = rawReasoningEnabled !== false; // default: true
+      const temperature = typeof rawTemperature === "number"
+        ? rawTemperature
+        : reasoningEnabled ? 0.6 : 0.7;
+      const maxReasoningTokens = 8192;
+      const maxOutputTokens = 16384;
+
+      return createLocalLLMResponse({
+        model: local.chat(modelId),
+        system,
+        messages: coreMessages,
+        temperature,
+        reasoningEnabled,
+        maxReasoningTokens,
+        maxOutputTokens,
+        abortSignal: req.signal,
       });
     } else {
       return new Response(

@@ -18,9 +18,10 @@ import {
   Download,
   Pencil,
   Check,
+  Thermometer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AVAILABLE_MODELS, IMAGE_MODELS } from "@/lib/models";
+import { AVAILABLE_MODELS, IMAGE_MODELS, PROVIDER_COLORS } from "@/lib/models";
 import type { ModelOption, ModelsConfig } from "@/lib/models";
 import type { ChatListItem, ChatAttachment } from "@/lib/chat-store";
 import ChatMessage from "@/components/chat-message";
@@ -155,6 +156,12 @@ function usePersistentChat() {
   const [chatList, setChatList] = useState<ChatListItem[]>([]);
   const [chatSystemPrompt, setChatSystemPrompt] = useState<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<MessageData[]>([]);
+  const activeChatIdRef = useRef<string | null>(null);
+
+  // Keep refs in sync — prevents stale closures in async callbacks
+  messagesRef.current = messages;
+  activeChatIdRef.current = activeChatId;
 
   // Load chat list
   const loadChatList = useCallback(async () => {
@@ -176,14 +183,16 @@ function usePersistentChat() {
       if (res.ok) {
         const data = await res.json();
         const chat = data.chat;
-        setMessages(
-          chat.messages.map(
-            (m: MessageData & { createdAt: string }) => ({
-              ...m,
-              createdAt: new Date(m.createdAt),
-            })
-          )
+        const loaded: MessageData[] = chat.messages.map(
+          (m: MessageData & { createdAt: string }) => ({
+            ...m,
+            createdAt: new Date(m.createdAt),
+          })
         );
+        // Update refs BEFORE state — prevents stale reads if sendMessage fires immediately
+        messagesRef.current = loaded;
+        activeChatIdRef.current = chatId;
+        setMessages(loaded);
         setActiveChatId(chatId);
         setChatSystemPrompt(chat.systemPrompt || undefined);
         setError(null);
@@ -205,6 +214,9 @@ function usePersistentChat() {
         });
         if (res.ok) {
           const data = await res.json();
+          // Update refs BEFORE state
+          messagesRef.current = [];
+          activeChatIdRef.current = data.chat.id;
           setActiveChatId(data.chat.id);
           setMessages([]);
           setChatSystemPrompt(systemPrompt);
@@ -257,9 +269,10 @@ function usePersistentChat() {
       text: string,
       model: ModelOption,
       attachments?: ChatAttachment[],
-      systemPrompt?: string
+      systemPrompt?: string,
+      localOptions?: { temperature?: number; reasoningEnabled?: boolean }
     ) => {
-      let chatId = activeChatId;
+      let chatId = activeChatIdRef.current;
 
       // Create chat if none active
       if (!chatId) {
@@ -286,8 +299,9 @@ function usePersistentChat() {
       setStatus("submitted");
       setError(null);
 
-      // Build API messages — send content + attachments, server resolves files
-      const allMsgs = [...messages, userMsg];
+      // Build API messages from ref (not stale closure)
+      const currentMessages = messagesRef.current;
+      const allMsgs = [...currentMessages, userMsg];
       const apiMessages = allMsgs.map((m) => ({
         id: m.id,
         role: m.role,
@@ -307,6 +321,10 @@ function usePersistentChat() {
             model: model.id,
             provider: model.provider,
             systemPrompt: systemPrompt || chatSystemPrompt,
+            ...(model.provider === "local" && localOptions ? {
+              temperature: localOptions.temperature,
+              reasoningEnabled: localOptions.reasoningEnabled,
+            } : {}),
           }),
           signal: controller.signal,
         });
@@ -414,7 +432,7 @@ function usePersistentChat() {
         abortRef.current = null;
       }
     },
-    [messages, activeChatId, createNewChat, persistMessages, chatSystemPrompt]
+    [createNewChat, persistMessages, chatSystemPrompt]
   );
 
   const stop = useCallback(() => {
@@ -423,17 +441,28 @@ function usePersistentChat() {
   }, []);
 
   const retry = useCallback(
-    (model: ModelOption) => {
+    (
+      model: ModelOption,
+      localOptions?: { temperature?: number; reasoningEnabled?: boolean }
+    ) => {
       setError(null);
-      const lastUserIdx = messages.findLastIndex((m) => m.role === "user");
+      const currentMsgs = messagesRef.current;
+      const lastUserIdx = currentMsgs.findLastIndex((m) => m.role === "user");
       if (lastUserIdx === -1) return;
-      const lastUserMsg = messages[lastUserIdx];
-      setMessages(messages.slice(0, lastUserIdx));
-      setTimeout(() => {
-        sendMessage(lastUserMsg.content, model, lastUserMsg.attachments);
-      }, 50);
+      const lastUserMsg = currentMsgs[lastUserIdx];
+      const trimmed = currentMsgs.slice(0, lastUserIdx);
+      // Update ref immediately so sendMessage reads clean state
+      messagesRef.current = trimmed;
+      setMessages(trimmed);
+      sendMessage(
+        lastUserMsg.content,
+        model,
+        lastUserMsg.attachments,
+        undefined,
+        localOptions
+      );
     },
-    [messages, sendMessage]
+    [sendMessage]
   );
 
   const deleteMessage = useCallback(
@@ -472,6 +501,8 @@ function usePersistentChat() {
   }, [activeChatId, persistMessages]);
 
   const clearChat = useCallback(() => {
+    messagesRef.current = [];
+    activeChatIdRef.current = null;
     setMessages([]);
     setActiveChatId(null);
     setChatSystemPrompt(undefined);
@@ -487,7 +518,9 @@ function usePersistentChat() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ chatId }),
         });
-        if (activeChatId === chatId) {
+        if (activeChatIdRef.current === chatId) {
+          messagesRef.current = [];
+          activeChatIdRef.current = null;
           setMessages([]);
           setActiveChatId(null);
           setError(null);
@@ -497,7 +530,7 @@ function usePersistentChat() {
         // silent
       }
     },
-    [activeChatId, loadChatList]
+    [loadChatList]
   );
 
   const renameChat = useCallback(
@@ -606,6 +639,8 @@ function ChatPage() {
   const [pendingAttachments, setPendingAttachments] = useState<
     PendingAttachment[]
   >([]);
+  const [reasoningEnabled, setReasoningEnabled] = useState(true);
+  const [temperature, setTemperature] = useState(0.6);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -635,6 +670,13 @@ function ChatPage() {
   } = usePersistentChat();
 
   const isLoading = status === "streaming" || status === "submitted";
+  const isLocalModel = selectedModel.provider === "local";
+
+  // Derive reasoning phase: streaming + last assistant msg has reasoning but no content
+  const isReasoningPhase = status === "streaming" && (() => {
+    const last = messages[messages.length - 1];
+    return last?.role === "assistant" && !!last.reasoning && !last.content;
+  })();
 
   // ─── Helper: compute current system prompt ──────────────────────
   const currentSystemPrompt = selectedPresetId === "custom"
@@ -974,7 +1016,8 @@ function ChatPage() {
 
     // Pass system prompt only when starting a new chat (no messages yet)
     const sp = messages.length === 0 ? currentSystemPrompt : undefined;
-    sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp);
+    const localOpts = isLocalModel ? { temperature, reasoningEnabled } : undefined;
+    sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOpts);
     setInput("");
     setPendingAttachments([]);
   }
@@ -1044,10 +1087,7 @@ function ChatPage() {
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <div
               className={`h-2 w-2 rounded-full ${
-                (mode === "chat" ? selectedModel : selectedImageModel).provider ===
-                "google"
-                  ? "bg-green-400"
-                  : "bg-orange-400"
+                PROVIDER_COLORS[(mode === "chat" ? selectedModel : selectedImageModel).provider]
               }`}
             />
             <span>{mode === "chat" ? selectedModel.name : selectedImageModel.name}</span>
@@ -1174,6 +1214,7 @@ function ChatPage() {
                     message={m}
                     isLoading={status === "submitted" && idx === messages.length - 1}
                     isStreaming={status === "streaming" && idx === messages.length - 1}
+                    isReasoning={isReasoningPhase && idx === messages.length - 1}
                     onDelete={deleteMessage}
                   />
                 ))}
@@ -1222,7 +1263,7 @@ function ChatPage() {
                     </div>
                     <div className="mt-3 flex gap-2">
                       <button
-                        onClick={() => retry(selectedModel)}
+                        onClick={() => retry(selectedModel, isLocalModel ? { temperature, reasoningEnabled } : undefined)}
                         className="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/30"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -1356,6 +1397,55 @@ function ChatPage() {
                     )}
                   </button>
                 </form>
+
+                {/* Local model controls: Reasoning toggle + Temperature slider */}
+                {isLocalModel && (
+                  <div className="flex items-center gap-3 overflow-x-auto px-3 pb-2.5 scrollbar-none">
+                    {/* Reasoning toggle */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !reasoningEnabled;
+                        setReasoningEnabled(next);
+                        setTemperature(next ? 0.6 : 0.7);
+                      }}
+                      className={cn(
+                        "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition",
+                        reasoningEnabled
+                          ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
+                          : "bg-slate-700/40 text-slate-500 border border-slate-700/50 hover:text-slate-400"
+                      )}
+                    >
+                      <Brain className="h-3 w-3" />
+                      <span>Reasoning</span>
+                      <span className={cn(
+                        "ml-0.5 rounded px-1 py-px text-[9px] font-bold uppercase",
+                        reasoningEnabled ? "bg-purple-500/30 text-purple-200" : "bg-slate-600/50 text-slate-500"
+                      )}>
+                        {reasoningEnabled ? "ON" : "OFF"}
+                      </span>
+                    </button>
+
+                    <div className="h-3 w-px shrink-0 bg-slate-700/60" />
+
+                    {/* Temperature slider */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Thermometer className="h-3 w-3 text-slate-500" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="1.5"
+                        step="0.05"
+                        value={temperature}
+                        onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-slate-700 accent-blue-500 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
+                      />
+                      <span className="min-w-[2rem] text-[10px] text-slate-500 tabular-nums">
+                        {temperature.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>

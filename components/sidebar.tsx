@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ModelOption } from "@/lib/models";
+import { PROVIDER_LABELS, PROVIDER_ORDER, PROVIDER_COLORS } from "@/lib/models";
 import type { ChatListItem } from "@/lib/chat-store";
 import { ConfirmModal } from "@/components/confirm-modal";
 
@@ -63,9 +64,9 @@ interface SidebarProps {
   onNewImageGeneration: () => void;
 }
 
-// ─── Model Dropdown ──────────────────────────────────────────────────
+// ─── Model Accordion Dropdown ────────────────────────────────────────
 
-function ModelDropdown({
+function ModelAccordionDropdown({
   models,
   selected,
   onChange,
@@ -87,6 +88,46 @@ function ModelDropdown({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Group models by provider in defined order
+  const groups = PROVIDER_ORDER
+    .map((provider) => ({
+      provider,
+      label: PROVIDER_LABELS[provider],
+      color: PROVIDER_COLORS[provider],
+      models: models.filter((m) => m.provider === provider),
+    }))
+    .filter((g) => g.models.length > 0);
+
+  // Track which accordion sections are expanded
+  // By default: Google expanded, others collapsed (unless selected model is there)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    initial.add("google");
+    return initial;
+  });
+
+  // When selected model changes, ensure its section is expanded
+  useEffect(() => {
+    setExpandedSections((prev) => {
+      if (prev.has(selected.provider)) return prev;
+      const next = new Set(prev);
+      next.add(selected.provider);
+      return next;
+    });
+  }, [selected.provider]);
+
+  function toggleSection(provider: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(provider)) {
+        next.delete(provider);
+      } else {
+        next.add(provider);
+      }
+      return next;
+    });
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -97,7 +138,7 @@ function ModelDropdown({
           <div
             className={cn(
               "h-2 w-2 shrink-0 rounded-full",
-              selected.provider === "google" ? "bg-green-400" : "bg-orange-400"
+              PROVIDER_COLORS[selected.provider]
             )}
           />
           <span className="truncate">{selected.name}</span>
@@ -111,33 +152,58 @@ function ModelDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
-          {models.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => {
-                onChange(m);
-                setOpen(false);
-              }}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-2.5 text-sm transition",
-                selected.id === m.id
-                  ? "bg-blue-600/20 text-blue-400"
-                  : "text-slate-300 hover:bg-slate-700/50"
-              )}
-            >
-              <div
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  m.provider === "google" ? "bg-green-400" : "bg-orange-400"
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
+          {groups.map((group) => {
+            const isExpanded = expandedSections.has(group.provider);
+            return (
+              <div key={group.provider}>
+                {/* Section header */}
+                <button
+                  onClick={() => toggleSection(group.provider)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 transition hover:bg-slate-700/30 hover:text-slate-400"
+                >
+                  <div className={cn("h-1.5 w-1.5 shrink-0 rounded-full", group.color)} />
+                  <span>{group.label}</span>
+                  <span className="text-slate-600">({group.models.length})</span>
+                  <ChevronDown
+                    className={cn(
+                      "ml-auto h-3 w-3 text-slate-600 transition-transform",
+                      isExpanded && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {/* Section items */}
+                {isExpanded && (
+                  <div>
+                    {group.models.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          onChange(m);
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-3 py-2 pl-6 text-sm transition",
+                          selected.id === m.id
+                            ? "bg-blue-600/20 text-blue-400"
+                            : "text-slate-300 hover:bg-slate-700/50"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "h-2 w-2 shrink-0 rounded-full",
+                            PROVIDER_COLORS[m.provider]
+                          )}
+                        />
+                        <span className="truncate">{m.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              />
-              <span className="truncate">{m.name}</span>
-              <span className="ml-auto text-[10px] text-slate-500">
-                {m.provider === "google" ? "Google" : "OpenRouter"}
-              </span>
-            </button>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -403,13 +469,13 @@ export default function Sidebar({
             {mode === "chat" ? "Модель" : "Модель для картинок"}
           </h3>
           {mode === "chat" ? (
-            <ModelDropdown
+            <ModelAccordionDropdown
               models={chatModels}
               selected={selectedModel}
               onChange={onModelChange}
             />
           ) : (
-            <ModelDropdown
+            <ModelAccordionDropdown
               models={imageModels}
               selected={selectedImageModel}
               onChange={onImageModelChange}
