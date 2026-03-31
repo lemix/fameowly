@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { ChatAttachment, Mode, ImageHistoryItemClient } from "@/lib/types";
 import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
+import { getDefaultModel } from "@/lib/models";
 import { usePersistentChat } from "./use-persistent-chat";
 import { useFileUpload } from "./use-file-upload";
 import { useImageGeneration } from "./use-image-generation";
@@ -36,6 +37,12 @@ export function usePageState() {
   const currentSystemPrompt = selectedPresetId === "custom"
     ? customSystemPrompt
     : SYSTEM_PROMPT_PRESETS.find((p) => p.id === selectedPresetId)?.prompt || SYSTEM_PROMPT_PRESETS[0].prompt;
+
+  // Ghost model detection: check if the current chat's model is still available
+  const modelUnavailable = useMemo(() => {
+    if (!chat.activeChatId) return false;
+    return !chatModels.some((m) => m.id === selectedModel.id);
+  }, [chat.activeChatId, chatModels, selectedModel.id]);
 
   const fileUpload = useFileUpload(mode);
   const imageGen = useImageGeneration({
@@ -73,25 +80,53 @@ export function usePageState() {
 
   useEffect(() => { chat.loadChatList(); }, [chat.loadChatList]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // When model is changed in an existing chat, update chat.modelId on server
+  const handleModelChange = useCallback((model: typeof selectedModel) => {
+    setSelectedModel(model);
+    if (chat.activeChatId) {
+      // Update chat's model on server
+      fetch("/api/chats", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId: chat.activeChatId, modelId: model.id }),
+      }).catch(() => { /* silent */ });
+    }
+  }, [chat.activeChatId, setSelectedModel]);
+
   // Handlers
   const handleChatSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || modelUnavailable) return;
     const attachments: ChatAttachment[] = fileUpload.pendingAttachments.filter((pa) => pa.uploaded).map((pa) => pa.uploaded!);
     const sp = chat.messages.length === 0 ? currentSystemPrompt : undefined;
     const localOpts = isLocalModel ? { temperature, reasoningEnabled } : undefined;
     chat.sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOpts);
     setInput(""); fileUpload.setPendingAttachments([]);
-  }, [input, isLoading, fileUpload, chat, currentSystemPrompt, isLocalModel, temperature, reasoningEnabled, selectedModel]);
+  }, [input, isLoading, modelUnavailable, fileUpload, chat, currentSystemPrompt, isLocalModel, temperature, reasoningEnabled, selectedModel]);
 
   const handleNewChat = useCallback(() => {
     chat.clearChat(); setSelectedPresetId("default"); setCustomSystemPrompt("");
     setShowSystemPromptPanel(false); setSidebarOpen(false);
-  }, [chat]);
+    // Reset to default model for new chats
+    setSelectedModel(getDefaultModel(chatModels));
+  }, [chat, chatModels, setSelectedModel]);
 
   const handleSelectChat = useCallback((chatId: string) => {
     chat.loadChat(chatId); setMode("chat"); setSidebarOpen(false);
   }, [chat]);
+
+  // After loading a chat, sync the model from chat data
+  useEffect(() => {
+    if (!chat.activeChatId || !chat.chatList.length) return;
+    const activeChat = chat.chatList.find((c) => c.id === chat.activeChatId);
+    if (activeChat?.modelId) {
+      const chatModel = chatModels.find((m) => m.id === activeChat.modelId);
+      if (chatModel) {
+        setSelectedModel(chatModel);
+      }
+      // If model not found — modelUnavailable will be true via useMemo
+    }
+  }, [chat.activeChatId, chat.chatList, chatModels, setSelectedModel]);
 
   const handleSelectImageItem = useCallback((item: ImageHistoryItemClient) => {
     imageGen.setSelectedImageItem(item); imageGen.setImageUrl(item.imageUrl);
@@ -103,13 +138,13 @@ export function usePageState() {
   }, [imageGen]);
 
   const handleReasoningToggle = useCallback(() => {
-    const next = !reasoningEnabled; setReasoningEnabled(next); setTemperature(next ? 0.6 : 0.7);
+    const next = !reasoningEnabled; setReasoningEnabled(next); setTemperature(next ? 0.5 : 0.6);
   }, [reasoningEnabled]);
 
   return {
     mode, setMode, sidebarOpen, setSidebarOpen, showAllChats, setShowAllChats,
-    chatModels, imageModels, selectedModel, setSelectedModel, selectedImageModel, setSelectedImageModel,
-    ...chat, isLoading, isLocalModel, isReasoningPhase,
+    chatModels, imageModels, selectedModel, setSelectedModel: handleModelChange, selectedImageModel, setSelectedImageModel,
+    ...chat, isLoading, isLocalModel, isReasoningPhase, modelUnavailable,
     input, setInput,
     selectedPresetId, setSelectedPresetId, customSystemPrompt, setCustomSystemPrompt,
     showSystemPromptPanel, setShowSystemPromptPanel, currentSystemPrompt,
@@ -118,3 +153,4 @@ export function usePageState() {
     handleChatSubmit, handleNewChat, handleSelectChat, handleSelectImageItem, handleNewImageGeneration,
   };
 }
+

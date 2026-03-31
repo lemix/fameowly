@@ -1,9 +1,8 @@
 "use client";
 
-import { Bot, MessageSquare, ImageIcon, Sparkles } from "lucide-react";
+import { Bot, MessageSquare, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ModelOption, ChatListItem, Mode, ImageHistoryItemClient } from "@/lib/types";
-import { ModelDropdown } from "./model-dropdown";
+import type { ChatListItem, Mode, ImageHistoryItemClient } from "@/lib/types";
 import { ChatList } from "./chat-list";
 import { ImageHistoryList } from "./image-history-list";
 import { SidebarFooter } from "./sidebar-footer";
@@ -15,12 +14,6 @@ interface SidebarProps {
   onClose: () => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
-  chatModels: ModelOption[];
-  imageModels: ModelOption[];
-  selectedModel: ModelOption;
-  onModelChange: (model: ModelOption) => void;
-  selectedImageModel: ModelOption;
-  onImageModelChange: (model: ModelOption) => void;
   chats: ChatListItem[];
   activeChatId: string | null;
   onSelectChat: (chatId: string) => void;
@@ -43,12 +36,6 @@ export function Sidebar({
   onClose,
   mode,
   onModeChange,
-  chatModels,
-  imageModels,
-  selectedModel,
-  onModelChange,
-  selectedImageModel,
-  onImageModelChange,
   chats,
   activeChatId,
   onSelectChat,
@@ -76,6 +63,7 @@ export function Sidebar({
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ backgroundColor: "#0d1525" }}
+        data-testid="sidebar"
       >
         {/* Logo */}
         <div className="flex items-center gap-3 border-b border-slate-700/60 px-4 py-3">
@@ -91,7 +79,7 @@ export function Sidebar({
             <button
               onClick={() => onModeChange("chat")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition min-h-[44px]",
                 mode === "chat" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
               )}
             >
@@ -101,7 +89,7 @@ export function Sidebar({
             <button
               onClick={() => onModeChange("image")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition min-h-[44px]",
                 mode === "image" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
               )}
             >
@@ -109,19 +97,6 @@ export function Sidebar({
               Картинки
             </button>
           </div>
-        </div>
-
-        {/* Model Selector */}
-        <div className="border-b border-slate-700/60 px-3 py-3">
-          <h3 className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            <Sparkles className="h-3 w-3" />
-            {mode === "chat" ? "Модель" : "Модель для картинок"}
-          </h3>
-          {mode === "chat" ? (
-            <ModelDropdown models={chatModels} selected={selectedModel} onChange={onModelChange} />
-          ) : (
-            <ModelDropdown models={imageModels} selected={selectedImageModel} onChange={onImageModelChange} />
-          )}
         </div>
 
         {/* Content area — chat list or image history */}
@@ -155,3 +130,4 @@ export function Sidebar({
     </>
   );
 }
+

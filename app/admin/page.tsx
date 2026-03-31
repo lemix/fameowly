@@ -14,14 +14,14 @@ import {
 interface UserRecord {
   id: string;
   name: string;
-  role: "admin" | "user";
+  role: "admin" | "user" | "family" | "client";
 }
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [newName, setNewName] = useState("");
   const [newPass, setNewPass] = useState("");
-  const [newRole, setNewRole] = useState<"user" | "admin">("user");
+  const [newRole, setNewRole] = useState<"user" | "admin" | "family" | "client">("user");
   const [resetId, setResetId] = useState<string | null>(null);
   const [resetPass, setResetPass] = useState("");
   const [error, setError] = useState("");
@@ -162,10 +162,12 @@ export default function AdminPage() {
             />
             <select
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value as "user" | "admin")}
+              onChange={(e) => setNewRole(e.target.value as "user" | "admin" | "family" | "client")}
               className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
             >
               <option value="user">Пользователь</option>
+              <option value="family">Семья</option>
+              <option value="client">Клиент</option>
               <option value="admin">Админ</option>
             </select>
             <button
@@ -202,7 +204,7 @@ export default function AdminPage() {
                   <div>
                     <span className="font-medium">{u.name}</span>
                     <span className="ml-2 rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
-                      {u.role === "admin" ? "Админ" : "Пользователь"}
+                      {{ admin: "Админ", user: "Пользователь", family: "Семья", client: "Клиент" }[u.role]}
                     </span>
                   </div>
                 </div>

@@ -7,6 +7,7 @@
 html, body {
   height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Safe area for devices with notch / home indicator */

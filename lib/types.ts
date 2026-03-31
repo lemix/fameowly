@@ -3,7 +3,7 @@
 // Server types re-exported for convenience.
 // IMPORTANT: use `export type` to ensure tree-shaking —
 // these modules import `fs`/`path` which must NOT be bundled into client code.
-export type { ModelOption, ModelsConfig } from "./models";
+export type { ModelOption, ModelsConfig, ModelTier } from "./models";
 export type {
   ChatListItem,
   ChatAttachment,
@@ -14,9 +14,19 @@ export type { ImageHistoryItem } from "./image-store";
 
 // Import for local use in type definitions
 import type { ChatAttachment } from "./chat-store";
+import type { UserRole } from "./auth";
+
+export type { UserRole } from "./auth";
 
 export type Mode = "chat" | "image";
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error";
+
+/** Client-side user info (no password) */
+export interface UserInfo {
+  id: string;
+  name: string;
+  role: UserRole;
+}
 
 export interface PendingAttachment {
   file: File;
