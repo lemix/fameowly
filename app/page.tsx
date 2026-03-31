@@ -6,13 +6,15 @@ import { Sidebar } from "@/components/sidebar/sidebar";
 import { AppHeader } from "@/components/app-header";
 import { ChatView } from "@/app/(chat)/_components/chat-view";
 import { ImageView } from "@/app/(image)/_components/image-view";
+import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { usePageState } from "@/hooks/use-page-state";
+import { useUserInfo } from "@/hooks/use-user-info";
 
 // ─── Main Component ──────────────────────────────────────────────────
 
 export default function ChatPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex h-dvh items-center justify-center bg-slate-900 text-white"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
+    <Suspense fallback={<div className="flex h-[100dvh] items-center justify-center bg-slate-900 text-white"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
       <ChatPage />
     </Suspense>
   );
@@ -20,20 +22,15 @@ export default function ChatPageWrapper() {
 
 function ChatPage() {
   const s = usePageState();
+  const user = useUserInfo();
 
   return (
-    <div className="flex h-dvh bg-slate-900 text-white">
+    <div className="flex h-[100dvh] bg-slate-900 text-white">
       <Sidebar
         isOpen={s.sidebarOpen}
         onClose={() => s.setSidebarOpen(false)}
         mode={s.mode}
         onModeChange={s.setMode}
-        chatModels={s.chatModels}
-        imageModels={s.imageModels}
-        selectedModel={s.selectedModel}
-        onModelChange={s.setSelectedModel}
-        selectedImageModel={s.selectedImageModel}
-        onImageModelChange={s.setSelectedImageModel}
         chats={s.chatList}
         activeChatId={s.activeChatId}
         onSelectChat={s.handleSelectChat}
@@ -54,68 +51,78 @@ function ChatPage() {
           mode={s.mode}
           selectedModel={s.selectedModel}
           selectedImageModel={s.selectedImageModel}
+          chatModels={s.chatModels}
+          imageModels={s.imageModels}
+          onModelChange={s.setSelectedModel}
+          onImageModelChange={s.setSelectedImageModel}
           isLoading={s.isLoading}
           status={s.status}
           onToggleSidebar={() => s.setSidebarOpen(!s.sidebarOpen)}
+          user={user}
+          modelUnavailable={s.modelUnavailable}
         />
 
-        {s.mode === "chat" && (
-          <ChatView
-            messages={s.messages}
-            status={s.status}
-            error={s.error}
-            chatSystemPrompt={s.chatSystemPrompt}
-            isLoading={s.isLoading}
-            isReasoningPhase={s.isReasoningPhase}
-            input={s.input}
-            onInputChange={s.setInput}
-            onSubmit={s.handleChatSubmit}
-            onStop={s.stop}
-            onDeleteMessage={s.deleteMessage}
-            onRetry={() => s.retry(s.selectedModel, s.isLocalModel ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
-            onDeleteLastExchange={s.deleteLastExchange}
-            onUpdateSystemPrompt={s.updateSystemPrompt}
-            pendingAttachments={s.pendingAttachments}
-            onAddFiles={s.addFiles}
-            onRemoveAttachment={s.removeAttachment}
-            selectedPresetId={s.selectedPresetId}
-            onSelectPreset={s.setSelectedPresetId}
-            customSystemPrompt={s.customSystemPrompt}
-            onCustomPromptChange={s.setCustomSystemPrompt}
-            showSystemPromptPanel={s.showSystemPromptPanel}
-            onShowPanelChange={s.setShowSystemPromptPanel}
-            isLocalModel={s.isLocalModel}
-            reasoningEnabled={s.reasoningEnabled}
-            onReasoningToggle={s.handleReasoningToggle}
-            temperature={s.temperature}
-            onTemperatureChange={s.setTemperature}
-          />
-        )}
+        <ChatErrorBoundary>
+          {s.mode === "chat" && (
+            <ChatView
+              messages={s.messages}
+              status={s.status}
+              error={s.error}
+              chatSystemPrompt={s.chatSystemPrompt}
+              isLoading={s.isLoading}
+              isReasoningPhase={s.isReasoningPhase}
+              input={s.input}
+              onInputChange={s.setInput}
+              onSubmit={s.handleChatSubmit}
+              onStop={s.stop}
+              onDeleteMessage={s.deleteMessage}
+              onRetry={() => s.retry(s.selectedModel, s.isLocalModel ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
+              onDeleteLastExchange={s.deleteLastExchange}
+              onUpdateSystemPrompt={s.updateSystemPrompt}
+              pendingAttachments={s.pendingAttachments}
+              onAddFiles={s.addFiles}
+              onRemoveAttachment={s.removeAttachment}
+              selectedPresetId={s.selectedPresetId}
+              onSelectPreset={s.setSelectedPresetId}
+              customSystemPrompt={s.customSystemPrompt}
+              onCustomPromptChange={s.setCustomSystemPrompt}
+              showSystemPromptPanel={s.showSystemPromptPanel}
+              onShowPanelChange={s.setShowSystemPromptPanel}
+              isLocalModel={s.isLocalModel}
+              reasoningEnabled={s.reasoningEnabled}
+              onReasoningToggle={s.handleReasoningToggle}
+              temperature={s.temperature}
+              onTemperatureChange={s.setTemperature}
+              modelUnavailable={s.modelUnavailable}
+            />
+          )}
 
-        {s.mode === "image" && (
-          <ImageView
-            selectedItem={s.selectedImageItem}
-            imageLoading={s.imageLoading}
-            imageError={s.imageError}
-            imagePrompt={s.imagePrompt}
-            onPromptChange={s.setImagePrompt}
-            onGenerate={s.handleImageGenerate}
-            onDelete={s.deleteImageHistoryItem}
-            onNewGeneration={s.handleNewImageGeneration}
-            refAttachments={s.imageRefAttachments}
-            onAddRefFiles={s.addImageRefFiles}
-            onRemoveRefAttachment={s.removeImageRefAttachment}
-            aspectRatio={s.imageAspectRatio}
-            onAspectRatioChange={s.setImageAspectRatio}
-            resolution={s.imageResolution}
-            onResolutionChange={s.setImageResolution}
-            previewImage={s.previewImage}
-            onPreviewChange={s.setPreviewImage}
-            confirmDeleteId={s.confirmDeleteImageId}
-            onConfirmDeleteChange={s.setConfirmDeleteImageId}
-          />
-        )}
+          {s.mode === "image" && (
+            <ImageView
+              selectedItem={s.selectedImageItem}
+              imageLoading={s.imageLoading}
+              imageError={s.imageError}
+              imagePrompt={s.imagePrompt}
+              onPromptChange={s.setImagePrompt}
+              onGenerate={s.handleImageGenerate}
+              onDelete={s.deleteImageHistoryItem}
+              onNewGeneration={s.handleNewImageGeneration}
+              refAttachments={s.imageRefAttachments}
+              onAddRefFiles={s.addImageRefFiles}
+              onRemoveRefAttachment={s.removeImageRefAttachment}
+              aspectRatio={s.imageAspectRatio}
+              onAspectRatioChange={s.setImageAspectRatio}
+              resolution={s.imageResolution}
+              onResolutionChange={s.setImageResolution}
+              previewImage={s.previewImage}
+              onPreviewChange={s.setPreviewImage}
+              confirmDeleteId={s.confirmDeleteImageId}
+              onConfirmDeleteChange={s.setConfirmDeleteImageId}
+            />
+          )}
+        </ChatErrorBoundary>
       </main>
     </div>
   );
 }
+

@@ -5,17 +5,19 @@ import path from "path";
 import crypto from "crypto";
 
 // ------- Types -------
+export type UserRole = "admin" | "user" | "family" | "client";
+
 export interface User {
   id: string;
   name: string;
   password: string; // bcrypt-like hash (we use sha256 for simplicity)
-  role: "admin" | "user";
+  role: UserRole;
 }
 
 export interface SessionPayload {
   userId: string;
   name: string;
-  role: "admin" | "user";
+  role: UserRole;
 }
 
 // ------- Constants -------

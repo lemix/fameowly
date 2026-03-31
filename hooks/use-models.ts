@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AVAILABLE_MODELS, IMAGE_MODELS } from "@/lib/models";
+import { AVAILABLE_MODELS, IMAGE_MODELS, getDefaultModel } from "@/lib/models";
 import type { ModelOption, ModelsConfig } from "@/lib/types";
 
 export function useModels() {
   const [chatModels, setChatModels] = useState<ModelOption[]>(AVAILABLE_MODELS);
   const [imageModels, setImageModels] = useState<ModelOption[]>(IMAGE_MODELS);
-  const [selectedModel, setSelectedModel] = useState<ModelOption>(AVAILABLE_MODELS[0]);
+  const [selectedModel, setSelectedModel] = useState<ModelOption>(getDefaultModel(AVAILABLE_MODELS));
   const [selectedImageModel, setSelectedImageModel] = useState<ModelOption>(IMAGE_MODELS[0]);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useModels() {
           if (data.chatModels?.length) {
             setChatModels(data.chatModels);
             setSelectedModel((prev) =>
-              data.chatModels.find((m) => m.id === prev.id) || data.chatModels[0]
+              data.chatModels.find((m) => m.id === prev.id) || getDefaultModel(data.chatModels)
             );
           }
           if (data.imageModels?.length) {
@@ -45,3 +45,4 @@ export function useModels() {
     setSelectedImageModel,
   };
 }
+

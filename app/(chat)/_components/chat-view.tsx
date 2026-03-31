@@ -44,6 +44,8 @@ interface ChatViewProps {
   onReasoningToggle: () => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
+  // Model availability
+  modelUnavailable?: boolean;
 }
 
 /** Chat mode orchestrator — messages list, input, system prompt, errors */
@@ -57,6 +59,7 @@ export function ChatView({
   showSystemPromptPanel, onShowPanelChange,
   isLocalModel, reasoningEnabled, onReasoningToggle,
   temperature, onTemperatureChange,
+  modelUnavailable,
 }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +91,7 @@ export function ChatView({
           />
         )}
 
-        <div className="mx-auto" style={{ maxWidth: "52rem" }}>
+        <div className="mx-auto" style={{ maxWidth: "800px" }}>
           {messages.length > 0 && chatSystemPrompt && (
             <SystemPromptDisplay
               systemPrompt={chatSystemPrompt}
@@ -128,6 +131,8 @@ export function ChatView({
         onSubmit={onSubmit}
         onStop={onStop}
         isLoading={isLoading}
+        disabled={modelUnavailable}
+        disabledPlaceholder="Выберите новую модель для продолжения общения"
         pendingAttachments={pendingAttachments}
         onAddFiles={onAddFiles}
         onRemoveAttachment={onRemoveAttachment}
