@@ -1,21 +1,95 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) [Year] [Your Name or GitHub Handle]
+License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
+"Business Source License" is a trademark of MariaDB Corporation Ab.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Parameters
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Licensor:            Aleksey Mikhaylov <aleksey.mikhaylov@fameowly.com>
+Licensed Work:       FaMeowly
+Change Date:         2099-01-01
+Change License:      MIT License
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Additional Use Grant:
+
+You may use the Licensed Work for Personal Use.
+
+"Personal Use" means use solely by:
+(a) the individual licensee;
+(b) members of the licensee's family or household; or
+(c) a private group of personally known individuals,
+
+in each case only for their own private, non-business purposes and not for
+any commercial, professional, institutional, governmental, or
+revenue-generating activity.
+
+Personal Use expressly includes installing, running, modifying, and
+self-hosting the Licensed Work on hardware, home servers, dedicated servers,
+virtual machines, VPS instances, or cloud servers controlled by the licensee
+or such permitted private group, including use under domain names or
+subdomains and including deployments reachable over the public Internet.
+For clarity, the mere fact that a deployment is accessible via a public IP
+address or public domain name does not, by itself, make the use prohibited.
+
+You may also use the Licensed Work for internal production purposes within
+your organization, provided that the total annual gross revenue of your
+organization does not exceed $30,000 USD (or its equivalent in other
+currencies at the time of determination).
+
+Hosting Restriction: Regardless of your revenue or any other permitted use
+above, you may NOT use the Licensed Work — in original or modified form — to
+provide, operate, market, resell, sublicense, white-label, distribute, or
+make available any hosted or managed service, software-as-a-service, platform
+service, API service, or similar offering to unrelated third parties, whether
+for a fee, other consideration, cost recovery, or free of charge.
+
+Any public sign-up, self-service registration, sale, invitation, onboarding,
+provisioning, or granting of access to unrelated third parties constitutes a
+prohibited hosted service. For clarity, access limited to the persons
+permitted under Personal Use is allowed; access offered to customers, clients,
+the general public, or unrelated third parties is not allowed.
+
+To purchase a commercial license, contact: aleksey.mikhaylov@fameowly.com
+
+---
+
+Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work. The
+Licensor may make an Additional Use Grant, above, permitting limited
+production use.
+
+Effective on the Change Date, or the fourth anniversary of the first publicly
+available distribution of a specific version of the Licensed Work under this
+License, whichever comes first, the Licensor hereby grants you rights under
+the terms of the Change License, and the rights granted under this Business
+Source License for that version will terminate.
+
+If your use of the Licensed Work does not comply with the requirements
+currently in effect as described in this License, you must purchase a
+commercial license from the Licensor, its affiliated entities, or authorized
+resellers, or you must refrain from using the Licensed Work.
+
+All copies of the original and modified Licensed Work, and derivative works
+of the Licensed Work, are subject to this License. This License applies
+separately for each version of the Licensed Work, and the Change Date may
+vary for each version of the Licensed Work released by the Licensor.
+
+You must conspicuously display this License on each original or modified copy
+of the Licensed Work. If you receive the Licensed Work in original or
+modified form, you may not remove or alter the text of this License.
+
+Any use of the Licensed Work in violation of this License will automatically
+terminate your rights under this License for the current and all other
+versions of the Licensed Work.
+
+This License does not grant you any right in any trademark or logo of the
+Licensor or its affiliates (provided that you may use a trademark or logo of
+the Licensor as expressly required by this License).
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSED WORK IS PROVIDED ON
+AN "AS IS" BASIS. LICENSOR HEREBY DISCLAIMS ALL WARRANTIES AND CONDITIONS,
+EXPRESS OR IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND
+TITLE.
