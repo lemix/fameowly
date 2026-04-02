@@ -85,7 +85,7 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
 
       {open && !isMobile && (
         <div
-          className={cn("absolute left-0 top-full z-50 mt-2 w-[22rem] rounded-xl border border-slate-700/50 bg-slate-800 shadow-lg",
+          className={cn("absolute left-0 top-full z-50 mt-2 w-[24rem] rounded-2xl border border-slate-700/50 bg-slate-800/95 shadow-2xl backdrop-blur-sm",
             closing ? "animate-popover-out" : "animate-popover-in")}
           data-testid="model-popover"
         >
@@ -137,7 +137,7 @@ function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
       {groups.map((group, gi) => (
         <div key={group.tier}>
           <div className={cn(
-            "px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500",
+            "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500",
             gi > 0 && "mt-4 border-t border-slate-700/40 pt-4"
           )}>
             {group.icon} {group.label}
@@ -150,20 +150,20 @@ function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
                 key={model.id}
                 onClick={() => onSelect(model)}
                 className={cn(
-                  "flex w-full items-center gap-3 px-3 py-3.5 text-left rounded-lg min-h-[3rem]",
+                  "flex w-full items-center gap-3 px-3 text-left rounded-xl h-[56px]",
                   "transition-all duration-150 active:scale-[0.97]",
                   showLocal && "border-l-2 border-emerald-500",
-                  isActive ? "bg-white/10" : "hover:bg-white/5",
+                  isActive ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5",
                 )}
                 data-testid={`model-option-${model.id}`}
               >
                 {showLocal
-                  ? <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
-                  : <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />}
+                  ? <Shield className="h-5 w-5 shrink-0 text-emerald-500" />
+                  : <Sparkles className="h-5 w-5 shrink-0 text-slate-400" />}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-[0.8125rem] font-semibold text-slate-100 truncate">{model.name}</span>
+                  <span className="text-sm font-semibold text-slate-100 truncate">{model.name}</span>
                   {showLocal && (
-                    <span className="text-[10px] text-emerald-500/70 leading-tight truncate">
+                    <span className="text-[10px] text-emerald-500/70 leading-none truncate">
                       Приватная модель. Данные не покидают дом.
                     </span>
                   )}
