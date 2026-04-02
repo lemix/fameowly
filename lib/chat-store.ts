@@ -45,7 +45,6 @@ export interface ChatListItem {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const CHATS_DIR = path.join(DATA_DIR, "chats");
-const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
 function ensureDir(dir: string) {
   if (!fs.existsSync(dir)) {
@@ -210,30 +209,3 @@ export function deleteChat(userId: string, chatId: string): boolean {
   return true;
 }
 
-// ─── File Upload ─────────────────────────────────────────────────────
-
-const MAX_BASE64_SIZE = 512 * 1024; // 512KB — inline as base64
-
-/**
- * Save an uploaded file. Small images go as base64 data URIs,
- * larger files get saved to public/uploads/.
- */
-export function saveUploadedFile(
-  buffer: Buffer,
-  fileName: string,
-  mimeType: string
-): string {
-  if (buffer.length <= MAX_BASE64_SIZE && mimeType.startsWith("image/")) {
-    // Return as data URI for small images
-    const b64 = buffer.toString("base64");
-    return `data:${mimeType};base64,${b64}`;
-  }
-
-  // Save to disk
-  ensureDir(UPLOADS_DIR);
-  const ext = path.extname(fileName) || ".bin";
-  const uniqueName = `${crypto.randomUUID()}${ext}`;
-  const filePath = path.join(UPLOADS_DIR, uniqueName);
-  fs.writeFileSync(filePath, buffer);
-  return `/api/files/${uniqueName}`;
-}

@@ -3,6 +3,18 @@
 
 @plugin "@tailwindcss/typography";
 
+/* Fix mobile viewport — use dynamic viewport height */
+html, body {
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Safe area for devices with notch / home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -170,3 +182,25 @@ input:disabled {
     animation: modal-slide-up-mobile 0.25s ease-out;
   }
 }
+
+/* ─── Model selector popover/sheet animations ─── */
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes popover-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes sheet-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+.animate-popover-in { animation: popover-in 0.15s ease-out; }
+.animate-popover-out { animation: popover-out 0.18s ease-in forwards; }
+.animate-fade-out { animation: fade-out 0.18s ease-in forwards; }
+.animate-sheet-out { animation: sheet-out 0.18s ease-in forwards; }
