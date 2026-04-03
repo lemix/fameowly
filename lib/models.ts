@@ -19,13 +19,10 @@ export interface ModelsConfig {
 // ─── Default models (fallback if JSON not found) ─────────────────────
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
-  { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", provider: "google", tier: "basic", isLocal: false, clientPrice: 2 },
-  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", provider: "google", tier: "advanced", isLocal: false, clientPrice: 5 },
+  { id: "gemini-flash-lite-latest", name: "Gemini Flash Lite", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
+  { id: "gemini-flash-latest", name: "Gemini Flash", provider: "google", tier: "advanced", isLocal: false, clientPrice: 3 },
   { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", provider: "openrouter", tier: "advanced", isLocal: false, clientPrice: 3 },
-  { id: "openai/gpt-5.4-mini", name: "GPT-5.4 Mini", provider: "openrouter", tier: "basic", isLocal: false, clientPrice: 2 },
-  { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6", provider: "openrouter", tier: "ultra", isLocal: false, clientPrice: 10 },
-  { id: "qwen3.5-122b-a10b", name: "Qwen 3.5 122B", provider: "local", tier: "advanced", isLocal: true, clientPrice: 0 },
+  { id: "gemini-3.1-pro-preview", name: "Gemini Pro", provider: "google", tier: "ultra", isLocal: false, clientPrice: 5 },
 ];
 
 // ─── Tier display info ───────────────────────────────────────────────
@@ -53,8 +50,8 @@ export const PROVIDER_COLORS: Record<ModelOption["provider"], string> = {
 };
 
 export const IMAGE_MODELS: ModelOption[] = [
-  { id: "gemini-3.1-flash-image-preview", name: "Nano Banana 2", provider: "google", tier: "basic", isLocal: false, clientPrice: 2 },
-  { id: "gemini-3-pro-image-preview", name: "Nano Banana Pro", provider: "google", tier: "advanced", isLocal: false, clientPrice: 5 },
+  { id: "gemini-3.1-flash-image-preview", name: "Nano Banana 2", provider: "google", tier: "advanced", isLocal: false, clientPrice: 2 },
+  { id: "gemini-3-pro-image-preview", name: "Nano Banana Pro", provider: "google", tier: "ultra", isLocal: false, clientPrice: 5 },
   { id: "gemini-2.5-flash-image", name: "Nano Banana", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
 ];
 
