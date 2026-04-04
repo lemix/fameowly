@@ -9,6 +9,8 @@ export interface ModelOption {
   tier: ModelTier;
   isLocal: boolean;
   clientPrice: number;
+  supportsReasoning?: boolean;
+  supportsTemperature?: boolean;
 }
 
 export interface ModelsConfig {
@@ -55,11 +57,12 @@ export const IMAGE_MODELS: ModelOption[] = [
   { id: "gemini-2.5-flash-image", name: "Nano Banana", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
 ];
 
-/** Find the default model (first basic local, or first basic, or first) */
+/** Find the default model: first basic, then advanced, then ultra, then first */
 export function getDefaultModel(models: ModelOption[]): ModelOption {
   return (
-    models.find((m) => m.isLocal && m.tier === "basic") ||
     models.find((m) => m.tier === "basic") ||
+    models.find((m) => m.tier === "advanced") ||
+    models.find((m) => m.tier === "ultra") ||
     models[0]
   );
 }

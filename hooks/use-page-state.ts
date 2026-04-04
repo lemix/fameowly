@@ -10,6 +10,7 @@ import { useFileUpload } from "./use-file-upload";
 import { useImageGeneration } from "./use-image-generation";
 import { useImageHistory } from "./use-image-history";
 import { useModels } from "./use-models";
+import { useChatSettings } from "./use-chat-settings";
 
 export function usePageState() {
   const searchParams = useSearchParams();
@@ -24,12 +25,13 @@ export function usePageState() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAllChats, setShowAllChats] = useState(false);
   const [input, setInput] = useState("");
-  const [reasoningEnabled, setReasoningEnabled] = useState(true);
-  const [temperature, setTemperature] = useState(0.6);
 
   const chat = usePersistentChat();
+
+  // Per-chat settings (Task 4: persisted in localStorage per chat)
+  const { temperature, setTemperature, reasoningEnabled, setReasoningEnabled, resetToDefaults } = useChatSettings(chat.activeChatId);
+
   const isLoading = chat.status === "streaming" || chat.status === "submitted";
-  const isLocalModel = selectedModel.provider === "local";
   const isReasoningPhase = chat.status === "streaming" && (() => {
     const last = chat.messages[chat.messages.length - 1];
     return last?.role === "assistant" && !!last.reasoning && !last.content;
@@ -43,6 +45,10 @@ export function usePageState() {
     if (!chat.activeChatId) return false;
     return !chatModels.some((m) => m.id === selectedModel.id);
   }, [chat.activeChatId, chatModels, selectedModel.id]);
+
+  // Model capability flags (Task 3)
+  const supportsTemperature = selectedModel.supportsTemperature ?? selectedModel.isLocal;
+  const supportsReasoning = selectedModel.supportsReasoning ?? selectedModel.isLocal;
 
   const fileUpload = useFileUpload(mode);
   const imageGen = useImageGeneration({
@@ -99,17 +105,33 @@ export function usePageState() {
     if (!input.trim() || isLoading || modelUnavailable) return;
     const attachments: ChatAttachment[] = fileUpload.pendingAttachments.filter((pa) => pa.uploaded).map((pa) => pa.uploaded!);
     const sp = chat.messages.length === 0 ? currentSystemPrompt : undefined;
-    const localOpts = isLocalModel ? { temperature, reasoningEnabled } : undefined;
-    chat.sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOpts);
+
+    // Task 3: Build localOptions based on model capabilities.
+    // Temperature reduction for reasoning happens "under the hood" here, NOT in UI.
+    let localOptions: { temperature?: number; reasoningEnabled?: boolean } | undefined;
+    if (supportsTemperature || supportsReasoning) {
+      let effectiveTemp = temperature;
+      // Business rule: reduce temperature by 0.1 when reasoning is enabled
+      if (supportsReasoning && reasoningEnabled && supportsTemperature) {
+        effectiveTemp = Math.max(0, temperature - 0.1);
+      }
+      localOptions = {
+        temperature: supportsTemperature ? effectiveTemp : undefined,
+        reasoningEnabled: supportsReasoning ? reasoningEnabled : undefined,
+      };
+    }
+
+    chat.sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOptions);
     setInput(""); fileUpload.setPendingAttachments([]);
-  }, [input, isLoading, modelUnavailable, fileUpload, chat, currentSystemPrompt, isLocalModel, temperature, reasoningEnabled, selectedModel]);
+  }, [input, isLoading, modelUnavailable, fileUpload, chat, currentSystemPrompt, supportsTemperature, supportsReasoning, temperature, reasoningEnabled, selectedModel]);
 
   const handleNewChat = useCallback(() => {
     chat.clearChat(); setSelectedPresetId("default"); setCustomSystemPrompt("");
     setShowSystemPromptPanel(false); setSidebarOpen(false);
-    // Reset to default model for new chats
+    resetToDefaults();
+    // Task 5: Reset to default model (first basic tier)
     setSelectedModel(getDefaultModel(chatModels));
-  }, [chat, chatModels, setSelectedModel]);
+  }, [chat, chatModels, setSelectedModel, resetToDefaults]);
 
   const handleSelectChat = useCallback((chatId: string) => {
     chat.loadChat(chatId); setMode("chat"); setSidebarOpen(false);
@@ -137,18 +159,20 @@ export function usePageState() {
     imageGen.setSelectedImageItem(null); imageGen.setImageUrl(null); imageGen.setImageError("");
   }, [imageGen]);
 
+  // Task 3: Reasoning toggle is decoupled from temperature — no temperature change
   const handleReasoningToggle = useCallback(() => {
-    const next = !reasoningEnabled; setReasoningEnabled(next); setTemperature(next ? 0.5 : 0.6);
-  }, [reasoningEnabled]);
+    setReasoningEnabled(!reasoningEnabled);
+  }, [reasoningEnabled, setReasoningEnabled]);
 
   return {
     mode, setMode, sidebarOpen, setSidebarOpen, showAllChats, setShowAllChats,
     chatModels, imageModels, selectedModel, setSelectedModel: handleModelChange, selectedImageModel, setSelectedImageModel,
-    ...chat, isLoading, isLocalModel, isReasoningPhase, modelUnavailable,
+    ...chat, isLoading, isReasoningPhase, modelUnavailable,
     input, setInput,
     selectedPresetId, setSelectedPresetId, customSystemPrompt, setCustomSystemPrompt,
     showSystemPromptPanel, setShowSystemPromptPanel, currentSystemPrompt,
     reasoningEnabled, temperature, setTemperature, handleReasoningToggle,
+    supportsTemperature, supportsReasoning,
     ...fileUpload, ...imageGen, imageHistory,
     handleChatSubmit, handleNewChat, handleSelectChat, handleSelectImageItem, handleNewImageGeneration,
   };
