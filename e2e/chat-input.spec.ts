@@ -25,12 +25,11 @@ test.describe("Chat Input Island", () => {
   test("shows reasoning pill for local model", async ({ page }) => {
     // Open model selector and pick the local model
     await page.getByTestId("model-selector-trigger").click();
-    // Look for local model (Qwen 3.5 122B)
+    // Look for local model (Qwen 3.5 122B) — might need to scroll in popover
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
-    // It might be in a popover or bottom-sheet depending on viewport
-    if (await localOption.isVisible()) {
-      await localOption.click();
-    }
+    await localOption.scrollIntoViewIfNeeded();
+    await expect(localOption).toBeVisible();
+    await localOption.click();
     // Check reasoning pill visibility
     const pill = page.getByTestId("reasoning-pill");
     await expect(pill).toBeVisible();
@@ -41,9 +40,9 @@ test.describe("Chat Input Island", () => {
     // Select local model first
     await page.getByTestId("model-selector-trigger").click();
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
-    if (await localOption.isVisible()) {
-      await localOption.click();
-    }
+    await localOption.scrollIntoViewIfNeeded();
+    await expect(localOption).toBeVisible();
+    await localOption.click();
 
     const tempChips = page.getByTestId("temperature-chips");
     await expect(tempChips).toBeVisible();
@@ -58,9 +57,9 @@ test.describe("Chat Input Island", () => {
     // Select local model
     await page.getByTestId("model-selector-trigger").click();
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
-    if (await localOption.isVisible()) {
-      await localOption.click();
-    }
+    await localOption.scrollIntoViewIfNeeded();
+    await expect(localOption).toBeVisible();
+    await localOption.click();
 
     await expect(page.getByTestId("temp-chip-precise")).toContainText("Точно");
     await expect(page.getByTestId("temp-chip-balanced")).toContainText("Баланс");
@@ -74,16 +73,30 @@ test.describe("Chat Input Island", () => {
     expect(style).toContain("font-size: 16px");
   });
 
-  test("hides reasoning pill and temp chips for cloud model", async ({ page }) => {
-    // Select a cloud model (Gemini 2.5 Flash — first by default)
+  test("hides reasoning pill for cloud model without reasoning support", async ({ page }) => {
+    // Select Gemini Flash (supports temperature but NOT reasoning)
     await page.getByTestId("model-selector-trigger").click();
-    const cloudOption = page.getByTestId("model-option-gemini-2.5-flash");
-    if (await cloudOption.isVisible()) {
-      await cloudOption.click();
-    }
+    const cloudOption = page.getByTestId("model-option-gemini-flash-latest");
+    await cloudOption.scrollIntoViewIfNeeded();
+    await expect(cloudOption).toBeVisible();
+    await cloudOption.click();
 
-    // Reasoning pill and temp chips should not be visible
+    // Reasoning pill should not be visible (model doesn't support it)
     await expect(page.getByTestId("reasoning-pill")).not.toBeVisible();
-    await expect(page.getByTestId("temperature-chips")).not.toBeVisible();
+    // Temperature chips SHOULD be visible (model supports temperature)
+    await expect(page.getByTestId("temperature-chips")).toBeVisible();
+  });
+
+  test("shows reasoning pill for cloud model with reasoning support", async ({ page }) => {
+    // Select DeepSeek R1 (openrouter, supports both reasoning + temperature)
+    await page.getByTestId("model-selector-trigger").click();
+    const reasoningOption = page.getByTestId("model-option-deepseek/deepseek-r1-distill-llama-70b");
+    await reasoningOption.scrollIntoViewIfNeeded();
+    await expect(reasoningOption).toBeVisible();
+    await reasoningOption.click();
+
+    // Both reasoning pill and temp chips should be visible
+    await expect(page.getByTestId("reasoning-pill")).toBeVisible();
+    await expect(page.getByTestId("temperature-chips")).toBeVisible();
   });
 });

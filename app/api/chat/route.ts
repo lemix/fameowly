@@ -171,6 +171,7 @@ export async function POST(req: Request) {
         system,
         messages: coreMessages,
         abortSignal: req.signal,
+        ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       });
     } else if (provider === "openrouter") {
       const openrouter = createOpenAI({
@@ -183,6 +184,7 @@ export async function POST(req: Request) {
         system,
         messages: coreMessages,
         abortSignal: req.signal,
+        ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       });
     } else if (provider === "local") {
       const localBaseURL =

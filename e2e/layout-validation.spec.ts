@@ -44,9 +44,10 @@ test.describe("Layout Validation — Desktop", () => {
   test("cloud model and local model (Qwen) have identical height (zero tolerance)", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     await page.waitForSelector('[data-testid="model-popover"]', { timeout: 5_000 });
+    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
 
     const heights = await page.evaluate(() => {
-      const cloud = document.querySelector('[data-testid="model-option-gemini-2.5-flash"]') as HTMLElement;
+      const cloud = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
       const local = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
       if (!cloud || !local) throw new Error("Model options not found");
       return {
@@ -87,7 +88,7 @@ test.describe("Layout Validation — Desktop", () => {
     await page.waitForSelector('[data-testid="model-popover"]', { timeout: 5_000 });
 
     const itemRadius = await page.evaluate(() => {
-      const item = document.querySelector('[data-testid="model-option-gemini-2.5-flash"]');
+      const item = document.querySelector('[data-testid="model-option-gemini-flash-latest"]');
       if (!item) throw new Error("Model item not found");
       return getComputedStyle(item).borderRadius;
     });
@@ -223,9 +224,11 @@ test.describe("Layout Validation — Mobile (iPhone 12)", () => {
   test("model items have uniform height on mobile bottom sheet", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     await page.waitForSelector('[data-testid="model-bottom-sheet"]', { timeout: 5_000 });
+    // Wait for animation to complete and all items to render
+    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
 
     const heights = await page.evaluate(() => {
-      const cloud = document.querySelector('[data-testid="model-option-gemini-2.5-flash"]') as HTMLElement;
+      const cloud = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
       const local = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
       if (!cloud || !local) throw new Error("Model options not found");
       return {
@@ -345,7 +348,7 @@ test.describe("Layout Validation — Global Harmony", () => {
     await page.waitForSelector('[data-testid="model-popover"]', { timeout: 5_000 });
 
     const itemRadius = await page.evaluate(() => {
-      const item = document.querySelector('[data-testid="model-option-gemini-2.5-flash"]');
+      const item = document.querySelector('[data-testid="model-option-gemini-flash-latest"]');
       if (!item) throw new Error("Model item not found");
       return getComputedStyle(item).borderRadius;
     });
@@ -368,7 +371,7 @@ test.describe("Layout Validation — Global Harmony", () => {
     await page.waitForSelector('[data-testid="model-popover"]', { timeout: 5_000 });
 
     const modelItemHeight = await page.evaluate(() => {
-      const item = document.querySelector('[data-testid="model-option-gemini-2.5-flash"]') as HTMLElement;
+      const item = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
       if (!item) throw new Error("Model item not found");
       return item.offsetHeight;
     });

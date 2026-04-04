@@ -55,6 +55,12 @@ export interface ImageHistoryItemClient {
   resolution?: string;
 }
 
+/** Per-chat generation settings (persisted in localStorage) */
+export interface ChatSettings {
+  temperature: number;
+  reasoningEnabled: boolean;
+}
+
 /** Client-side message (createdAt is Date | string | undefined) */
 export interface MessageData {
   id: string;

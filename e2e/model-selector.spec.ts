@@ -50,7 +50,7 @@ test.describe("Model Selector — Desktop", () => {
 
   test("basic/advanced models do NOT show 'Дорого' for admin", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
-    const basicModel = page.getByTestId("model-option-gemini-2.5-flash");
+    const basicModel = page.getByTestId("model-option-gemini-flash-latest");
     await expect(basicModel).toBeVisible();
     await expect(basicModel).not.toContainText("Дорого");
     const advModel = page.getByTestId("model-option-deepseek/deepseek-v3.2");
@@ -92,7 +92,7 @@ test.describe("Model Selector — Desktop", () => {
 
   test("cloud models use Sparkles icon, local models use Shield icon", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
-    const cloudModel = page.getByTestId("model-option-gemini-2.5-flash");
+    const cloudModel = page.getByTestId("model-option-gemini-flash-latest");
     await expect(cloudModel).not.toHaveClass(/border-l-2/);
     const localModel = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await expect(localModel).toHaveClass(/border-l-2/);
@@ -131,7 +131,7 @@ test.describe("Model Selector — Mobile", () => {
     await page.getByTestId("model-selector-trigger").click();
     const sheet = page.getByTestId("model-bottom-sheet");
     await expect(sheet).toBeVisible();
-    await page.getByTestId("model-option-gemini-2.5-flash").click();
+    await page.getByTestId("model-option-gemini-flash-latest").click();
     await expect(sheet).not.toBeVisible();
   });
 
