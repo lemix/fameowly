@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, History, ImageIcon, Trash2 } from "lucide-react";
+import { Plus, ImageIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ImageHistoryItemClient } from "@/lib/types";
 import { ConfirmModal } from "@/components/confirm-modal";
@@ -17,6 +17,45 @@ interface ImageHistoryListProps {
   onClose: () => void;
 }
 
+// ─── Date Grouping ──────────────────────────────────────────────────
+
+interface DateGroup {
+  label: string;
+  items: ImageHistoryItemClient[];
+}
+
+function groupImagesByDate(items: ImageHistoryItemClient[]): DateGroup[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const groups = {
+    today: [] as ImageHistoryItemClient[],
+    yesterday: [] as ImageHistoryItemClient[],
+    week: [] as ImageHistoryItemClient[],
+    older: [] as ImageHistoryItemClient[],
+  };
+
+  for (const item of items) {
+    const d = new Date(item.createdAt);
+    if (d >= today) groups.today.push(item);
+    else if (d >= yesterday) groups.yesterday.push(item);
+    else if (d >= weekAgo) groups.week.push(item);
+    else groups.older.push(item);
+  }
+
+  const result: DateGroup[] = [];
+  if (groups.today.length) result.push({ label: "Сегодня", items: groups.today });
+  if (groups.yesterday.length) result.push({ label: "Вчера", items: groups.yesterday });
+  if (groups.week.length) result.push({ label: "Предыдущие 7 дней", items: groups.week });
+  if (groups.older.length) result.push({ label: "Ранее", items: groups.older });
+
+  return result;
+}
+
 // ─── Component ───────────────────────────────────────────────────────
 
 export function ImageHistoryList({
@@ -28,6 +67,7 @@ export function ImageHistoryList({
   onClose,
 }: ImageHistoryListProps) {
   const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
+  const groups = groupImagesByDate(imageHistory);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -35,55 +75,61 @@ export function ImageHistoryList({
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => { onNewImageGeneration(); onClose(); }}
-          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-600 px-3 py-2 text-sm text-slate-400 transition hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-600/5"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600/10 border border-blue-500/20 px-4 py-3 text-sm font-medium text-blue-400 transition-all hover:bg-blue-600/20 hover:border-blue-500/30 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           Новая генерация
         </button>
       </div>
 
-      <div className="px-3 pt-2 pb-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 px-1">
-          <History className="h-3 w-3" />
-          История генераций
-        </p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+      {/* Image items grouped by date */}
+      <div className="flex-1 overflow-y-auto px-3 pb-2">
         {imageHistory.length === 0 && (
-          <p className="px-3 py-4 text-center text-xs text-slate-500">
+          <p className="px-3 py-8 text-center text-sm text-slate-500">
             Нет сгенерированных изображений
           </p>
         )}
-        {imageHistory.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => onSelectImageItem(item)}
-            className={cn(
-              "group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition cursor-pointer",
-              activeImageId === item.id
-                ? "bg-blue-600/15 text-blue-400 border border-blue-600/25"
-                : "hover:bg-slate-700/40"
-            )}
-          >
-            {item.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.imageUrl} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-            ) : (
-              <div className="h-8 w-8 rounded bg-slate-700 flex items-center justify-center shrink-0">
-                <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-300 truncate">{item.prompt}</p>
-              <p className="text-[10px] text-slate-500">{item.modelName}</p>
+        {groups.map((group) => (
+          <div key={group.label}>
+            <div className="sticky top-0 z-10 bg-[#0d1525] px-1 pb-1.5 pt-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                {group.label}
+              </p>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); setDeleteImageId(item.id); }}
-              className="rounded p-1 text-slate-400 opacity-60 hover:opacity-100 hover:text-red-400 hover:bg-slate-700 transition"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => onSelectImageItem(item)}
+                  className={cn(
+                    "group relative flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer",
+                    activeImageId === item.id
+                      ? "bg-blue-600/10 text-blue-300 ring-1 ring-blue-500/20"
+                      : "text-slate-300 hover:bg-white/[0.04]"
+                  )}
+                >
+                  {item.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-slate-700 flex items-center justify-center shrink-0">
+                      <ImageIcon className="h-4 w-4 text-slate-500" />
+                    </div>
+                  )}
+                  <span className="flex-1 min-w-0 line-clamp-2 leading-snug">{item.prompt}</span>
+
+                  {/* Delete button */}
+                  <div className="relative mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setDeleteImageId(item.id)}
+                      className="rounded-lg p-2 -mr-1 text-slate-500 transition-all opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-slate-700 hover:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

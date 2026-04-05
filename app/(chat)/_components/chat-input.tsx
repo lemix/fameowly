@@ -64,7 +64,7 @@ export function ChatInput({
   const showControls = supportsTemperature || supportsReasoning;
 
   return (
-    <div className="relative px-3 pb-4 pt-2 md:px-4 mb-4 md:mb-6" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+    <div className="relative px-3 pt-2 md:px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
       <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
       <div

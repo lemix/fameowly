@@ -1,22 +1,25 @@
 {
-  "name": "FaMeowly — Family AI Hub",
-  "short_name": "FaMeowly",
+  "name": "Fameowly",
+  "short_name": "Fameowly",
   "description": "Purrs up whatever you need",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "orientation": "any",
-  "icons": [
+  "orientation": "portrait",
+  "icons":[
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

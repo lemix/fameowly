@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  MessageSquare,
   Trash2,
   Pencil,
   Check,
@@ -63,14 +62,13 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
   return (
     <div
       className={cn(
-        "group relative flex items-center rounded-lg px-3 py-2 text-sm transition cursor-pointer",
+        "group relative flex items-start rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer",
         isActive
-          ? "bg-blue-600/15 text-blue-400 border border-blue-600/25"
-          : "text-slate-300 hover:bg-slate-700/40"
+          ? "bg-blue-600/10 text-blue-300 ring-1 ring-blue-500/20"
+          : "text-slate-300 hover:bg-white/[0.04]"
       )}
       onClick={() => !editing && onSelect()}
     >
-      <MessageSquare className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
 
       {editing ? (
         <div className="flex flex-1 items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -96,20 +94,20 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
         </div>
       ) : (
         <>
-          <span className="flex-1 truncate">{chat.title}</span>
+          <span className="flex-1 line-clamp-2 leading-snug">{chat.title}</span>
 
           {/* Context menu */}
-          <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
+          <div ref={menuRef} className="relative mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className={cn(
-                "rounded p-1 text-slate-500 transition",
+                "rounded-lg p-2 -mr-1 text-slate-500 transition-all",
                 menuOpen
                   ? "bg-slate-700 text-slate-300"
-                  : "opacity-40 hover:opacity-100 hover:bg-slate-700 hover:text-slate-300"
+                  : "opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-slate-700 hover:text-slate-300"
               )}
             >
-              <MoreHorizontal className="h-3.5 w-3.5" />
+              <MoreHorizontal className="h-4 w-4" />
             </button>
 
             {menuOpen && (

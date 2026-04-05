@@ -65,25 +65,56 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
 
   return (
     <div ref={popoverRef} className="relative">
-      <button
-        onClick={() => { if (locked.current) return; open ? close() : setOpen(true); }}
-        className={cn(
-          "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition min-h-[44px]",
-          modelUnavailable
-            ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20"
-            : "text-slate-300 hover:bg-slate-800 hover:text-white",
-        )}
-        data-testid="model-selector-trigger"
-      >
-        {modelUnavailable ? (
-          <><AlertTriangle className="h-4 w-4" /><span>Модель недоступна</span></>
-        ) : (
-          <><div className={cn("h-2 w-2 shrink-0 rounded-full", PROVIDER_COLORS[selected.provider])} /><span className="max-w-[200px] truncate">{selected.name}</span></>
-        )}
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")} />
-      </button>
+    <button
+      onClick={() => { if (locked.current) return; open ? close() : setOpen(true); }}
+      className={cn(
+        // Базовые стили кнопки (Flex, центрирование, ограничение ширины)
+        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition min-h-[40px] max-w-full outline-none",
+        modelUnavailable
+          ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20"
+          : "bg-slate-800/50 border border-white/5 text-slate-200 hover:bg-slate-800 hover:text-white shadow-sm cursor-pointer"
+      )}
+      data-testid="model-selector-trigger"
+    >
+      {modelUnavailable ? (
+        <>
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="truncate font-medium">Модель недоступна</span>
+        </>
+      ) : (
+        <>
+          {/* 1. Иконка модели (Щит для безопасных локальных, Искры для облачных API) */}
+          {selected.isLocal ? (
+            <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
+          ) : (
+            <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />
+          )}
 
-      {open && !isMobile && (
+          {/* 2. Контейнер текста (Название + Описание). Скрывает лишнее троеточием */}
+          <div className="flex items-center gap-1.5 overflow-hidden text-left">
+            <span className="font-medium truncate shrink-0 max-w-[140px] sm:max-w-[200px]">
+              {selected.name}
+            </span>
+            
+            {/* 3. Микрокопия (Описание). Видна только на десктопе/планшете (md:inline-block) */}
+            {selected.description && (
+              <span className="hidden md:inline-block text-slate-500 font-normal truncate max-w-[250px] lg:max-w-[350px]">
+                — {selected.description}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+      
+      {/* 4. Шеврон (Стрелочка). Всегда прижат вправо, крутится при открытии */}
+      <ChevronDown 
+        className={cn(
+          "h-4 w-4 shrink-0 text-slate-500 transition-transform ml-1", 
+          open && "rotate-180"
+        )} 
+      />
+    </button>
+    {open && !isMobile && (
         <div
           className={cn("absolute left-0 top-full z-50 mt-2 w-[24rem] rounded-2xl border border-slate-700/50 bg-slate-800/95 shadow-2xl backdrop-blur-sm",
             closing ? "animate-popover-out" : "animate-popover-in")}
@@ -185,7 +216,7 @@ function PriceBadge({ model, user, family }: { model: ModelOption; user: UserInf
     ? { icon: Gift, text: "Бесплатно", color: "text-emerald-500", tid: "badge-free" }
     : user.role === "client"
       ? { icon: Coins, text: `${model.clientPrice} 🪙`, color: "text-amber-400", tid: "badge-price" }
-      : family && model.tier === "ultra"
+      : family && model.tier === "ultra" && model.clientPrice > 5
         ? { icon: Coins, text: "Дорого", color: "text-orange-500", tid: "badge-expensive" }
         : null;
   if (!cfg) return null;
