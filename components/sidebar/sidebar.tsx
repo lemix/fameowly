@@ -1,6 +1,7 @@
 "use client";
 
-import { Bot, MessageSquare, ImageIcon } from "lucide-react";
+import { MessageSquare, ImageIcon } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ChatListItem, Mode, ImageHistoryItemClient } from "@/lib/types";
 import { ChatList } from "./chat-list";
@@ -20,8 +21,6 @@ interface SidebarProps {
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
   onRenameChat: (chatId: string, title: string) => void;
-  showAllChats: boolean;
-  onToggleAllChats: () => void;
   imageHistory: ImageHistoryItemClient[];
   activeImageId: string | null;
   onSelectImageItem: (item: ImageHistoryItemClient) => void;
@@ -42,8 +41,6 @@ export function Sidebar({
   onNewChat,
   onDeleteChat,
   onRenameChat,
-  showAllChats,
-  onToggleAllChats,
   imageHistory,
   activeImageId,
   onSelectImageItem,
@@ -59,41 +56,41 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-700/40 bg-slate-850 transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-white/[0.06] bg-slate-850 transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ backgroundColor: "#0d1525" }}
         data-testid="sidebar"
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-slate-700/60 px-4 py-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            <Bot className="h-4 w-4 text-white" />
+        <div className="flex items-center gap-4 px-4 pt-3 pb-6">
+          <div className="flex shrink-0 items-center justify-center">
+            <Image src="/logo.png" alt="Logo" width={42} height={42} unoptimized className="select-none pointer-events-none" draggable={false} />
           </div>
-          <span className="text-base font-bold text-white">Family AI Hub</span>
+          <Image src="/fameowly.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5" draggable={false} />
         </div>
 
         {/* Mode Tabs */}
-        <div className="border-b border-slate-700/60 px-3 py-2.5">
+        <div className="px-3 pb-3">
           <div className="flex rounded-lg bg-slate-900/80 p-0.5">
             <button
               onClick={() => onModeChange("chat")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition min-h-[44px]",
+                "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition min-h-[44px]",
                 mode === "chat" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
               )}
             >
-              <MessageSquare className="h-3.5 w-3.5" />
+              <MessageSquare className="h-4 w-4" />
               Чат
             </button>
             <button
               onClick={() => onModeChange("image")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition min-h-[44px]",
+                "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition min-h-[44px]",
                 mode === "image" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
               )}
             >
-              <ImageIcon className="h-3.5 w-3.5" />
+              <ImageIcon className="h-4 w-4" />
               Картинки
             </button>
           </div>
@@ -104,12 +101,10 @@ export function Sidebar({
           <ChatList
             chats={chats}
             activeChatId={activeChatId}
-            showAllChats={showAllChats}
             onSelectChat={onSelectChat}
             onNewChat={onNewChat}
             onDeleteChat={onDeleteChat}
             onRenameChat={onRenameChat}
-            onToggleAllChats={onToggleAllChats}
           />
         )}
 

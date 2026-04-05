@@ -11,6 +11,7 @@ export interface ModelOption {
   clientPrice: number;
   supportsReasoning?: boolean;
   supportsTemperature?: boolean;
+  description?: string;
 }
 
 export interface ModelsConfig {

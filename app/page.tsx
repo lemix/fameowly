@@ -37,8 +37,7 @@ function ChatPage() {
         onNewChat={s.handleNewChat}
         onDeleteChat={s.deleteChat}
         onRenameChat={s.renameChat}
-        showAllChats={s.showAllChats}
-        onToggleAllChats={() => s.setShowAllChats(!s.showAllChats)}
+
         imageHistory={s.imageHistory}
         activeImageId={s.selectedImageItem?.id || null}
         onSelectImageItem={s.handleSelectImageItem}
