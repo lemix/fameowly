@@ -47,7 +47,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
         body: JSON.stringify({
           messages: buildApiMessages(allMsgs), model: model.id, provider: model.provider,
           systemPrompt: systemPrompt || chatSystemPrompt,
-          ...(model.provider === "local" && localOptions ? { temperature: localOptions.temperature, reasoningEnabled: localOptions.reasoningEnabled } : {}),
+          ...(localOptions ? { temperature: localOptions.temperature, reasoningEnabled: localOptions.reasoningEnabled } : {}),
         }),
         signal: controller.signal,
       });

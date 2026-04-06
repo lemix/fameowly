@@ -46,20 +46,21 @@ export function CodeBlock({ language, children }: CodeBlockProps) {
           )}
         </button>
       </div>
-      <SyntaxHighlighter
-        language={language || "text"}
-        style={oneDark}
-        customStyle={{
-          margin: 0,
-          padding: "1rem",
-          background: "transparent",
-          fontSize: "0.8125rem",
-          lineHeight: "1.6",
-        }}
-        wrapLongLines
-      >
-        {children}
-      </SyntaxHighlighter>
+      <div className="overflow-x-auto">
+        <SyntaxHighlighter
+          language={language || "text"}
+          style={oneDark}
+          customStyle={{
+            margin: 0,
+            padding: "1rem",
+            background: "transparent",
+            fontSize: "0.8125rem",
+            lineHeight: "1.6",
+          }}
+        >
+          {children}
+        </SyntaxHighlighter>
+      </div>
     </div>
   );
 }

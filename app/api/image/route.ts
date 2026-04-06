@@ -52,6 +52,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate model access for client-role users
+    const userRole = req.headers.get("x-user-role");
+    if (userRole === "client" && modelInfo.clientPrice == null) {
+      return NextResponse.json(
+        { error: "Модель недоступна" },
+        { status: 403 }
+      );
+    }
+
     // Determine target resolution (longest side in px)
     const targetLongestSide =
       resolution === "4K" ? 4096 : resolution === "2K" ? 2048 : 0; // 0 = keep as-is

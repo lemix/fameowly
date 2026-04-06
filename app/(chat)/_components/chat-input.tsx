@@ -13,14 +13,13 @@ interface TempPreset {
   id: string;
   label: string;
   icon: string;
-  baseTemp: number;
-  reasoningTemp: number;
+  value: number;
 }
 
 const TEMP_PRESETS: TempPreset[] = [
-  { id: "precise", label: "Точно", icon: "🎯", baseTemp: 0.2, reasoningTemp: 0.1 },
-  { id: "balanced", label: "Баланс", icon: "⚖️", baseTemp: 0.6, reasoningTemp: 0.5 },
-  { id: "creative", label: "Творчески", icon: "🎨", baseTemp: 1.0, reasoningTemp: 0.9 },
+  { id: "precise", label: "Точно", icon: "🎯", value: 0.2 },
+  { id: "balanced", label: "Баланс", icon: "⚖️", value: 0.6 },
+  { id: "creative", label: "Творчески", icon: "🎨", value: 1.0 },
 ];
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -36,48 +35,40 @@ interface ChatInputProps {
   pendingAttachments: PendingAttachment[];
   onAddFiles: (files: FileList | File[]) => void;
   onRemoveAttachment: (idx: number) => void;
-  isLocalModel: boolean;
+  // Model capabilities (Task 3)
+  supportsTemperature: boolean;
+  supportsReasoning: boolean;
   reasoningEnabled: boolean;
   onReasoningToggle: () => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
 }
 
-/** Chat message input with file attachments and local model controls */
+/** Chat message input with file attachments and model-specific controls */
 export function ChatInput({
   input, onInputChange, onSubmit, onStop, isLoading,
   disabled, disabledPlaceholder,
   pendingAttachments, onAddFiles, onRemoveAttachment,
-  isLocalModel, reasoningEnabled, onReasoningToggle,
+  supportsTemperature, supportsReasoning,
+  reasoningEnabled, onReasoningToggle,
   temperature, onTemperatureChange,
 }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Find closest active preset for current temperature
   const activePresetId = TEMP_PRESETS.reduce((closest, p) => {
-    const target = reasoningEnabled ? p.reasoningTemp : p.baseTemp;
-    const closestTarget = reasoningEnabled ? closest.reasoningTemp : closest.baseTemp;
-    return Math.abs(target - temperature) < Math.abs(closestTarget - temperature)
+    return Math.abs(p.value - temperature) < Math.abs(closest.value - temperature)
       ? p : closest;
   }, TEMP_PRESETS[0]).id;
 
-  function handleTempPreset(preset: TempPreset) {
-    const temp = reasoningEnabled ? preset.reasoningTemp : preset.baseTemp;
-    onTemperatureChange(temp);
-  }
-
-  function handleReasoningToggle() {
-    onReasoningToggle();
-    // Temperature will be adjusted by the parent's handleReasoningToggle
-  }
+  const showControls = supportsTemperature || supportsReasoning;
 
   return (
-    <div className="relative px-3 pb-4 pt-2 md:px-4 mb-4 md:mb-6" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+    <div className="relative px-3 pt-2 md:px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
       <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
       <div
-        className="mx-auto rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
-        style={{ maxWidth: "800px" }}
+        className="mx-auto w-full max-w-4xl rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
         data-testid="chat-input-island"
       >
         {/* Pending attachments preview */}
@@ -174,48 +165,54 @@ export function ChatInput({
           </button>
         </form>
 
-        {/* Lower zone: local model controls */}
-        {isLocalModel && (
+        {/* Lower zone: model controls (shown when model supports reasoning or temperature) */}
+        {showControls && (
           <div className="flex flex-wrap items-center gap-2 px-3 pb-3 pt-0">
-            {/* Reasoning pill */}
-            <button
-              type="button"
-              onClick={handleReasoningToggle}
-              className={cn(
-                "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition",
-                reasoningEnabled
-                  ? "bg-purple-600/30 text-purple-200 ring-1 ring-purple-500/40"
-                  : "bg-slate-700/50 text-slate-400 ring-1 ring-slate-600/50 hover:text-slate-300 hover:bg-slate-700/70"
-              )}
-              data-testid="reasoning-pill"
-            >
-              <span>🧠</span>
-              <span>Думать</span>
-            </button>
+            {/* Reasoning pill — only if model supports it */}
+            {supportsReasoning && (
+              <button
+                type="button"
+                onClick={onReasoningToggle}
+                className={cn(
+                  "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition",
+                  reasoningEnabled
+                    ? "bg-purple-600/30 text-purple-200 ring-1 ring-purple-500/40"
+                    : "bg-slate-700/50 text-slate-400 ring-1 ring-slate-600/50 hover:text-slate-300 hover:bg-slate-700/70"
+                )}
+                data-testid="reasoning-pill"
+              >
+                <span>🧠</span>
+                <span>Думать</span>
+              </button>
+            )}
 
-            {/* Separator */}
-            <div className="h-6 w-px bg-slate-700/60" />
+            {/* Separator — only if both are shown */}
+            {supportsReasoning && supportsTemperature && (
+              <div className="h-6 w-px bg-slate-700/60" />
+            )}
 
-            {/* Temperature chips */}
-            <div className="flex items-center gap-1.5" data-testid="temperature-chips">
-              {TEMP_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleTempPreset(preset)}
-                  className={cn(
-                    "flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition",
-                    activePresetId === preset.id
-                      ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
-                      : "bg-slate-700/40 text-slate-500 ring-1 ring-slate-700/50 hover:text-slate-400 hover:bg-slate-700/60"
-                  )}
-                  data-testid={`temp-chip-${preset.id}`}
-                >
-                  <span>{preset.icon}</span>
-                  <span className="hidden sm:inline">{preset.label}</span>
-                </button>
-              ))}
-            </div>
+            {/* Temperature chips — only if model supports it */}
+            {supportsTemperature && (
+              <div className="flex items-center gap-1.5" data-testid="temperature-chips">
+                {TEMP_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => onTemperatureChange(preset.value)}
+                    className={cn(
+                      "flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition",
+                      activePresetId === preset.id
+                        ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
+                        : "bg-slate-700/40 text-slate-500 ring-1 ring-slate-700/50 hover:text-slate-400 hover:bg-slate-700/60"
+                    )}
+                    data-testid={`temp-chip-${preset.id}`}
+                  >
+                    <span>{preset.icon}</span>
+                    <span className="hidden sm:inline">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

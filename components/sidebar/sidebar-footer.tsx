@@ -14,7 +14,7 @@ export function SidebarFooter() {
   }
 
   return (
-    <div className="border-t border-slate-700/40 p-3 space-y-1">
+    <div className="border-t border-white/[0.06] p-3 space-y-1">
       <button
         onClick={() => router.push("/admin")}
         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"

@@ -36,7 +36,7 @@ yarn-error.log*
 
 # data (runtime files, but keep default configs)
 /data/*
-!/data/models.json
+!/data/models.json.example
 
 # vercel
 .vercel

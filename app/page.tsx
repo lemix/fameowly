@@ -37,8 +37,7 @@ function ChatPage() {
         onNewChat={s.handleNewChat}
         onDeleteChat={s.deleteChat}
         onRenameChat={s.renameChat}
-        showAllChats={s.showAllChats}
-        onToggleAllChats={() => s.setShowAllChats(!s.showAllChats)}
+
         imageHistory={s.imageHistory}
         activeImageId={s.selectedImageItem?.id || null}
         onSelectImageItem={s.handleSelectImageItem}
@@ -76,7 +75,7 @@ function ChatPage() {
               onSubmit={s.handleChatSubmit}
               onStop={s.stop}
               onDeleteMessage={s.deleteMessage}
-              onRetry={() => s.retry(s.selectedModel, s.isLocalModel ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
+              onRetry={() => s.retry(s.selectedModel, s.supportsTemperature || s.supportsReasoning ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
               onDeleteLastExchange={s.deleteLastExchange}
               onUpdateSystemPrompt={s.updateSystemPrompt}
               pendingAttachments={s.pendingAttachments}
@@ -88,7 +87,8 @@ function ChatPage() {
               onCustomPromptChange={s.setCustomSystemPrompt}
               showSystemPromptPanel={s.showSystemPromptPanel}
               onShowPanelChange={s.setShowSystemPromptPanel}
-              isLocalModel={s.isLocalModel}
+              supportsTemperature={s.supportsTemperature}
+              supportsReasoning={s.supportsReasoning}
               reasoningEnabled={s.reasoningEnabled}
               onReasoningToggle={s.handleReasoningToggle}
               temperature={s.temperature}
