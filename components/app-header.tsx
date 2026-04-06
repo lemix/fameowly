@@ -48,6 +48,12 @@ export function AppHeader({
           modelUnavailable={modelUnavailable}
         />
 
+        {!modelUnavailable && activeModel.description && (
+          <span className="hidden md:inline text-sm px-1 text-slate-500 truncate max-w-[300px] lg:max-w-[400px]">
+            — <span className="px-1">{activeModel.description}</span>
+          </span>
+        )}
+
         {isLoading && (
           <span className="ml-1 flex items-center gap-1 text-xs text-blue-400">
             <Loader2 className="h-3 w-3 animate-spin" />

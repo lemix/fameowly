@@ -17,10 +17,9 @@ test.describe("Image Input Island", () => {
     await expect(island).toHaveClass(/shadow-xl/);
   });
 
-  test("island has max-width 800px", async ({ page }) => {
+  test("island has max-width constraint", async ({ page }) => {
     const island = page.getByTestId("image-input-island");
-    const style = await island.getAttribute("style");
-    expect(style).toContain("max-width: 800px");
+    await expect(island).toHaveClass(/max-w-4xl/);
   });
 
   test("shows all aspect ratio chips", async ({ page }) => {

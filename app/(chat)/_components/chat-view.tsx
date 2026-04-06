@@ -104,6 +104,7 @@ export function ChatView({
         onScroll={handleScroll}
         className="chat-scroll flex-1 overflow-y-auto px-3 py-4 md:px-4"
       >
+        <div className="flex min-h-full flex-col">
         {messages.length === 0 && !error && (
           <ChatEmptyState
             presets={SYSTEM_PROMPT_PRESETS}
@@ -116,7 +117,7 @@ export function ChatView({
           />
         )}
 
-        <div className="mx-auto" style={{ maxWidth: "800px" }}>
+        <div className="mx-auto w-full max-w-4xl">
           {/* Load more button (reverse infinite scroll) */}
           {hasMore && (
             <div className="flex justify-center mb-4">
@@ -161,7 +162,8 @@ export function ChatView({
         </div>
 
         {/* Scroll anchor element */}
-        <div style={{ height: 1 }} />
+        {messages.length > 0 && <div className="shrink-0" style={{ height: 1 }} />}
+        </div>
       </div>
 
       {/* Input area */}

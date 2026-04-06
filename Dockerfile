@@ -35,9 +35,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy default models config
-COPY --from=builder --chown=nextjs:nodejs /app/data/models.json /app/data/models.json
-
 # Create data directory
 RUN mkdir -p /app/data /app/data/uploads /app/data/uploads/generated && chown -R nextjs:nodejs /app/data
 
