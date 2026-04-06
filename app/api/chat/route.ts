@@ -3,6 +3,8 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
+import { getLocalLLMBaseURL } from "@/lib/local-llm-config";
+import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
 import type { ChatAttachment } from "@/lib/chat-store";
@@ -42,6 +44,19 @@ export async function POST(req: Request) {
         JSON.stringify({ error: "Отсутствуют обязательные поля запроса" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
+    }
+
+    // Validate model access for client-role users
+    const userRole = req.headers.get("x-user-role");
+    if (userRole === "client") {
+      const { chatModels } = readModelsConfig();
+      const modelConfig = chatModels.find((m) => m.id === modelId);
+      if (!modelConfig || modelConfig.clientPrice == null) {
+        return new Response(
+          JSON.stringify({ error: "Модель недоступна" }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const system = systemPrompt || DEFAULT_SYSTEM_PROMPT;
@@ -187,8 +202,7 @@ export async function POST(req: Request) {
         ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       });
     } else if (provider === "local") {
-      const localBaseURL =
-        process.env.LOCAL_LLM_URL || "http://127.0.0.1:8080/v1";
+      const localBaseURL = getLocalLLMBaseURL(modelId);
       const local = createOpenAI({
         apiKey: "no-key-required",
         baseURL: localBaseURL,

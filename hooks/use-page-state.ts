@@ -47,8 +47,8 @@ export function usePageState() {
   }, [chat.activeChatId, chatModels, selectedModel.id]);
 
   // Model capability flags (Task 3)
-  const supportsTemperature = selectedModel.supportsTemperature ?? selectedModel.isLocal;
-  const supportsReasoning = selectedModel.supportsReasoning ?? selectedModel.isLocal;
+  const supportsTemperature = selectedModel.supportsTemperature ?? selectedModel.isLocal ?? false;
+  const supportsReasoning = selectedModel.supportsReasoning ?? selectedModel.isLocal ?? false;
 
   const fileUpload = useFileUpload(mode);
   const imageGen = useImageGeneration({

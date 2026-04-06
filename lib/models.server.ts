@@ -3,10 +3,26 @@ import path from "path";
 import {
   AVAILABLE_MODELS,
   IMAGE_MODELS,
+  type ModelOption,
   type ModelsConfig,
 } from "./models";
 
 const MODELS_JSON_PATH = path.join(process.cwd(), "data", "models.json");
+
+/**
+ * Apply defaults to a raw model entry from JSON config.
+ * - `isLocal` defaults to `true` when provider is "local", `false` otherwise
+ * - `supportsReasoning` / `supportsTemperature` default to `false`
+ * - `clientPrice` stays as-is (undefined = not available to client-role users)
+ */
+function normalizeModel(raw: ModelOption): ModelOption {
+  return {
+    ...raw,
+    isLocal: raw.isLocal ?? (raw.provider === "local"),
+    supportsReasoning: raw.supportsReasoning ?? false,
+    supportsTemperature: raw.supportsTemperature ?? false,
+  };
+}
 
 /**
  * Read models config from data/models.json (server-side only).
@@ -19,20 +35,37 @@ export function readModelsConfig(): ModelsConfig {
       const parsed = JSON.parse(raw) as ModelsConfig;
       return {
         chatModels:
-          parsed.chatModels?.length > 0
+          (parsed.chatModels?.length > 0
             ? parsed.chatModels
-            : AVAILABLE_MODELS,
+            : AVAILABLE_MODELS
+          ).map(normalizeModel),
         imageModels:
-          parsed.imageModels?.length > 0
+          (parsed.imageModels?.length > 0
             ? parsed.imageModels
-            : IMAGE_MODELS,
+            : IMAGE_MODELS
+          ).map(normalizeModel),
       };
     }
   } catch (err) {
     console.error("Failed to read models.json, using defaults:", err);
   }
   return {
-    chatModels: AVAILABLE_MODELS,
-    imageModels: IMAGE_MODELS,
+    chatModels: AVAILABLE_MODELS.map(normalizeModel),
+    imageModels: IMAGE_MODELS.map(normalizeModel),
+  };
+}
+
+/**
+ * Filter models based on user role.
+ * Client-role users only see models that have `clientPrice` defined.
+ */
+export function filterModelsForRole(
+  config: ModelsConfig,
+  role: string | null,
+): ModelsConfig {
+  if (role !== "client") return config;
+  return {
+    chatModels: config.chatModels.filter((m) => m.clientPrice != null),
+    imageModels: config.imageModels.filter((m) => m.clientPrice != null),
   };
 }
