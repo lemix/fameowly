@@ -49,8 +49,8 @@ export function AppHeader({
         />
 
         {!modelUnavailable && activeModel.description && (
-          <span className="hidden md:inline text-sm text-slate-500 truncate max-w-[300px] lg:max-w-[400px]">
-            — {activeModel.description}
+          <span className="hidden md:inline text-sm px-1 text-slate-500 truncate max-w-[300px] lg:max-w-[400px]">
+            — <span className="px-1">{activeModel.description}</span>
           </span>
         )}
 
