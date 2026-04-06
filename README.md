@@ -1,43 +1,55 @@
-# 🐈 FaMeooowly
-Purrs up whatever you need
 
-**An ultra-lightweight, zero-database AI UI for your family, friends, or small team.**
 
-Stop paying $20/month per person for premium AI subscriptions. NanoHub AI allows you to securely share your API keys (OpenRouter, Google AI Studio) with your close circle through a beautiful, Next.js-powered interface. You pay per token centrally, and they get a premium ChatGPT-like experience.
+<div align="center">
+  <!-- Адаптивный логотип (Светлая/Темная тема GitHub) -->
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./public/fameowly.svg">
+    <img src="./public/fameowly-light.svg" alt="Fameowly Logo" width="350"/>
+  </picture>
 
-## ✨ Why NanoHub AI?
-Powerful tools like Open WebUI or LibreChat are amazing, but they require heavy databases (Postgres/MongoDB) and complex orchestration. 
-NanoHub AI takes a different approach: **Zero databases.** All users and chat histories are stored locally in simple JSON files. It takes 1 minute to deploy and uses minimal RAM.
+  <br />
 
-## 🚀 Features
-- 💳 **Centralized Billing:** You provide the API key. Your users just log in with a password. You control the costs.
-- 🗂️ **Database-Free Architecture:** Everything is saved in a local `./data` folder as JSON. Extremely easy to backup or migrate.
-- 👥 **Multi-User Admin Panel:** Create accounts, set passwords, and manage access directly from the UI.
-- 🎨 **Beautiful & Smart UI:** First-class support for **LaTeX (Math)**, syntax highlighting for code, and seamless markdown tables.
-- 🖼️ **Multimodal:** Copy-paste images directly into the chat or use the dedicated "Image Generation" tab.
-- ⚡ **Buttery Smooth Streaming:** Powered by Next.js 14 and Vercel AI SDK to prevent "chunk errors" and timeouts.
+  <p>
+    <em>Purrs up whatever you need 🐾</em>
+  </p>
 
-## 🛠️ Quick Start (Docker)
+  <p>
+    <a href="./LICENSE">
+      <img src="https://img.shields.io/badge/License-BSL%201.1-blue.svg" alt="License" />
+    </a>
+    <a href="https://nextjs.org/">
+      <img src="https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js" alt="Next.js" />
+    </a>
+    <a href="https://tailwindcss.com/">
+      <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+    </a>
+  </p>
+</div>
 
-The easiest way to run NanoHub AI is using Docker.
+A zero-database AI chat interface for small groups. It allows administrators to share centralized API keys (OpenRouter, Google AI Studio, Local LLAMA) with multiple users without complex infrastructure.
 
-**1. Create a `docker-compose.yml` file:**
+## Features
+
+- **Zero-database architecture**: All user accounts and chat histories are stored as local JSON files.
+- **Centralized API management**: API keys are configured by the host. Users authenticate via local passwords.
+- **Admin panel**: Built-in UI for user creation and access management.
+- **Multimodal support**: Image attachments in chat and dedicated image generation.
+- **Formatting**: Renders Markdown, LaTeX, and code blocks with syntax highlighting.
+- **Tech stack**: Built with Next.js 16 and Vercel AI SDK.
+- **SOCKS5 proxy support**: useful under country/provider restrictions
+
+## Deployment (Docker)
+
+**docker-compose.yml**:
 ```yaml
 version: '3.8'
 services:
-  nanohub-ai:
+  fameowly:
     image: ghcr.io/lemix/fameowly:latest
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/app/data # This saves your chats and users!
+      - ./data:/app/data
     env_file:
       - .env
     restart: unless-stopped
-```
-
-## 🤝 Contributing
-Feel free to open issues or submit PRs! This is a weekend project built for my family, but I'm happy to see it grow.
-
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
