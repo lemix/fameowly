@@ -7,9 +7,13 @@ export interface ModelOption {
   name: string;
   provider: "google" | "openrouter" | "local";
   tier: ModelTier;
-  isLocal: boolean;
-  clientPrice: number;
+  /** Defaults to `true` when provider is "local", `false` otherwise */
+  isLocal?: boolean;
+  /** Token cost for client-role users. Undefined = model hidden from clients */
+  clientPrice?: number;
+  /** Defaults to `false` */
   supportsReasoning?: boolean;
+  /** Defaults to `false` */
   supportsTemperature?: boolean;
   description?: string;
 }

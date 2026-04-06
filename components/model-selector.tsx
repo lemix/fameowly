@@ -238,9 +238,9 @@ function PriceBadge({ model, user, family }: { model: ModelOption; user: UserInf
   if (!user) return null;
   const cfg = family && model.isLocal
     ? { icon: Gift, text: "Бесплатно", color: "text-emerald-500", tid: "badge-free" }
-    : user.role === "client"
+    : user.role === "client" && model.clientPrice != null
       ? { icon: Coins, text: `${model.clientPrice} 🪙`, color: "text-amber-400", tid: "badge-price" }
-      : family && model.tier === "ultra" && model.clientPrice > 5
+      : family && model.tier === "ultra" && (model.clientPrice ?? 0) > 5
         ? { icon: Coins, text: "Дорого", color: "text-orange-500", tid: "badge-expensive" }
         : null;
   if (!cfg) return null;
