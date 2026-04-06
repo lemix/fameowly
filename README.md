@@ -1,43 +1,30 @@
-# 🐈 FaMeooowly
-Purrs up whatever you need
+[![License](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](https://github.com/lemix/fameowly/blob/main/LICENSE)
 
-**An ultra-lightweight, zero-database AI UI for your family, friends, or small team.**
+# FaMeowly
 
-Stop paying $20/month per person for premium AI subscriptions. NanoHub AI allows you to securely share your API keys (OpenRouter, Google AI Studio) with your close circle through a beautiful, Next.js-powered interface. You pay per token centrally, and they get a premium ChatGPT-like experience.
+A zero-database AI chat interface for small groups. It allows administrators to share centralized API keys (OpenRouter, Google AI Studio) with multiple users without complex infrastructure.
 
-## ✨ Why NanoHub AI?
-Powerful tools like Open WebUI or LibreChat are amazing, but they require heavy databases (Postgres/MongoDB) and complex orchestration. 
-NanoHub AI takes a different approach: **Zero databases.** All users and chat histories are stored locally in simple JSON files. It takes 1 minute to deploy and uses minimal RAM.
+## Features
 
-## 🚀 Features
-- 💳 **Centralized Billing:** You provide the API key. Your users just log in with a password. You control the costs.
-- 🗂️ **Database-Free Architecture:** Everything is saved in a local `./data` folder as JSON. Extremely easy to backup or migrate.
-- 👥 **Multi-User Admin Panel:** Create accounts, set passwords, and manage access directly from the UI.
-- 🎨 **Beautiful & Smart UI:** First-class support for **LaTeX (Math)**, syntax highlighting for code, and seamless markdown tables.
-- 🖼️ **Multimodal:** Copy-paste images directly into the chat or use the dedicated "Image Generation" tab.
-- ⚡ **Buttery Smooth Streaming:** Powered by Next.js 14 and Vercel AI SDK to prevent "chunk errors" and timeouts.
+- **Zero-database architecture**: All user accounts and chat histories are stored as local JSON files.
+- **Centralized API management**: API keys are configured by the host. Users authenticate via local passwords.
+- **Admin panel**: Built-in UI for user creation and access management.
+- **Multimodal support**: Image attachments in chat and dedicated image generation.
+- **Formatting**: Renders Markdown, LaTeX, and code blocks with syntax highlighting.
+- **Tech stack**: Built with Next.js 14 and Vercel AI SDK.
 
-## 🛠️ Quick Start (Docker)
+## Deployment (Docker)
 
-The easiest way to run NanoHub AI is using Docker.
-
-**1. Create a `docker-compose.yml` file:**
+**docker-compose.yml**:
 ```yaml
 version: '3.8'
 services:
-  nanohub-ai:
+  fameowly:
     image: ghcr.io/lemix/fameowly:latest
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/app/data # This saves your chats and users!
+      - ./data:/app/data
     env_file:
       - .env
     restart: unless-stopped
-```
-
-## 🤝 Contributing
-Feel free to open issues or submit PRs! This is a weekend project built for my family, but I'm happy to see it grow.
-
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
