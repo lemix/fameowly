@@ -1,6 +1,6 @@
 {
   "name": "ai-router",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "BUSL-1.1",
   "private": true,
   "scripts": {
