@@ -50,7 +50,7 @@ export const ChatMessage = memo(function ChatMessage({
         </div>
       )}
 
-      <div className={cn("flex flex-col gap-1.5", isUser ? "items-end" : "items-start", "max-w-[85%] lg:max-w-[75%]")}>
+      <div className={cn("flex flex-col gap-1.5 min-w-0", isUser ? "items-end max-w-[85%] lg:max-w-[80%]" : "items-start max-w-[95%] lg:max-w-full")}>
         {/* Attachments */}
         {m.attachments && m.attachments.length > 0 && (
           <AttachmentPreview attachments={m.attachments} />
@@ -102,7 +102,7 @@ export const ChatMessage = memo(function ChatMessage({
 
         {/* Message bubble */}
         <div className={cn(
-          "relative rounded-2xl px-4 py-2.5 text-sm",
+          "relative rounded-2xl px-4 py-2.5 text-sm max-w-full overflow-hidden",
           isUser ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-200 border border-slate-700/60"
         )}>
           {!isUser ? (

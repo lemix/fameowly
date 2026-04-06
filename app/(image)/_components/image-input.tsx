@@ -32,12 +32,11 @@ export function ImageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="relative px-3 pb-4 pt-2 md:px-4 mb-4 md:mb-6" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+    <div className="relative px-3 pt-2 md:px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
       <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
       <div
-        className="mx-auto w-full rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
-        style={{ maxWidth: "800px" }}
+        className="mx-auto w-full max-w-4xl rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
         data-testid="image-input-island"
       >
         {/* Reference files preview */}
@@ -172,7 +171,7 @@ export function ImageInput({
       </div>
 
       {error && (
-        <div className="mx-auto mt-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400" style={{ maxWidth: "800px" }}>
+        <div className="mx-auto mt-2 w-full max-w-4xl rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
           {error}
         </div>
       )}

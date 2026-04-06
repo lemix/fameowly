@@ -23,7 +23,7 @@ export function ChatEmptyState({
   onShowPanelChange,
 }: ChatEmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/20">
         <Bot className="h-7 w-7 text-blue-400" />
       </div>

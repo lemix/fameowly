@@ -62,7 +62,7 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
   return (
     <div
       className={cn(
-        "group relative flex items-start rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer",
+        "group relative flex items-center rounded-xl px-3 py-2 text-sm transition-all cursor-pointer",
         isActive
           ? "bg-blue-600/10 text-blue-300 ring-1 ring-blue-500/20"
           : "text-slate-300 hover:bg-white/[0.04]"
@@ -97,7 +97,7 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
           <span className="flex-1 line-clamp-2 leading-snug">{chat.title}</span>
 
           {/* Context menu */}
-          <div ref={menuRef} className="relative mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className={cn(

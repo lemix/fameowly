@@ -68,8 +68,7 @@ export function ChatInput({
       <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
 
       <div
-        className="mx-auto rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
-        style={{ maxWidth: "800px" }}
+        className="mx-auto w-full max-w-4xl rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
         data-testid="chat-input-island"
       >
         {/* Pending attachments preview */}

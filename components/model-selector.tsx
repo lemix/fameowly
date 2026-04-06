@@ -22,16 +22,43 @@ function isFamilyUser(user: UserInfo | null): boolean {
 
 const CLOSE_DELAY = 220;
 const EXIT_MS = 180;
+
+// Layout constants for strict-integer-height calculation
+const ITEM_HEIGHT = 56;       // h-[56px] per model item
+const FIRST_HEADER_H = 28;    // pt-1(4) + text-xs(16) + pb-2(8)
+const NEXT_HEADER_H = 57;     // mt-4(16) + border-t(1) + pt-4(16) + text-xs(16) + pb-2(8)
+const LIST_PAD_TOP = 0;       // py-2 top padding
+const MAX_VISIBLE_ITEMS = 7;
+
+/** Calculate exact scroll-area height that ends on an item boundary */
+function calcScrollMaxHeight(groups: TierGroup[]): number {
+  let height = LIST_PAD_TOP;
+  let items = 0;
+  for (let gi = 0; gi < groups.length; gi++) {
+    if (items >= MAX_VISIBLE_ITEMS) break;
+    height += gi === 0 ? FIRST_HEADER_H : NEXT_HEADER_H;
+    const count = Math.min(groups[gi].models.length, MAX_VISIBLE_ITEMS - items);
+    height += count * ITEM_HEIGHT;
+    items += count;
+  }
+  return height;
+}
 export function ModelSelector({ models, selected, onChange, user, modelUnavailable }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [pick, setPick] = useState(selected.id);
   const [isMobile, setIsMobile] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const touchY = useRef(0);
   const locked = useRef(false);
 
   useEffect(() => { setPick(selected.id); }, [selected.id]);
+  useEffect(() => {
+    if (open && scrollRef.current) setTimeout(() => { 
+      scrollRef.current!.scrollTop = 0; 
+    }, 0);
+  }, [open]);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -68,8 +95,8 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
     <button
       onClick={() => { if (locked.current) return; open ? close() : setOpen(true); }}
       className={cn(
-        // Базовые стили кнопки (Flex, центрирование, ограничение ширины)
-        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition min-h-[40px] max-w-full outline-none",
+        // Базовые стили кнопки (Flex, центрирование, фиксированная ширина)
+        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition min-h-[40px] w-[200px] max-w-full outline-none",
         modelUnavailable
           ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20"
           : "bg-slate-800/50 border border-white/5 text-slate-200 hover:bg-slate-800 hover:text-white shadow-sm cursor-pointer"
@@ -83,44 +110,41 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
         </>
       ) : (
         <>
-          {/* 1. Иконка модели (Щит для безопасных локальных, Искры для облачных API) */}
           {selected.isLocal ? (
             <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
           ) : (
             <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />
           )}
 
-          {/* 2. Контейнер текста (Название + Описание). Скрывает лишнее троеточием */}
-          <div className="flex items-center gap-1.5 overflow-hidden text-left">
-            <span className="font-medium truncate shrink-0 max-w-[140px] sm:max-w-[200px]">
-              {selected.name}
-            </span>
-            
-            {/* 3. Микрокопия (Описание). Видна только на десктопе/планшете (md:inline-block) */}
-            {selected.description && (
-              <span className="hidden md:inline-block text-slate-500 font-normal truncate max-w-[250px] lg:max-w-[350px]">
-                — {selected.description}
-              </span>
-            )}
-          </div>
+          <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">
+            {selected.name}
+          </span>
         </>
       )}
       
       {/* 4. Шеврон (Стрелочка). Всегда прижат вправо, крутится при открытии */}
       <ChevronDown 
         className={cn(
-          "h-4 w-4 shrink-0 text-slate-500 transition-transform ml-1", 
+          "h-4 w-4 shrink-0 text-slate-500 transition-transform ml-auto", 
           open && "rotate-180"
         )} 
       />
     </button>
     {open && !isMobile && (
         <div
-          className={cn("absolute left-0 top-full z-50 mt-2 w-[24rem] rounded-2xl border border-slate-700/50 bg-slate-800/95 shadow-2xl backdrop-blur-sm",
-            closing ? "animate-popover-out" : "animate-popover-in")}
+          className={cn(
+            "absolute left-0 top-full z-50 mt-2 pt-2 pb-2 w-[24rem] rounded-2xl border border-slate-700/50 bg-slate-800/95 shadow-2xl backdrop-blur-sm overflow-hidden",
+            closing ? "animate-popover-out" : "animate-popover-in"
+          )}
           data-testid="model-popover"
         >
-          <ModelList groups={groups} pick={pick} user={user} family={family} onSelect={handleSelect} />
+          <div
+            ref={scrollRef}
+            className="overflow-y-auto snap-y snap-proximity"
+            style={{ maxHeight: calcScrollMaxHeight(groups) }}
+          >
+            <ModelList groups={groups} pick={pick} user={user} family={family} onSelect={handleSelect} />
+          </div>
         </div>
       )}
 
@@ -164,11 +188,11 @@ interface ModelListProps {
 
 function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
   return (
-    <div className="py-2 px-2" data-testid="model-list">
+    <div className="px-2" data-testid="model-list">
       {groups.map((group, gi) => (
         <div key={group.tier}>
           <div className={cn(
-            "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500",
+            "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500 snap-start",
             gi > 0 && "mt-4 border-t border-slate-700/40 pt-4"
           )}>
             {group.icon} {group.label}
@@ -182,7 +206,7 @@ function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
                 onClick={() => onSelect(model)}
                 className={cn(
                   "flex w-full items-center gap-3 px-3 text-left rounded-xl h-[56px]",
-                  "transition-all duration-150 active:scale-[0.97]",
+                  "transition-all duration-150 active:scale-[0.97] snap-start",
                   showLocal && "border-l-2 border-emerald-500",
                   isActive ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5",
                 )}
