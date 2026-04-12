@@ -3,7 +3,6 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
-import { getLocalLLMBaseURL } from "@/lib/local-llm-config";
 import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
@@ -202,32 +201,20 @@ export async function POST(req: Request) {
         ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       });
     } else if (provider === "local") {
-      const localBaseURL = getLocalLLMBaseURL(modelId);
-      const local = createOpenAI({
-        apiKey: "no-key-required",
-        baseURL: localBaseURL,
-      });
-      // IMPORTANT: keep `local.chat(modelId)` here.
-      // In Vercel AI SDK, `.chat()` targets `/chat/completions`, while
-      // `.completion()` would target `/completions`, which is not suitable
-      // for the strict chat message structure used by ik_llama.cpp.
-
-      // Local-specific settings
-      const reasoningEnabled = rawReasoningEnabled !== false; // default: true
+      // Local provider: fetch directly from llama.cpp (no AI SDK provider needed).
+      // The local-llm-stream module handles reasoning_content natively.
+      const reasoningEnabled = rawReasoningEnabled !== false;
       const temperature = typeof rawTemperature === "number"
         ? rawTemperature
         : reasoningEnabled ? 0.6 : 0.7;
-      const maxReasoningTokens = 8192;
-      const maxOutputTokens = 16384;
 
       return createLocalLLMResponse({
-        model: local.chat(modelId),
+        modelId,
         system,
         messages: coreMessages,
         temperature,
         reasoningEnabled,
-        maxReasoningTokens,
-        maxOutputTokens,
+        maxOutputTokens: 16384,
         abortSignal: req.signal,
       });
     } else {
