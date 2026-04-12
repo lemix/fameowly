@@ -1,23 +1,22 @@
 /**
- * Local LLM stream handler — intercepts <think> tags from ik_llama.cpp,
- * emits AI SDK UI Message Stream protocol (reasoning-delta / text-delta),
- * enforces reasoning token limit with auto-retry.
+ * Local LLM stream handler — fetches directly from llama.cpp
+ * OpenAI-compatible API, uses native reasoning_content when available,
+ * falls back to configurable tag parsing, and handles timeout safely.
+ *
+ * Emits AI SDK UI Message Stream protocol (reasoning-delta / text-delta).
  */
 
-import { streamText } from "ai";
-import type { LanguageModel, ModelMessage } from "ai";
+import { getLocalLLMBaseURL } from "./local-llm-config";
+import { getReasoningTags } from "./reasoning/reasoning-config";
+import { ReasoningStreamParser } from "./reasoning/reasoning-parser";
+import { sanitizeMessagesForLLM } from "./reasoning/context-sanitizer";
 
 // ─── Constants ───────────────────────────────────────────────────────
 
-const THINK_OPEN = "<think>";
-const THINK_CLOSE = "</think>";
-const CHARS_PER_TOKEN = 2; // conservative for mixed Ru/En (tokenizers split Cyrillic more)
-const MAX_REASONING_TIME_MS = 60_000; // 60s wall-clock limit for reasoning phase
-const MAX_PREFILL_CHARS = 3000; // max reasoning chars to include in retry prefill
+/** Wall-clock timeout for the entire request (reasoning + text generation) */
+const MAX_REQUEST_TIME_MS = 180_000; // 3 minutes
 
-// ─── SSE helpers ─────────────────────────────────────────────────────
-
-const UI_MESSAGE_STREAM_HEADERS = {
+const UI_STREAM_HEADERS = {
   "content-type": "text/event-stream",
   "cache-control": "no-cache",
   connection: "keep-alive",
@@ -25,425 +24,270 @@ const UI_MESSAGE_STREAM_HEADERS = {
   "x-accel-buffering": "no",
 } as const;
 
-function sseEvent(obj: Record<string, unknown>): string {
-  return `data: ${JSON.stringify(obj)}\n\n`;
-}
+// ─── Types ───────────────────────────────────────────────────────────
 
-// ─── Think-tag parser (state machine) ────────────────────────────────
+type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image"; image: string; mimeType?: string }
+  | { type: "file"; data: string; mediaType: string };
 
-type ParserState = "detect-start" | "in-reasoning" | "in-text";
-
-interface ParsedChunk {
-  type: "reasoning" | "text";
-  content: string;
-}
-
-class ThinkTagParser {
-  private state: ParserState = "detect-start";
-  private buffer = "";
-  private _reasoningTokens = 0;
-
-  get reasoningTokens(): number {
-    return this._reasoningTokens;
-  }
-
-  /** Feed a chunk, get parsed output pieces. */
-  feed(chunk: string): ParsedChunk[] {
-    this.buffer += chunk;
-    const results: ParsedChunk[] = [];
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      if (this.buffer.length === 0) break;
-
-      switch (this.state) {
-        case "detect-start": {
-          // Check if buffer starts with <think>
-          if (this.buffer.startsWith(THINK_OPEN)) {
-            this.buffer = this.buffer.slice(THINK_OPEN.length);
-            this.state = "in-reasoning";
-            continue;
-          }
-          // Could still become <think> with more data
-          if (THINK_OPEN.startsWith(this.buffer) && this.buffer.length < THINK_OPEN.length) {
-            return results;
-          }
-          // Not <think> — model skipped reasoning, emit as text
-          this.state = "in-text";
-          continue;
-        }
-
-        case "in-reasoning": {
-          const closeIdx = this.buffer.indexOf(THINK_CLOSE);
-          if (closeIdx !== -1) {
-            const reasoning = this.buffer.slice(0, closeIdx);
-            if (reasoning) {
-              results.push({ type: "reasoning", content: reasoning });
-              this._reasoningTokens += Math.ceil(reasoning.length / CHARS_PER_TOKEN);
-            }
-            this.buffer = this.buffer.slice(closeIdx + THINK_CLOSE.length);
-            this.state = "in-text";
-            continue;
-          }
-          // Check for partial </think> at end of buffer
-          const partialLen = findPartialSuffix(this.buffer, THINK_CLOSE);
-          if (partialLen > 0) {
-            const safe = this.buffer.slice(0, this.buffer.length - partialLen);
-            if (safe) {
-              results.push({ type: "reasoning", content: safe });
-              this._reasoningTokens += Math.ceil(safe.length / CHARS_PER_TOKEN);
-            }
-            this.buffer = this.buffer.slice(this.buffer.length - partialLen);
-            return results;
-          }
-          // No closing tag yet — emit all as reasoning
-          results.push({ type: "reasoning", content: this.buffer });
-          this._reasoningTokens += Math.ceil(this.buffer.length / CHARS_PER_TOKEN);
-          this.buffer = "";
-          return results;
-        }
-
-        case "in-text": {
-          results.push({ type: "text", content: this.buffer });
-          this.buffer = "";
-          return results;
-        }
-      }
-    }
-
-    return results;
-  }
-
-  /** Flush remaining buffer on stream end. */
-  flush(): ParsedChunk[] {
-    if (!this.buffer) return [];
-    if (this.state === "in-reasoning") {
-      const result: ParsedChunk[] = [{ type: "reasoning", content: this.buffer }];
-      this._reasoningTokens += Math.ceil(this.buffer.length / CHARS_PER_TOKEN);
-      this.buffer = "";
-      return result;
-    }
-    const result: ParsedChunk[] = [{ type: "text", content: this.buffer }];
-    this.buffer = "";
-    return result;
-  }
-
-  isInReasoning(): boolean {
-    return this.state === "in-reasoning";
-  }
-}
-
-/** Check if `str` ends with a prefix of `tag`. Returns length of partial match. */
-function findPartialSuffix(str: string, tag: string): number {
-  for (let len = Math.min(tag.length - 1, str.length); len >= 1; len--) {
-    if (str.endsWith(tag.slice(0, len))) {
-      return len;
-    }
-  }
-  return 0;
-}
-
-// ─── (ModelMessage is imported from AI SDK) ─────────────────────────
-
-// ─── Main stream builder ─────────────────────────────────────────────
+type CoreMessage =
+  | { role: "user"; content: ContentPart[] }
+  | { role: "assistant"; content: string };
 
 export interface LocalStreamParams {
-  model: LanguageModel;
+  modelId: string;
   system: string;
-  messages: ModelMessage[];
+  messages: CoreMessage[];
   temperature: number;
   reasoningEnabled: boolean;
-  maxReasoningTokens: number;
   maxOutputTokens: number;
   abortSignal: AbortSignal;
 }
 
+// ─── Message format conversion ───────────────────────────────────────
+
+/** Convert AI SDK CoreMessages to OpenAI Chat Completions format */
+function toOpenAIMessages(
+  system: string,
+  messages: CoreMessage[],
+): Array<{ role: string; content: string | Array<Record<string, unknown>> }> {
+  const result: Array<{ role: string; content: string | Array<Record<string, unknown>> }> = [
+    { role: "system", content: system },
+  ];
+
+  for (const msg of messages) {
+    if (msg.role === "assistant") {
+      result.push({ role: "assistant", content: msg.content });
+    } else {
+      const parts: Array<Record<string, unknown>> = [];
+      for (const part of msg.content) {
+        if (part.type === "text") {
+          parts.push({ type: "text", text: part.text });
+        } else if (part.type === "image") {
+          const mime = part.mimeType || "image/png";
+          parts.push({
+            type: "image_url",
+            image_url: { url: `data:${mime};base64,${part.image}` },
+          });
+        }
+        // file parts skipped — llama.cpp doesn't support them natively
+      }
+      if (parts.length === 1 && parts[0].type === "text") {
+        result.push({ role: "user", content: parts[0].text as string });
+      } else {
+        result.push({ role: "user", content: parts });
+      }
+    }
+  }
+
+  return sanitizeMessagesForLLM(
+    result as Array<{ role: string; content: string }>,
+  );
+}
+
+// ─── SSE helpers ─────────────────────────────────────────────────────
+
+function sseEvent(obj: Record<string, unknown>): string {
+  return `data: ${JSON.stringify(obj)}\n\n`;
+}
+
+interface ChatDelta {
+  content?: string | null;
+  reasoning_content?: string | null;
+}
+
+/** Parse llama.cpp Chat Completions SSE stream into delta objects */
+async function* parseChatStream(
+  response: Response,
+): AsyncGenerator<ChatDelta> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") return;
+        try {
+          const parsed = JSON.parse(data);
+          const delta: ChatDelta = parsed.choices?.[0]?.delta;
+          if (delta) yield delta;
+        } catch { /* skip malformed JSON */ }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// ─── Main stream builder ─────────────────────────────────────────────
+
 /**
  * Build a fully-formed SSE Response for the local LLM provider.
- * Handles <think> tag parsing, reasoning limit (tokens + wall-clock),
- * and abort-retry with assistant prefill.
+ * Fetches directly from llama.cpp to access reasoning_content natively.
  */
 export function createLocalLLMResponse(params: LocalStreamParams): Response {
-  const {
-    model,
-    system,
-    messages,
-    temperature,
-    reasoningEnabled,
-    maxReasoningTokens,
-    maxOutputTokens,
-    abortSignal,
-  } = params;
-
+  const { modelId, system, messages, temperature, reasoningEnabled, maxOutputTokens, abortSignal } = params;
   const encoder = new TextEncoder();
   let aborted = false;
-
   abortSignal.addEventListener("abort", () => { aborted = true; }, { once: true });
 
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const enqueue = (obj: Record<string, unknown>) => {
+      const emit = (obj: Record<string, unknown>) => {
         if (aborted) return;
         try { controller.enqueue(encoder.encode(sseEvent(obj))); } catch { /* closed */ }
       };
 
-      const reasoningPartId = "reasoning-0";
-      const textPartId = "text-0";
-      let reasoningStarted = false;
-      let reasoningEnded = false;
-      let textStarted = false;
+      const R = "reasoning-0";
+      const T = "text-0";
+      let rStarted = false, rEnded = false, tStarted = false;
+      let timedOut = false;
 
       try {
-        enqueue({ type: "start" });
-        enqueue({ type: "start-step" });
+        emit({ type: "start" });
+        emit({ type: "start-step" });
 
-        // ── Phase 1: Initial stream ──────────────────────────────
-        const effectiveMessages: ModelMessage[] = reasoningEnabled
-          ? messages
-          : [...messages, { role: "assistant" as const, content: "</think>\n" }];
+        const baseURL = getLocalLLMBaseURL(modelId);
+        const openaiMsgs = toOpenAIMessages(system, messages);
 
         const localAbort = new AbortController();
         const unlinkLocal = linkAbort(abortSignal, localAbort);
+        const timer = setTimeout(() => localAbort.abort(), MAX_REQUEST_TIME_MS);
 
-        const result = streamText({
-          model,
-          system,
-          messages: effectiveMessages,
-          temperature,
-          maxOutputTokens,
-          abortSignal: localAbort.signal,
-        });
+        let response: Response;
+        try {
+          const body: Record<string, unknown> = {
+            model: modelId,
+            messages: openaiMsgs,
+            stream: true,
+            temperature,
+            max_tokens: maxOutputTokens,
+          };
+          // Disable thinking at the Jinja template level for llama.cpp
+          if (!reasoningEnabled) {
+            body.chat_template_kwargs = { enable_thinking: false };
+          }
+          response = await fetch(`${baseURL}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            signal: localAbort.signal,
+          });
+        } catch (err) {
+          if (aborted) { finalize(controller, encoder); return; }
+          throw err;
+        }
 
-        const parser = new ThinkTagParser();
-        let accumulatedReasoning = "";
-        let needsRetry = false;
-        const reasoningStartTime = Date.now();
+        if (!response.ok) {
+          const errText = await response.text().catch(() => "Unknown error");
+          throw new Error(`llama.cpp ${response.status}: ${errText}`);
+        }
+
+        // Stream processing — dual mode: native reasoning_content OR tag fallback
+        let usedNative = false;
+        let fallback: ReasoningStreamParser | null = null;
 
         try {
-          for await (const chunk of result.textStream) {
+          for await (const delta of parseChatStream(response)) {
             if (aborted) break;
 
-            const pieces = parser.feed(chunk);
-            for (const piece of pieces) {
-              if (aborted) break;
-
-              if (piece.type === "reasoning") {
-                accumulatedReasoning += piece.content;
-
-                const tokenLimitHit = parser.reasoningTokens > maxReasoningTokens;
-                const elapsed = Date.now() - reasoningStartTime;
-                const timeLimitHit = elapsed > MAX_REASONING_TIME_MS;
-
-                if (tokenLimitHit || timeLimitHit) {
-                  needsRetry = true;
-                  const reason = tokenLimitHit
-                    ? `лимит токенов (~${parser.reasoningTokens})`
-                    : `лимит времени (${Math.round(elapsed / 1000)}с)`;
-                  console.log(`[local-llm] Reasoning interrupted: ${reason}`);
-                  if (!reasoningStarted) {
-                    enqueue({ type: "reasoning-start", id: reasoningPartId });
-                    reasoningStarted = true;
-                  }
-                  enqueue({
-                    type: "reasoning-delta",
-                    id: reasoningPartId,
-                    delta: `\n\n[⚠ Рассуждение прервано: ${reason}]`,
-                  });
-                  break;
-                }
-
-                if (!reasoningStarted) {
-                  enqueue({ type: "reasoning-start", id: reasoningPartId });
-                  reasoningStarted = true;
-                }
-                enqueue({ type: "reasoning-delta", id: reasoningPartId, delta: piece.content });
-              } else {
-                // Text — model finished reasoning normally
-                if (reasoningStarted && !reasoningEnded) {
-                  enqueue({ type: "reasoning-end", id: reasoningPartId });
-                  reasoningEnded = true;
-                }
-                if (!textStarted) {
-                  enqueue({ type: "text-start", id: textPartId });
-                  textStarted = true;
-                }
-                enqueue({ type: "text-delta", id: textPartId, delta: piece.content });
-              }
+            // 1) Native reasoning_content from llama.cpp server
+            if (delta.reasoning_content) {
+              usedNative = true;
+              if (!rStarted) { emit({ type: "reasoning-start", id: R }); rStarted = true; }
+              emit({ type: "reasoning-delta", id: R, delta: delta.reasoning_content });
             }
 
-            if (needsRetry) break;
-
-            // Between-chunk time check (slow generation)
-            if (
-              parser.isInReasoning() &&
-              !needsRetry &&
-              Date.now() - reasoningStartTime > MAX_REASONING_TIME_MS
-            ) {
-              needsRetry = true;
-              console.log(
-                `[local-llm] Reasoning timeout: ${Math.round((Date.now() - reasoningStartTime) / 1000)}s`
-              );
-              if (!reasoningStarted) {
-                enqueue({ type: "reasoning-start", id: reasoningPartId });
-                reasoningStarted = true;
+            // 2) Content text
+            if (delta.content) {
+              if (!usedNative && !fallback && reasoningEnabled) {
+                fallback = new ReasoningStreamParser(getReasoningTags(modelId));
               }
-              enqueue({
-                type: "reasoning-delta",
-                id: reasoningPartId,
-                delta: `\n\n[⚠ Рассуждение прервано: лимит времени]`,
-              });
-              break;
+
+              if (fallback) {
+                emitParsed(fallback.feed(delta.content));
+              } else {
+                if (usedNative && rStarted && !rEnded) { emit({ type: "reasoning-end", id: R }); rEnded = true; }
+                if (!tStarted) { emit({ type: "text-start", id: T }); tStarted = true; }
+                emit({ type: "text-delta", id: T, delta: delta.content });
+              }
             }
           }
         } catch (streamErr) {
-          // Stream error (ctx_shift crash, connection drop, etc.)
-          if (!aborted && !needsRetry && parser.isInReasoning()) {
-            needsRetry = true;
-            console.error("[local-llm] Stream error during reasoning, will retry:", streamErr);
-            if (!reasoningStarted) {
-              enqueue({ type: "reasoning-start", id: reasoningPartId });
-              reasoningStarted = true;
+          if (localAbort.signal.aborted && !aborted) {
+            timedOut = true;
+            console.log(`[local-llm] Request timed out after ${MAX_REQUEST_TIME_MS / 1000}s`);
+            if (rStarted && !rEnded) {
+              emit({ type: "reasoning-delta", id: R, delta: "\n\n[⚠ Рассуждение прервано: превышен лимит времени]" });
             }
-            enqueue({
-              type: "reasoning-delta",
-              id: reasoningPartId,
-              delta: "\n\n[⚠ Рассуждение прервано: ошибка потока]",
-            });
           } else if (!aborted) {
             throw streamErr;
           }
         } finally {
-          // Flush remaining parser buffer into accumulatedReasoning
-          if (needsRetry) {
-            for (const p of parser.flush()) {
-              if (p.type === "reasoning") accumulatedReasoning += p.content;
-            }
-          }
+          clearTimeout(timer);
           unlinkLocal();
-          localAbort.abort();
         }
 
-        // ── Phase 2: Retry with assistant prefill ────────────────
-        if (needsRetry && !aborted) {
-          if (reasoningStarted && !reasoningEnded) {
-            enqueue({ type: "reasoning-end", id: reasoningPartId });
-            reasoningEnded = true;
-          }
+        // Flush fallback parser
+        if (fallback) emitParsed(fallback.flush());
 
-          console.log(
-            `[local-llm] Retry: reasoning ${accumulatedReasoning.length} chars, ` +
-            `prefill ${Math.min(accumulatedReasoning.length, MAX_PREFILL_CHARS)} chars`
-          );
+        // Handle timeout with no text generated
+        if (timedOut && !tStarted) {
+          emit({ type: "text-start", id: T }); tStarted = true;
+          emit({ type: "text-delta", id: T, delta: "[Превышен лимит времени. Попробуйте упростить запрос или отключить режим размышления.]" });
+        }
 
-          // Build assistant prefill — include truncated reasoning so the
-          // model can produce an answer informed by its earlier reasoning.
-          const trimmed = accumulatedReasoning.length > MAX_PREFILL_CHARS
-            ? accumulatedReasoning.slice(-MAX_PREFILL_CHARS)
-            : accumulatedReasoning;
-          const prefill = trimmed.trim()
-            ? `<think>\n${trimmed.trim()}\n</think>\n`
-            : "</think>\n";
+        if (rStarted && !rEnded) emit({ type: "reasoning-end", id: R });
+        if (tStarted) emit({ type: "text-end", id: T });
+        emit({ type: "finish-step" });
+        emit({ type: "finish", finishReason: timedOut ? "length" : "stop" });
 
-          const retryAbort = new AbortController();
-          const unlinkRetry = linkAbort(abortSignal, retryAbort);
-
-          try {
-            const retryMessages: ModelMessage[] = [
-              ...messages,
-              { role: "assistant" as const, content: prefill },
-            ];
-
-            const retryResult = streamText({
-              model,
-              system,
-              messages: retryMessages,
-              temperature,
-              maxOutputTokens: Math.min(maxOutputTokens, 4096),
-              abortSignal: retryAbort.signal,
-            });
-
-            if (!textStarted) {
-              enqueue({ type: "text-start", id: textPartId });
-              textStarted = true;
-            }
-
-            for await (const chunk of retryResult.textStream) {
-              if (aborted) break;
-              enqueue({ type: "text-delta", id: textPartId, delta: chunk });
-            }
-          } catch (retryErr) {
-            if (!aborted) {
-              console.error("[local-llm] Retry also failed:", retryErr);
-              if (!textStarted) {
-                enqueue({ type: "text-start", id: textPartId });
-                textStarted = true;
-              }
-              enqueue({
-                type: "text-delta",
-                id: textPartId,
-                delta: "\n\n[Не удалось получить ответ. Попробуйте упростить запрос или уменьшить историю чата.]",
-              });
-            }
-          } finally {
-            unlinkRetry();
-            retryAbort.abort();
-          }
-        } else if (!needsRetry) {
-          // Normal finish — flush parser
-          const remaining = parser.flush();
-          for (const piece of remaining) {
-            if (aborted) break;
-            if (piece.type === "reasoning") {
-              if (!reasoningStarted) {
-                enqueue({ type: "reasoning-start", id: reasoningPartId });
-                reasoningStarted = true;
-              }
-              enqueue({ type: "reasoning-delta", id: reasoningPartId, delta: piece.content });
+        // Inner helper — emit parsed pieces from fallback parser
+        function emitParsed(pieces: Array<{ type: "reasoning" | "text"; content: string }>) {
+          for (const p of pieces) {
+            if (p.type === "reasoning") {
+              if (!rStarted) { emit({ type: "reasoning-start", id: R }); rStarted = true; }
+              emit({ type: "reasoning-delta", id: R, delta: p.content });
             } else {
-              if (reasoningStarted && !reasoningEnded) {
-                enqueue({ type: "reasoning-end", id: reasoningPartId });
-                reasoningEnded = true;
-              }
-              if (!textStarted) {
-                enqueue({ type: "text-start", id: textPartId });
-                textStarted = true;
-              }
-              enqueue({ type: "text-delta", id: textPartId, delta: piece.content });
+              if (rStarted && !rEnded) { emit({ type: "reasoning-end", id: R }); rEnded = true; }
+              if (!tStarted) { emit({ type: "text-start", id: T }); tStarted = true; }
+              emit({ type: "text-delta", id: T, delta: p.content });
             }
           }
         }
-
-        // ── Finalize SSE stream ──────────────────────────────────
-        if (reasoningStarted && !reasoningEnded) {
-          enqueue({ type: "reasoning-end", id: reasoningPartId });
-        }
-        if (textStarted) {
-          enqueue({ type: "text-end", id: textPartId });
-        }
-
-        enqueue({ type: "finish-step" });
-        enqueue({ type: "finish", finishReason: "stop" });
       } catch (err: unknown) {
         if (!aborted) {
           const msg = err instanceof Error ? err.message : "Local LLM error";
-          console.error("[local-llm] Fatal error:", msg);
-          enqueue({ type: "error", errorText: msg });
+          console.error("[local-llm] Fatal:", msg);
+          emit({ type: "error", errorText: msg });
         }
       } finally {
-        if (!aborted) {
-          try { controller.enqueue(encoder.encode("data: [DONE]\n\n")); } catch { /* closed */ }
-        }
-        try { controller.close(); } catch { /* already closed */ }
+        finalize(controller, encoder);
       }
     },
   });
 
-  return new Response(readable, {
-    headers: UI_MESSAGE_STREAM_HEADERS,
-  });
+  return new Response(readable, { headers: UI_STREAM_HEADERS });
 }
 
-/** Link an external AbortSignal to a local AbortController; returns cleanup fn */
+// ─── Shared utilities ────────────────────────────────────────────────
+
+function finalize(controller: ReadableStreamDefaultController, encoder: TextEncoder) {
+  try { controller.enqueue(encoder.encode("data: [DONE]\n\n")); } catch { /* closed */ }
+  try { controller.close(); } catch { /* already closed */ }
+}
+
 function linkAbort(external: AbortSignal, local: AbortController): () => void {
   const handler = () => local.abort();
   external.addEventListener("abort", handler, { once: true });
