@@ -17,8 +17,9 @@ test.describe("Reasoning Models — Local LLM", () => {
   test("Qwen 3.5: reasoning + response with thinking enabled", async ({ page }) => {
     test.setTimeout(240_000); // Qwen reasoning can be slow on quantized models
 
-    // Select Qwen model
+    // Select Qwen model — switch to Fameowly tab
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const qwenOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await qwenOption.scrollIntoViewIfNeeded();
     await qwenOption.click();
@@ -47,8 +48,9 @@ test.describe("Reasoning Models — Local LLM", () => {
   });
 
   test("Gemma 31B: reasoning + response with thinking enabled", async ({ page }) => {
-    // Select Gemma model
+    // Select Gemma model — switch to Fameowly tab
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const gemmaOption = page.getByTestId("model-option-gemma-31b-it");
     await gemmaOption.scrollIntoViewIfNeeded();
     await gemmaOption.click();
@@ -76,8 +78,9 @@ test.describe("Reasoning Models — Local LLM", () => {
   });
 
   test("Qwen 3.5: no reasoning block when thinking disabled", async ({ page }) => {
-    // Select Qwen model
+    // Select Qwen model — switch to Fameowly tab
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const qwenOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await qwenOption.scrollIntoViewIfNeeded();
     await qwenOption.click();

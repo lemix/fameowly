@@ -44,20 +44,25 @@ test.describe("Layout Validation — Desktop", () => {
   test("cloud model and local model (Qwen) have identical height (zero tolerance)", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     await page.waitForSelector('[data-testid="model-popover"]', { timeout: 5_000 });
-    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
 
-    const heights = await page.evaluate(() => {
-      const cloud = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
-      const local = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
-      if (!cloud || !local) throw new Error("Model options not found");
-      return {
-        cloudHeight: cloud.offsetHeight,
-        localHeight: local.offsetHeight,
-      };
+    // Measure cloud model on world tab (default)
+    const cloudHeight = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
+      if (!el) throw new Error("Cloud model not found");
+      return el.offsetHeight;
     });
 
-    expect(heights.cloudHeight).toBe(heights.localHeight);
-    expect(heights.cloudHeight).toBe(56);
+    // Switch to Fameowly tab and measure local model
+    await page.getByTestId("tab-local").click();
+    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
+    const localHeight = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
+      if (!el) throw new Error("Local model not found");
+      return el.offsetHeight;
+    });
+
+    expect(cloudHeight).toBe(localHeight);
+    expect(cloudHeight).toBe(56);
   });
 
   test("model popover uses rounded-2xl (16px) matching input island", async ({ page }) => {
@@ -224,21 +229,25 @@ test.describe("Layout Validation — Mobile (iPhone 12)", () => {
   test("model items have uniform height on mobile bottom sheet", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     await page.waitForSelector('[data-testid="model-bottom-sheet"]', { timeout: 5_000 });
-    // Wait for animation to complete and all items to render
-    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
 
-    const heights = await page.evaluate(() => {
-      const cloud = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
-      const local = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
-      if (!cloud || !local) throw new Error("Model options not found");
-      return {
-        cloudHeight: cloud.offsetHeight,
-        localHeight: local.offsetHeight,
-      };
+    // Measure cloud model on world tab (default)
+    const cloudHeight = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="model-option-gemini-flash-latest"]') as HTMLElement;
+      if (!el) throw new Error("Cloud model not found");
+      return el.offsetHeight;
     });
 
-    expect(heights.cloudHeight).toBe(heights.localHeight);
-    expect(heights.cloudHeight).toBe(56);
+    // Switch to Fameowly tab and measure local model
+    await page.getByTestId("tab-local").click();
+    await page.waitForSelector('[data-testid="model-option-qwen3.5-122b-a10b"]', { timeout: 5_000 });
+    const localHeight = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="model-option-qwen3.5-122b-a10b"]') as HTMLElement;
+      if (!el) throw new Error("Local model not found");
+      return el.offsetHeight;
+    });
+
+    expect(cloudHeight).toBe(localHeight);
+    expect(cloudHeight).toBe(56);
   });
 
   test("price badge containers are not squeezed to zero width on mobile", async ({ page }) => {

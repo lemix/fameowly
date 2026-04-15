@@ -1,0 +1,66 @@
+import { Check, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { ModelOption, ModelTier, UserInfo } from "@/lib/types";
+import { PriceBadge } from "./price-badge";
+
+export type ModelTab = "world" | "local";
+
+export interface TierGroup {
+  tier: ModelTier;
+  label: string;
+  icon: string;
+  models: ModelOption[];
+}
+
+interface ModelListProps {
+  groups: TierGroup[];
+  pick: string;
+  user: UserInfo | null;
+  family: boolean;
+  onSelect: (model: ModelOption) => void;
+}
+
+export function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
+  return (
+    <div className="px-3 pb-2" data-testid="model-list">
+      {groups.map((group, gi) => (
+        <div key={group.tier}>
+          <div
+            className={cn(
+              "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500 snap-start",
+              gi > 0 && "mt-4 border-t border-slate-700/40 pt-4",
+            )}
+          >
+            {group.icon} {group.label}
+          </div>
+
+          {group.models.map((model) => {
+            const isActive = pick === model.id;
+            return (
+              <button
+                key={model.id}
+                onClick={() => onSelect(model)}
+                data-active={isActive || undefined}
+                className={cn(
+                  "flex w-full items-center gap-3 px-3 text-left rounded-xl h-[56px]",
+                  "transition-all duration-150 active:scale-[0.97] snap-start",
+                  isActive ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5",
+                )}
+                data-testid={`model-option-${model.id}`}
+              >
+                <Sparkles className="h-5 w-5 shrink-0 text-slate-400" />
+                <span className="flex-1 min-w-0 text-sm font-semibold text-slate-100 truncate">
+                  {model.name}
+                </span>
+                <PriceBadge model={model} user={user} family={family} />
+                {isActive && (
+                  <Check className="h-4 w-4 shrink-0 text-white" data-testid="model-check-icon" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
