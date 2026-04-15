@@ -14,7 +14,7 @@ import { sanitizeMessagesForLLM } from "./reasoning/context-sanitizer";
 // ─── Constants ───────────────────────────────────────────────────────
 
 /** Wall-clock timeout for the entire request (reasoning + text generation) */
-const MAX_REQUEST_TIME_MS = 180_000; // 3 minutes
+const MAX_REQUEST_TIME_MS = 600000; // 10 minutes
 
 const UI_STREAM_HEADERS = {
   "content-type": "text/event-stream",

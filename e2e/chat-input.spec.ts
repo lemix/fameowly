@@ -22,9 +22,9 @@ test.describe("Chat Input Island", () => {
   });
 
   test("shows reasoning pill for local model", async ({ page }) => {
-    // Open model selector and pick the local model
+    // Open model selector and switch to Fameowly tab for local models
     await page.getByTestId("model-selector-trigger").click();
-    // Look for local model (Qwen 3.5 122B) — might need to scroll in popover
+    await page.getByTestId("tab-local").click();
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await localOption.scrollIntoViewIfNeeded();
     await expect(localOption).toBeVisible();
@@ -36,8 +36,9 @@ test.describe("Chat Input Island", () => {
   });
 
   test("shows temperature chips for local model", async ({ page }) => {
-    // Select local model first
+    // Select local model first — switch to Fameowly tab
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await localOption.scrollIntoViewIfNeeded();
     await expect(localOption).toBeVisible();
@@ -53,8 +54,9 @@ test.describe("Chat Input Island", () => {
   });
 
   test("temperature chips contain correct labels", async ({ page }) => {
-    // Select local model
+    // Select local model — switch to Fameowly tab
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const localOption = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await localOption.scrollIntoViewIfNeeded();
     await expect(localOption).toBeVisible();

@@ -22,7 +22,22 @@ test.describe("Model Selector — Desktop", () => {
     await expect(page.getByTestId("model-bottom-sheet")).not.toBeVisible();
   });
 
-  test("popover shows tier group headers", async ({ page }) => {
+  test("popover shows segmented control tabs", async ({ page }) => {
+    await page.getByTestId("model-selector-trigger").click();
+    const tabs = page.getByTestId("model-tabs");
+    await expect(tabs).toBeVisible();
+    await expect(page.getByTestId("tab-world")).toBeVisible();
+    await expect(page.getByTestId("tab-local")).toBeVisible();
+  });
+
+  test("default tab matches selected model (world for cloud model)", async ({ page }) => {
+    await page.getByTestId("model-selector-trigger").click();
+    const worldTab = page.getByTestId("tab-world");
+    await expect(worldTab).toHaveClass(/bg-slate-700/);
+    await expect(page.getByTestId("tab-banner-world")).toBeVisible();
+  });
+
+  test("world tab shows tier group headers", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     const popover = page.getByTestId("model-popover");
     await expect(popover).toBeVisible();
@@ -31,19 +46,31 @@ test.describe("Model Selector — Desktop", () => {
     await expect(popover).toContainText("Ультра");
   });
 
-  test("local model shows emerald border-l-2 and privacy text for admin", async ({ page }) => {
+  test("switching to Fameowly tab shows local models and banner", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
+    await expect(page.getByTestId("tab-banner-local")).toBeVisible();
+    await expect(page.getByTestId("tab-banner-local")).toContainText("fameowly");
     const localModel = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await expect(localModel).toBeVisible();
-    await expect(localModel).toHaveClass(/border-l-2/);
-    await expect(localModel).toHaveClass(/border-emerald-500/);
-    await expect(localModel).toContainText("Приватная модель");
     await expect(localModel).toContainText("Бесплатно");
+  });
+
+  test("local models are hidden on world tab", async ({ page }) => {
+    await page.getByTestId("model-selector-trigger").click();
+    await expect(page.getByTestId("model-option-qwen3.5-122b-a10b")).not.toBeVisible();
+    await expect(page.getByTestId("model-option-gemma-31b-it")).not.toBeVisible();
+  });
+
+  test("world models are hidden on Fameowly tab", async ({ page }) => {
+    await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
+    await expect(page.getByTestId("model-option-gemini-flash-latest")).not.toBeVisible();
   });
 
   test("ultra model shows 'Дорого' badge for admin on desktop", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
-    const ultraModel = page.getByTestId("model-option-anthropic/claude-sonnet-4.6");
+    const ultraModel = page.getByTestId("model-option-openai/gpt-5.4");
     await expect(ultraModel).toBeVisible();
     await expect(ultraModel).toContainText("Дорого");
   });
@@ -67,10 +94,8 @@ test.describe("Model Selector — Desktop", () => {
     await page.getByTestId("model-selector-trigger").click();
     const target = page.getByTestId("model-option-deepseek/deepseek-v3.2");
     await target.click();
-    // Check icon should be visible right away, before the popover closes
     const check = target.getByTestId("model-check-icon");
     await expect(check).toBeVisible();
-    // Then popover eventually closes
     await expect(page.getByTestId("model-popover")).not.toBeVisible();
   });
 
@@ -90,12 +115,25 @@ test.describe("Model Selector — Desktop", () => {
     await expect(page.getByTestId("model-popover")).not.toBeVisible();
   });
 
-  test("cloud models use Sparkles icon, local models use Shield icon", async ({ page }) => {
+  test("all model items use unified style (no special local styling)", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
-    const cloudModel = page.getByTestId("model-option-gemini-flash-latest");
-    await expect(cloudModel).not.toHaveClass(/border-l-2/);
+    await page.getByTestId("tab-local").click();
     const localModel = page.getByTestId("model-option-qwen3.5-122b-a10b");
-    await expect(localModel).toHaveClass(/border-l-2/);
+    await expect(localModel).toBeVisible();
+    await expect(localModel).not.toHaveClass(/border-l-2/);
+    await expect(localModel).not.toContainText("Приватная модель");
+  });
+
+  test("selecting local model then reopening shows Fameowly tab", async ({ page }) => {
+    await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
+    await page.getByTestId("model-option-qwen3.5-122b-a10b").click();
+    await expect(page.getByTestId("model-popover")).not.toBeVisible();
+
+    await page.getByTestId("model-selector-trigger").click();
+    const localTab = page.getByTestId("tab-local");
+    await expect(localTab).toHaveClass(/bg-slate-700/);
+    await expect(page.getByTestId("model-option-qwen3.5-122b-a10b")).toBeVisible();
   });
 });
 
@@ -120,9 +158,10 @@ test.describe("Model Selector — Mobile", () => {
     await expect(sheet).toContainText("Выбор модели");
   });
 
-  test("bottom sheet shows tier groups", async ({ page }) => {
+  test("bottom sheet shows tabs and tier groups", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     const sheet = page.getByTestId("model-bottom-sheet");
+    await expect(sheet.getByTestId("model-tabs")).toBeVisible();
     await expect(sheet).toContainText("Базовые");
     await expect(sheet).toContainText("Продвинутые");
   });
@@ -135,12 +174,12 @@ test.describe("Model Selector — Mobile", () => {
     await expect(sheet).not.toBeVisible();
   });
 
-  test("local model border-l-2 renders on mobile", async ({ page }) => {
+  test("Fameowly tab shows local models on mobile", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
+    await page.getByTestId("tab-local").click();
     const localModel = page.getByTestId("model-option-qwen3.5-122b-a10b");
     await expect(localModel).toBeVisible();
-    await expect(localModel).toHaveClass(/border-l-2/);
-    await expect(localModel).toHaveClass(/border-emerald-500/);
+    await expect(localModel).not.toHaveClass(/border-l-2/);
   });
 
   test("active model shows check icon on mobile", async ({ page }) => {
@@ -160,7 +199,8 @@ test.describe("Model Selector — Mobile", () => {
     await page.getByTestId("model-selector-trigger").click();
     const sheet = page.getByTestId("model-bottom-sheet");
     await expect(sheet).toBeVisible();
-    await page.getByTestId("model-sheet-overlay").click();
+    // Click the top area of the overlay (above the bottom sheet)
+    await page.getByTestId("model-sheet-overlay").click({ position: { x: 195, y: 50 } });
     await expect(sheet).not.toBeVisible();
   });
 });
