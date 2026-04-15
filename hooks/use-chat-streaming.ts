@@ -38,6 +38,13 @@ export function useChatStreaming(params: UseChatStreamingParams) {
     setStatus("submitted"); setError(null);
 
     const allMsgs = [...messagesRef.current, userMsg];
+
+    // BUG-04: Persist user message immediately (before API call).
+    // Ensures the chat is saved even if the AI never responds or user closes the tab.
+    await persistMessages(chatId, allMsgs);
+
+    // Accumulator declared outside try so it's accessible in catch (abort case)
+    const acc = { text: "", reasoning: "", error: "" };
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -61,7 +68,6 @@ export function useChatStreaming(params: UseChatStreamingParams) {
       setMessages((prev) => [...prev, { ...assistantMsg }]);
       setStatus("streaming");
 
-      const acc = { text: "", reasoning: "", error: "" };
       for await (const event of parseSSEStream(response)) {
         if (controller.signal.aborted) break;
         processStreamEvent(event, acc, setMessages);
@@ -79,12 +85,22 @@ export function useChatStreaming(params: UseChatStreamingParams) {
         setError("Модель не вернула ответ. Попробуйте повторить запрос."); setStatus("error");
       } else { setStatus("ready"); }
 
+      // Persist final messages including AI response
       const finalMessages = [...allMsgs, {
         ...assistantMsg, content: acc.text, reasoning: acc.reasoning || undefined, error: acc.error || undefined,
       }];
       await persistMessages(chatId, finalMessages);
     } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === "AbortError") { setStatus("ready"); return; }
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // Persist partial AI response if any content was received during streaming
+        if (acc.text) {
+          const partialMessages = [...allMsgs, {
+            ...assistantMsg, content: acc.text, reasoning: acc.reasoning || undefined,
+          }];
+          await persistMessages(chatId, partialMessages);
+        }
+        setStatus("ready"); return;
+      }
       const message = err instanceof Error ? err.message : "Ошибка сети. Проверьте соединение.";
       setError(message);
       setMessages((prev) => {

@@ -54,6 +54,7 @@ export function ChatInput({
   temperature, onTemperatureChange,
 }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Find closest active preset for current temperature
   const activePresetId = TEMP_PRESETS.reduce((closest, p) => {
@@ -101,7 +102,7 @@ export function ChatInput({
         )}
 
         {/* Upper zone: clip + textarea + send */}
-        <form onSubmit={onSubmit} className="flex items-end gap-1 px-3 py-3">
+        <form ref={formRef} onSubmit={onSubmit} className="flex items-end gap-1 px-3 py-3">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -131,12 +132,6 @@ export function ChatInput({
             placeholder={disabled ? (disabledPlaceholder || "Ввод заблокирован") : "Напишите сообщение..."}
             disabled={disabled}
             rows={1}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit(e as unknown as React.FormEvent);
-              }
-            }}
             className="flex-1 resize-none bg-transparent px-2 py-2.5 text-base text-white placeholder-slate-500 outline-none disabled:opacity-50"
             style={{ maxHeight: "200px", fontSize: "16px" }}
             onInput={(e) => {
@@ -146,8 +141,8 @@ export function ChatInput({
             }}
           />
           <button
-            type={isLoading ? "button" : "submit"}
-            onClick={isLoading ? onStop : undefined}
+            type="button"
+            onClick={isLoading ? onStop : () => formRef.current?.requestSubmit()}
             disabled={disabled || (!isLoading && !input.trim() && pendingAttachments.length === 0)}
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition",

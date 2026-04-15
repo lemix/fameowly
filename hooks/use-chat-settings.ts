@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { ChatSettings } from "@/lib/types";
 
 const STORAGE_KEY = "chat-settings";
@@ -26,15 +26,28 @@ function writeAllSettings(all: Record<string, ChatSettings>) {
 /**
  * Manages per-chat generation settings (temperature, reasoning).
  * Settings are persisted in localStorage keyed by chatId.
- * Returns current values + setters that auto-persist.
+ *
+ * Key behavior:
+ * - When activeChatId is null (new chat): show defaults, don't persist
+ * - When activeChatId changes to non-null with saved settings: restore them
+ * - When activeChatId changes to non-null WITHOUT saved settings (first message
+ *   just created the chat): keep current values and persist them (BUG-03 fix)
  */
 export function useChatSettings(activeChatId: string | null) {
   const [temperature, setTemperatureState] = useState(DEFAULT_SETTINGS.temperature);
   const [reasoningEnabled, setReasoningEnabledState] = useState(DEFAULT_SETTINGS.reasoningEnabled);
 
-  // Load settings when chat changes
+  // Refs track the latest values so the useEffect can read them
+  // without being in the dependency array (avoids infinite loops)
+  const temperatureRef = useRef(DEFAULT_SETTINGS.temperature);
+  const reasoningRef = useRef(DEFAULT_SETTINGS.reasoningEnabled);
+  temperatureRef.current = temperature;
+  reasoningRef.current = reasoningEnabled;
+
+  // Load / persist settings when chat changes
   useEffect(() => {
     if (!activeChatId) {
+      // No active chat — reset to defaults
       setTemperatureState(DEFAULT_SETTINGS.temperature);
       setReasoningEnabledState(DEFAULT_SETTINGS.reasoningEnabled);
       return;
@@ -42,11 +55,17 @@ export function useChatSettings(activeChatId: string | null) {
     const all = readAllSettings();
     const saved = all[activeChatId];
     if (saved) {
+      // Existing chat with saved settings — restore them
       setTemperatureState(saved.temperature ?? DEFAULT_SETTINGS.temperature);
       setReasoningEnabledState(saved.reasoningEnabled ?? DEFAULT_SETTINGS.reasoningEnabled);
     } else {
-      setTemperatureState(DEFAULT_SETTINGS.temperature);
-      setReasoningEnabledState(DEFAULT_SETTINGS.reasoningEnabled);
+      // New chat (no saved settings) — keep current values and persist them.
+      // This prevents the reset-to-defaults bug when the first message creates the chat.
+      all[activeChatId] = {
+        temperature: temperatureRef.current,
+        reasoningEnabled: reasoningRef.current,
+      };
+      writeAllSettings(all);
     }
   }, [activeChatId]);
 
