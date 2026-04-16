@@ -9,6 +9,7 @@ import { ImageView } from "@/app/(image)/_components/image-view";
 import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { usePageState } from "@/hooks/use-page-state";
 import { useUserInfo } from "@/hooks/use-user-info";
+import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 // ─── Main Component ──────────────────────────────────────────────────
 
@@ -23,9 +24,16 @@ export default function ChatPageWrapper() {
 function ChatPage() {
   const s = usePageState();
   const user = useUserInfo();
+  const { viewportHeight, isKeyboardOpen } = useVisualViewport();
+
+  // When the mobile keyboard is open, constrain the container to the
+  // visual viewport so the header stays visible (iOS Safari fallback;
+  // on Android Chrome, interactiveWidget: resizes-content handles it).
+  const containerHeight =
+    isKeyboardOpen && viewportHeight ? `${viewportHeight}px` : "100dvh";
 
   return (
-    <div className="flex h-[100dvh] bg-slate-900 text-white">
+    <div className="flex bg-slate-900 text-white" style={{ height: containerHeight }}>
       <Sidebar
         isOpen={s.sidebarOpen}
         onClose={() => s.setSidebarOpen(false)}
@@ -94,6 +102,7 @@ function ChatPage() {
               temperature={s.temperature}
               onTemperatureChange={s.setTemperature}
               modelUnavailable={s.modelUnavailable}
+              isKeyboardOpen={isKeyboardOpen}
             />
           )}
 

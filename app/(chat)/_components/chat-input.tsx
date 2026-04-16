@@ -1,26 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import {
   Send, Loader2, Paperclip, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PendingAttachment } from "@/lib/types";
-
-// ─── Temperature presets ─────────────────────────────────────────────
-
-interface TempPreset {
-  id: string;
-  label: string;
-  icon: string;
-  value: number;
-}
-
-const TEMP_PRESETS: TempPreset[] = [
-  { id: "precise", label: "Точно", icon: "🎯", value: 0.2 },
-  { id: "balanced", label: "Баланс", icon: "⚖️", value: 0.6 },
-  { id: "creative", label: "Творчески", icon: "🎨", value: 1.0 },
-];
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -35,13 +20,7 @@ interface ChatInputProps {
   pendingAttachments: PendingAttachment[];
   onAddFiles: (files: FileList | File[]) => void;
   onRemoveAttachment: (idx: number) => void;
-  // Model capabilities (Task 3)
-  supportsTemperature: boolean;
-  supportsReasoning: boolean;
-  reasoningEnabled: boolean;
-  onReasoningToggle: () => void;
-  temperature: number;
-  onTemperatureChange: (value: number) => void;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 /** Chat message input with file attachments and model-specific controls */
@@ -49,20 +28,18 @@ export function ChatInput({
   input, onInputChange, onSubmit, onStop, isLoading,
   disabled, disabledPlaceholder,
   pendingAttachments, onAddFiles, onRemoveAttachment,
-  supportsTemperature, supportsReasoning,
-  reasoningEnabled, onReasoningToggle,
-  temperature, onTemperatureChange,
+  onFocusChange,
 }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Find closest active preset for current temperature
-  const activePresetId = TEMP_PRESETS.reduce((closest, p) => {
-    return Math.abs(p.value - temperature) < Math.abs(closest.value - temperature)
-      ? p : closest;
-  }, TEMP_PRESETS[0]).id;
-
-  const showControls = supportsTemperature || supportsReasoning;
+  // Reset textarea height when input is cleared (e.g. after submit)
+  useEffect(() => {
+    if (!input && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [input]);
 
   return (
     <div className="relative px-3 pt-2 md:px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
@@ -127,6 +104,7 @@ export function ChatInput({
           />
 
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder={disabled ? (disabledPlaceholder || "Ввод заблокирован") : "Напишите сообщение..."}
@@ -134,6 +112,8 @@ export function ChatInput({
             rows={1}
             className="flex-1 resize-none bg-transparent px-2 py-2.5 text-base text-white placeholder-slate-500 outline-none disabled:opacity-50"
             style={{ maxHeight: "200px", fontSize: "16px" }}
+            onFocus={() => onFocusChange?.(true)}
+            onBlur={() => onFocusChange?.(false)}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = "auto";
@@ -159,57 +139,6 @@ export function ChatInput({
             )}
           </button>
         </form>
-
-        {/* Lower zone: model controls (shown when model supports reasoning or temperature) */}
-        {showControls && (
-          <div className="flex flex-wrap items-center gap-2 px-3 pb-3 pt-0">
-            {/* Reasoning pill — only if model supports it */}
-            {supportsReasoning && (
-              <button
-                type="button"
-                onClick={onReasoningToggle}
-                className={cn(
-                  "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition",
-                  reasoningEnabled
-                    ? "bg-purple-600/30 text-purple-200 ring-1 ring-purple-500/40"
-                    : "bg-slate-700/50 text-slate-400 ring-1 ring-slate-600/50 hover:text-slate-300 hover:bg-slate-700/70"
-                )}
-                data-testid="reasoning-pill"
-              >
-                <span>🧠</span>
-                <span>Думать</span>
-              </button>
-            )}
-
-            {/* Separator — only if both are shown */}
-            {supportsReasoning && supportsTemperature && (
-              <div className="h-6 w-px bg-slate-700/60" />
-            )}
-
-            {/* Temperature chips — only if model supports it */}
-            {supportsTemperature && (
-              <div className="flex items-center gap-1.5" data-testid="temperature-chips">
-                {TEMP_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => onTemperatureChange(preset.value)}
-                    className={cn(
-                      "flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition",
-                      activePresetId === preset.id
-                        ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
-                        : "bg-slate-700/40 text-slate-500 ring-1 ring-slate-700/50 hover:text-slate-400 hover:bg-slate-700/60"
-                    )}
-                    data-testid={`temp-chip-${preset.id}`}
-                  >
-                    <span>{preset.icon}</span>
-                    <span className="hidden sm:inline">{preset.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
