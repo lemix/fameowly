@@ -10,21 +10,22 @@ const premiumEnabled =
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["sharp"],
-  // When premium/ submodule is absent, alias @premium to empty stub
+  // When premium/ submodule is absent, alias @premium to empty stubs
   ...(premiumEnabled
     ? {}
     : {
         turbopack: {
           resolveAlias: {
             "@premium": "./lib/premium-stub.ts",
+            "@premium/*": "./lib/premium-stub-component.tsx",
           },
         },
         webpack(config: Record<string, Record<string, Record<string, string>>>) {
-          config.resolve.alias["@premium"] = path.join(
-            import.meta.dirname,
-            "lib",
-            "premium-stub.ts",
-          );
+          const stubTs = path.join(import.meta.dirname, "lib", "premium-stub.ts");
+          const stubComponent = path.join(import.meta.dirname, "lib", "premium-stub-component.tsx");
+          config.resolve.alias["@premium"] = stubTs;
+          // Wildcard: any deep @premium/* import → stub component
+          config.resolve.alias["@premium/plugins"] = stubComponent;
           return config;
         },
       }),
