@@ -17,15 +17,14 @@ const nextConfig: NextConfig = {
         turbopack: {
           resolveAlias: {
             "@premium": "./lib/premium-stub.ts",
-            "@premium/*": "./lib/premium-stub-component.tsx",
+            "@premium/plugins/*": "./lib/premium-stubs/*",
           },
         },
         webpack(config: Record<string, Record<string, Record<string, string>>>) {
           const stubTs = path.join(import.meta.dirname, "lib", "premium-stub.ts");
-          const stubComponent = path.join(import.meta.dirname, "lib", "premium-stub-component.tsx");
+          const stubDir = path.join(import.meta.dirname, "lib", "premium-stubs");
           config.resolve.alias["@premium"] = stubTs;
-          // Wildcard: any deep @premium/* import → stub component
-          config.resolve.alias["@premium/plugins"] = stubComponent;
+          config.resolve.alias["@premium/plugins"] = stubDir;
           return config;
         },
       }),

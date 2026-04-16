@@ -21,7 +21,7 @@
     "paths": {
       "@/*": ["./*"],
       "@premium": ["./premium/index.ts"],
-      "@premium/*": ["./premium/*"]
+      "@premium/plugins/*": ["./premium/plugins/*", "./lib/premium-stubs/*"]
     }
   },
   "include": [
