@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   UserPlus,
@@ -10,11 +11,42 @@ import {
   Shield,
   User,
 } from "lucide-react";
+import type { PluginAdminTab } from "@/lib/types";
 
 interface UserRecord {
   id: string;
   name: string;
   role: "admin" | "user" | "family" | "client";
+}
+
+interface PremiumStatus {
+  premium: boolean;
+  plugins: string[];
+  adminTabs: PluginAdminTab[];
+}
+
+/** Lazily loaded plugin tab components keyed by tab id */
+const pluginComponents: Record<string, React.ComponentType> = {};
+
+function getTabComponent(tab: PluginAdminTab): React.ComponentType | null {
+  if (!pluginComponents[tab.id]) {
+    // Known component mappings — each must be a static string for the bundler
+    const loaders: Record<string, () => Promise<Record<string, React.ComponentType>>> = {
+      "providers": () => import("@premium/plugins/providers/components/provider-manager"),
+      "models": () => import("@premium/plugins/providers/components/model-manager"),
+    };
+    const loader = loaders[tab.id];
+    if (!loader) return null;
+    pluginComponents[tab.id] = dynamic(
+      () => loader().then((mod) => {
+        // Find the first exported component
+        const Component = Object.values(mod).find((v) => typeof v === "function") as React.ComponentType;
+        return { default: Component };
+      }),
+      { loading: () => <div className="text-slate-400 py-8 text-center">Загрузка…</div> },
+    );
+  }
+  return pluginComponents[tab.id];
 }
 
 export default function AdminPage() {
@@ -26,7 +58,16 @@ export default function AdminPage() {
   const [resetPass, setResetPass] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/premium/status")
+      .then((r) => r.json())
+      .then((data: PremiumStatus) => setPremiumStatus(data))
+      .catch(() => setPremiumStatus({ premium: false, plugins: [], adminTabs: [] }));
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     const res = await fetch("/api/users");
@@ -124,7 +165,47 @@ export default function AdminPage() {
         </h1>
       </header>
 
+      {/* Tabs */}
+      <div className="mx-auto w-full max-w-2xl px-6 pt-6">
+        <div className="flex gap-1 rounded-lg bg-slate-800 p-1">
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+              activeTab === "users"
+                ? "bg-slate-700 text-white"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <User className="h-4 w-4" />
+            Пользователи
+          </button>
+          {premiumStatus?.adminTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                activeTab === tab.id
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mx-auto w-full max-w-2xl px-6 py-8">
+        {activeTab !== "users" && premiumStatus ? (
+          (() => {
+            const tab = premiumStatus.adminTabs.find((t) => t.id === activeTab);
+            if (!tab) return null;
+            const TabComponent = getTabComponent(tab);
+            if (!TabComponent) return null;
+            return <TabComponent />;
+          })()
+        ) : (
+          <>
         {/* Messages */}
         {error && (
           <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-sm text-red-400">
@@ -272,6 +353,8 @@ export default function AdminPage() {
               </div>
             </form>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

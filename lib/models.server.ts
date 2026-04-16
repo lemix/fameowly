@@ -56,6 +56,17 @@ export function readModelsConfig(): ModelsConfig {
 }
 
 /**
+ * Write models config to data/models.json (server-side only).
+ */
+export function saveModelsConfig(config: ModelsConfig): void {
+  const dir = path.dirname(MODELS_JSON_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
+  }
+  fs.writeFileSync(MODELS_JSON_PATH, JSON.stringify(config, null, 2));
+}
+
+/**
  * Filter models based on user role.
  * Client-role users only see models that have `clientPrice` defined.
  */

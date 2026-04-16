@@ -4,6 +4,8 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { readModelsConfig } from "@/lib/models.server";
+import { resolveCredentials as baseResolveCredentials } from "@/lib/provider-resolver";
+import { pluginResolveCredentials } from "@/lib/premium";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { resizeToTarget } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate model access for client-role users
-    const userRole = req.headers.get("x-user-role");
+    const userRole = req.headers.get("x-user-role") || "user";
     if (userRole === "client" && modelInfo.clientPrice == null) {
       return NextResponse.json(
         { error: "Модель недоступна" },
@@ -82,8 +84,12 @@ export async function POST(req: NextRequest) {
       resolution: resolution || "1K",
     };
 
+    // Resolve credentials via virtual providers / .env fallback
+    const credentials = pluginResolveCredentials(modelId, modelInfo.provider, userRole)
+      ?? baseResolveCredentials(modelId, modelInfo.provider, userRole);
+
     if (modelInfo.provider === "google") {
-      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      const apiKey = credentials.apiKey;
       if (!apiKey) {
         return NextResponse.json(
           { error: "Google API key not configured" },
@@ -239,7 +245,7 @@ export async function POST(req: NextRequest) {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${credentials.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
