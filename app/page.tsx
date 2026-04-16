@@ -103,6 +103,7 @@ function ChatPage() {
               onTemperatureChange={s.setTemperature}
               modelUnavailable={s.modelUnavailable}
               isKeyboardOpen={isKeyboardOpen}
+              chatId={s.activeChatId}
             />
           )}
 

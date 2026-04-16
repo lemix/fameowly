@@ -7,8 +7,8 @@ const BOTTOM_THRESHOLD = 80; // px from bottom to consider "at bottom"
 interface UseSmartScrollParams {
   /** Whether the model is currently streaming a response */
   isStreaming: boolean;
-  /** Number of visible messages (triggers scroll-to-bottom on new chat load) */
-  messageCount: number;
+  /** Active chat ID — triggers scroll-to-bottom on chat switch */
+  chatId: string | null;
 }
 
 /**
@@ -19,7 +19,7 @@ interface UseSmartScrollParams {
  * - Resumes auto-scroll when user manually scrolls back to bottom.
  * - Provides scroll anchoring for prepended (lazy-loaded) messages.
  */
-export function useSmartScroll({ isStreaming, messageCount }: UseSmartScrollParams) {
+export function useSmartScroll({ isStreaming, chatId }: UseSmartScrollParams) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const prevScrollHeightRef = useRef(0);
@@ -51,14 +51,17 @@ export function useSmartScroll({ isStreaming, messageCount }: UseSmartScrollPara
     }
   });
 
-  /** Scroll to bottom on new chat load / initial messages */
+  /** Scroll to bottom on new chat load */
   useEffect(() => {
-    if (messageCount > 0) {
-      isNearBottomRef.current = true;
-      // Use instant scroll for initial load
-      requestAnimationFrame(() => scrollToBottom("instant"));
-    }
-  }, [messageCount, scrollToBottom]);
+    if (chatId === null) return;
+    isNearBottomRef.current = true;
+    // Use instant scroll with retry to handle late-rendered content
+    const scroll = () => scrollToBottom("instant");
+    requestAnimationFrame(scroll);
+    // Second attempt catches content rendered after first rAF
+    const timer = setTimeout(scroll, 100);
+    return () => clearTimeout(timer);
+  }, [chatId, scrollToBottom]);
 
   /**
    * Preserve scroll position when prepending messages (scroll anchoring).

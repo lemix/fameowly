@@ -47,6 +47,7 @@ interface ChatViewProps {
   onTemperatureChange: (value: number) => void;
   modelUnavailable?: boolean;
   isKeyboardOpen: boolean;
+  chatId: string | null;
 }
 export function ChatView({
   messages, status, error, chatSystemPrompt,
@@ -61,6 +62,7 @@ export function ChatView({
   temperature, onTemperatureChange,
   modelUnavailable,
   isKeyboardOpen,
+  chatId,
 }: ChatViewProps) {
   const isStreaming = status === "streaming" || status === "submitted";
   const prevVisibleCountRef = useRef(0);
@@ -75,7 +77,7 @@ export function ChatView({
   // Task 2: Smart auto-scroll
   const { containerRef, handleScroll, saveScrollAnchor, restoreScrollAnchor } = useSmartScroll({
     isStreaming,
-    messageCount: visibleMessages.length,
+    chatId,
   });
 
   // Mode panel scroll-based visibility
