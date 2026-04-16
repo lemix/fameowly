@@ -18,7 +18,7 @@ COPY . .
 # Set Next.js to standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV ENABLE_PREMIUM=${ENABLE_PREMIUM}
-RUN npm run build
+RUN if [ "$ENABLE_PREMIUM" = "false" ]; then npm run build:os; else npm run build; fi
 
 # ---- Stage 3: Runner ----
 FROM node:20-alpine AS runner
