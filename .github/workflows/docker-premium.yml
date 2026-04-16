@@ -1,15 +1,13 @@
-name: Docker Image CI
+name: Docker Premium Image
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - 'v*'
+    branches: [main, dev]
+    tags: ['v*']
   workflow_dispatch:
 
 concurrency:
-  group: docker-${{ github.ref }}
+  group: docker-premium-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,8 +18,11 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository with premium submodule
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -37,14 +38,14 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}-premium
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push image
+      - name: Build and push premium image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -52,5 +53,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=premium
+          cache-to: type=gha,mode=max,scope=premium
