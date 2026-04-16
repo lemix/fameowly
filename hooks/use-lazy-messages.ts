@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { MessageData } from "@/lib/types";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 20;
 
 interface UseLazyMessagesParams {
   messages: MessageData[];
