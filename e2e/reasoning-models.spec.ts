@@ -34,9 +34,7 @@ test.describe("Reasoning Models — Local LLM", () => {
     // Send a simple message
     const textarea = page.getByTestId("chat-input-island").locator("textarea");
     await textarea.fill("What is 2+2? Answer in one word.");
-    await textarea.press("Enter");
-
-    // Reasoning phase should appear (the model thinks)
+    await page.getByTestId("chat-input-island").locator("button[title=\"Отправить\"]").click();
     await expect(page.locator("text=Нейросеть рассуждает").first()).toBeVisible({ timeout: 30_000 });
 
     // Wait for the response to appear (assistant message with content)
@@ -64,9 +62,7 @@ test.describe("Reasoning Models — Local LLM", () => {
     // Send a simple message
     const textarea = page.getByTestId("chat-input-island").locator("textarea");
     await textarea.fill("What is 2+2? Answer in one word.");
-    await textarea.press("Enter");
-
-    // Reasoning should appear
+    await page.getByTestId("chat-input-island").locator("button[title=\"Отправить\"]").click();
     await expect(page.locator("text=Нейросеть рассуждает").first()).toBeVisible({ timeout: 30_000 });
 
     // Wait for the final response
@@ -94,7 +90,7 @@ test.describe("Reasoning Models — Local LLM", () => {
     // Send a message
     const textarea = page.getByTestId("chat-input-island").locator("textarea");
     await textarea.fill("What is 2+2? Answer in one word.");
-    await textarea.press("Enter");
+    await page.getByTestId("chat-input-island").locator("button[title=\"Отправить\"]").click();
 
     // Wait for the response (should come faster without reasoning)
     const assistantMessage = page.locator('[class*="prose"]').first();

@@ -38,7 +38,7 @@ function groupChatsByDate(chats: ChatListItem[]): DateGroup[] {
   };
 
   for (const chat of chats) {
-    const d = new Date(chat.updatedAt);
+    const d = new Date(chat.lastMessageAt || chat.updatedAt);
     if (d >= today) groups.today.push(chat);
     else if (d >= yesterday) groups.yesterday.push(chat);
     else if (d >= weekAgo) groups.week.push(chat);

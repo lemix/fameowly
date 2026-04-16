@@ -28,6 +28,8 @@ export interface ChatSession {
   systemPrompt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Updated only when messages change; used for sorting. Missing in old files — falls back to updatedAt. */
+  lastMessageAt?: string;
   messages: ChatMessageData[];
 }
 
@@ -38,6 +40,8 @@ export interface ChatListItem {
   systemPrompt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Always populated (falls back to updatedAt for old chats) */
+  lastMessageAt: string;
   messageCount: number;
 }
 
@@ -81,6 +85,7 @@ export function getUserChats(userId: string): ChatListItem[] {
         systemPrompt: chat.systemPrompt,
         createdAt: chat.createdAt,
         updatedAt: chat.updatedAt,
+        lastMessageAt: chat.lastMessageAt || chat.updatedAt,
         messageCount: chat.messages.length,
       });
     } catch {
@@ -89,7 +94,7 @@ export function getUserChats(userId: string): ChatListItem[] {
   }
 
   return chats.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
   );
 }
 
@@ -120,6 +125,7 @@ export function createChat(
     systemPrompt,
     createdAt: now,
     updatedAt: now,
+    lastMessageAt: now,
     messages: [],
   };
   const filePath = getChatFilePath(userId, chat.id);
@@ -136,8 +142,17 @@ export function updateChat(
   const chat = getChat(userId, chatId);
   if (!chat) return null;
 
+  // Backward compat: initialize lastMessageAt for old chats that lack it
+  if (!chat.lastMessageAt) {
+    chat.lastMessageAt = chat.updatedAt;
+  }
+
   if (updates.title !== undefined) chat.title = updates.title;
-  if (updates.messages !== undefined) chat.messages = updates.messages;
+  if (updates.messages !== undefined) {
+    chat.messages = updates.messages;
+    // Only update lastMessageAt when messages change (not on rename/model change)
+    chat.lastMessageAt = new Date().toISOString();
+  }
   if (updates.modelId !== undefined) chat.modelId = updates.modelId;
   if (updates.systemPrompt !== undefined) chat.systemPrompt = updates.systemPrompt;
 
@@ -173,6 +188,7 @@ export function appendMessages(
 
   chat.messages.push(...newMessages);
   chat.updatedAt = new Date().toISOString();
+  chat.lastMessageAt = chat.updatedAt;
 
   // Auto-title on first message
   if (chat.title === "Новый чат" && chat.messages.length > 0) {

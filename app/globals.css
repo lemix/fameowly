@@ -204,3 +204,12 @@ input:disabled {
 .animate-popover-out { animation: popover-out 0.18s ease-in forwards; }
 .animate-fade-out { animation: fade-out 0.18s ease-in forwards; }
 .animate-sheet-out { animation: sheet-out 0.18s ease-in forwards; }
+
+/* ─── Toast animation ─── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}

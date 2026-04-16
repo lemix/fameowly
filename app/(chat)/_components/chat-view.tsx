@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import { ChevronUp } from "lucide-react";
 import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
 import type { MessageData, ChatStatus, PendingAttachment, SystemPromptPreset } from "@/lib/types";
@@ -10,8 +10,10 @@ import { SystemPromptDisplay } from "./system-prompt-display";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { ChatErrorBanner } from "./chat-error-banner";
 import { ChatInput } from "./chat-input";
+import { ModePanel } from "./mode-panel";
 import { useLazyMessages } from "@/hooks/use-lazy-messages";
 import { useSmartScroll } from "@/hooks/use-smart-scroll";
+import { useModePanelVisibility } from "@/hooks/use-mode-panel-visibility";
 
 interface ChatViewProps {
   messages: MessageData[];
@@ -20,39 +22,33 @@ interface ChatViewProps {
   chatSystemPrompt: string | undefined;
   isLoading: boolean;
   isReasoningPhase: boolean;
-  // Input
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onStop: () => void;
-  // Message actions
   onDeleteMessage: (messageId: string) => void;
   onRetry: () => void;
   onDeleteLastExchange: () => void;
   onUpdateSystemPrompt: (prompt: string) => void;
-  // Attachments
   pendingAttachments: PendingAttachment[];
   onAddFiles: (files: FileList | File[]) => void;
   onRemoveAttachment: (idx: number) => void;
-  // Preset selection
   selectedPresetId: string;
   onSelectPreset: (id: string) => void;
   customSystemPrompt: string;
   onCustomPromptChange: (value: string) => void;
   showSystemPromptPanel: boolean;
   onShowPanelChange: (show: boolean) => void;
-  // Model capabilities (Task 3)
   supportsTemperature: boolean;
   supportsReasoning: boolean;
   reasoningEnabled: boolean;
   onReasoningToggle: () => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
-  // Model availability
   modelUnavailable?: boolean;
+  isKeyboardOpen: boolean;
+  chatId: string | null;
 }
-
-/** Chat mode orchestrator — messages list, input, system prompt, errors */
 export function ChatView({
   messages, status, error, chatSystemPrompt,
   isLoading, isReasoningPhase,
@@ -65,9 +61,15 @@ export function ChatView({
   reasoningEnabled, onReasoningToggle,
   temperature, onTemperatureChange,
   modelUnavailable,
+  isKeyboardOpen,
+  chatId,
 }: ChatViewProps) {
   const isStreaming = status === "streaming" || status === "submitted";
   const prevVisibleCountRef = useRef(0);
+  const [inputFocused, setInputFocused] = useState(false);
+
+  // Input is "active" when user is preparing a prompt
+  const inputActive = inputFocused || input.trim().length > 0 || pendingAttachments.length > 0;
 
   // Task 1: Lazy messages (reverse infinite scroll)
   const { visibleMessages, hasMore, loadMore } = useLazyMessages({ messages });
@@ -75,26 +77,28 @@ export function ChatView({
   // Task 2: Smart auto-scroll
   const { containerRef, handleScroll, saveScrollAnchor, restoreScrollAnchor } = useSmartScroll({
     isStreaming,
-    messageCount: visibleMessages.length,
+    chatId,
   });
 
-  // Load more with scroll anchoring
+  // Mode panel scroll-based visibility
+  const { isVisible: isPanelVisible } = useModePanelVisibility({
+    scrollContainerRef: containerRef,
+    isEmpty: messages.length === 0,
+    inputActive,
+  });
+
   const handleLoadMore = useCallback(() => {
     saveScrollAnchor();
     loadMore();
-    // Restore after DOM update
     requestAnimationFrame(() => restoreScrollAnchor());
   }, [saveScrollAnchor, loadMore, restoreScrollAnchor]);
 
-  // Track visible count changes for scroll anchoring on lazy load
   if (prevVisibleCountRef.current !== 0 && visibleMessages.length > prevVisibleCountRef.current && hasMore) {
-    // Messages were prepended — anchor will be restored via handleLoadMore
+    /* Messages were prepended — anchor will be restored via handleLoadMore */
   }
   prevVisibleCountRef.current = visibleMessages.length;
 
-  const showThinking =
-    status === "submitted" &&
-    messages[messages.length - 1]?.role !== "assistant";
+  const showThinking = status === "submitted" && messages[messages.length - 1]?.role !== "assistant";
 
   return (
     <>
@@ -166,25 +170,32 @@ export function ChatView({
         </div>
       </div>
 
-      {/* Input area */}
-      <ChatInput
-        input={input}
-        onInputChange={onInputChange}
-        onSubmit={onSubmit}
-        onStop={onStop}
-        isLoading={isLoading}
-        disabled={modelUnavailable}
-        disabledPlaceholder="Выберите новую модель для продолжения общения"
-        pendingAttachments={pendingAttachments}
-        onAddFiles={onAddFiles}
-        onRemoveAttachment={onRemoveAttachment}
-        supportsTemperature={supportsTemperature}
-        supportsReasoning={supportsReasoning}
-        reasoningEnabled={reasoningEnabled}
-        onReasoningToggle={onReasoningToggle}
-        temperature={temperature}
-        onTemperatureChange={onTemperatureChange}
-      />
+      {/* Input area with floating mode panel */}
+      <div className="relative shrink-0">
+        <ModePanel
+          isVisible={isPanelVisible}
+          isKeyboardOpen={isKeyboardOpen}
+          supportsTemperature={supportsTemperature}
+          supportsReasoning={supportsReasoning}
+          reasoningEnabled={reasoningEnabled}
+          onReasoningToggle={onReasoningToggle}
+          temperature={temperature}
+          onTemperatureChange={onTemperatureChange}
+        />
+        <ChatInput
+          input={input}
+          onInputChange={onInputChange}
+          onSubmit={onSubmit}
+          onStop={onStop}
+          isLoading={isLoading}
+          disabled={modelUnavailable}
+          disabledPlaceholder="Выберите новую модель для продолжения общения"
+          pendingAttachments={pendingAttachments}
+          onAddFiles={onAddFiles}
+          onRemoveAttachment={onRemoveAttachment}
+          onFocusChange={setInputFocused}
+        />
+      </div>
     </>
   );
 }
