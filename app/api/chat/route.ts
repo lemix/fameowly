@@ -1,12 +1,14 @@
 import { streamText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
-import { proxyFetch } from "@/lib/proxy-fetch";
+import { resolveCredentials as baseResolveCredentials } from "@/lib/provider-resolver";
+import { createProviderModel as baseCreateProviderModel } from "@/lib/providers/factory";
+import { pluginResolveCredentials, pluginCreateProviderModel } from "@/lib/premium";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
 import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
 import type { ChatAttachment } from "@/lib/chat-store";
+import type { ResolvedCredentials } from "@/lib/types";
+import type { LanguageModel } from "ai";
 
 export const maxDuration = 120;
 
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     // Validate model access for client-role users
-    const userRole = req.headers.get("x-user-role");
+    const userRole = req.headers.get("x-user-role") || "user";
     if (userRole === "client") {
       const { chatModels } = readModelsConfig();
       const modelConfig = chatModels.find((m) => m.id === modelId);
@@ -175,34 +177,12 @@ export async function POST(req: Request) {
 
     let result;
 
-    if (provider === "google") {
-      const google = createGoogleGenerativeAI({
-        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        fetch: proxyFetch,
-      });
-      result = streamText({
-        model: google(modelId),
-        system,
-        messages: coreMessages,
-        abortSignal: req.signal,
-        ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
-      });
-    } else if (provider === "openrouter") {
-      const openrouter = createOpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: "https://openrouter.ai/api/v1",
-        fetch: proxyFetch,
-      });
-      result = streamText({
-        model: openrouter.chat(modelId),
-        system,
-        messages: coreMessages,
-        abortSignal: req.signal,
-        ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
-      });
-    } else if (provider === "local") {
+    const credentials: ResolvedCredentials =
+      pluginResolveCredentials(modelId, provider, userRole) ??
+      baseResolveCredentials(modelId, provider, userRole);
+
+    if (credentials.baseProvider === "local") {
       // Local provider: fetch directly from llama.cpp (no AI SDK provider needed).
-      // The local-llm-stream module handles reasoning_content natively.
       const reasoningEnabled = rawReasoningEnabled !== false;
       const temperature = typeof rawTemperature === "number"
         ? rawTemperature
@@ -216,13 +196,26 @@ export async function POST(req: Request) {
         reasoningEnabled,
         maxOutputTokens: 16384,
         abortSignal: req.signal,
+        ...(credentials.baseURL ? { baseURL: credentials.baseURL } : {}),
       });
-    } else {
+    }
+
+    const model = (pluginCreateProviderModel(credentials, modelId)
+      ?? baseCreateProviderModel(credentials, modelId)) as LanguageModel | null;
+    if (!model) {
       return new Response(
-        JSON.stringify({ error: `Неизвестный провайдер: ${provider}` }),
+        JSON.stringify({ error: `Не удалось создать провайдер: ${provider}` }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    result = streamText({
+      model,
+      system,
+      messages: coreMessages,
+      abortSignal: req.signal,
+      ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
+    });
 
     return result.toUIMessageStreamResponse();
   } catch (error: unknown) {

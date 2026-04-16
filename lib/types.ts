@@ -55,6 +55,45 @@ export interface ImageHistoryItemClient {
   resolution?: string;
 }
 
+// ─── Virtual Provider types ──────────────────────────────────────────
+
+/** Base provider type (physical provider) */
+export type BaseProvider = "google" | "openrouter" | "local";
+
+/** Key group — a set of keys/endpoints assigned to a user role */
+export interface KeyGroup {
+  /** API keys (for google/openrouter) or base URLs (for local) */
+  keys: string[];
+  /** Switch to next key after this many requests (0 = no rotation) */
+  rotationThreshold: number;
+}
+
+/** Virtual provider configuration */
+export interface VirtualProvider {
+  id: string;
+  /** Display name, e.g. "Google Free", "Local Cluster 1" */
+  name: string;
+  /** Underlying physical provider */
+  baseProvider: BaseProvider;
+  /** Key groups keyed by user role; "default" is the fallback */
+  groups: Record<string, KeyGroup>;
+}
+
+/** Persisted rotation counters */
+export interface RotationState {
+  /** Key: "{virtualProviderId}:{role}:{keyIndex}" → request count */
+  counters: Record<string, number>;
+  /** Key: "{virtualProviderId}:{role}" → current key index */
+  currentIndex: Record<string, number>;
+}
+
+/** Resolved credentials ready for use */
+export interface ResolvedCredentials {
+  baseProvider: BaseProvider;
+  apiKey: string;
+  baseURL?: string;
+}
+
 /** Per-chat generation settings (persisted in localStorage) */
 export interface ChatSettings {
   temperature: number;
@@ -70,4 +109,89 @@ export interface MessageData {
   error?: string;
   attachments?: ChatAttachment[];
   createdAt?: Date | string;
+}
+
+// ─── Plugin system types ─────────────────────────────────────────────
+
+/** Token usage info passed to plugin hooks after generation */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+/** Admin tab descriptor provided by a plugin */
+export interface PluginAdminTab {
+  id: string;
+  label: string;
+  icon: string;
+  /** Path to component module, resolved via @premium/... */
+  componentPath: string;
+}
+
+/** API route handler signature */
+export type PluginRouteHandler = (
+  req: import("next/server").NextRequest,
+) => Promise<import("next/server").NextResponse> | import("next/server").NextResponse;
+
+/** Plugin interface — every premium plugin implements this */
+export interface PremiumPlugin {
+  /** Unique plugin id, e.g. "providers", "billing" */
+  id: string;
+  /** Human-readable name */
+  name: string;
+
+  /**
+   * Override credential resolution.
+   * Return null to fall through to next plugin or base resolver.
+   */
+  resolveCredentials?: (
+    modelId: string,
+    provider: string,
+    userRole: string,
+  ) => ResolvedCredentials | null;
+
+  /**
+   * Override model creation from credentials.
+   * Return undefined to fall through to base factory.
+   */
+  createProviderModel?: (
+    credentials: ResolvedCredentials,
+    modelId: string,
+  ) => unknown | undefined;
+
+  /** Called after chat stream completes */
+  onChatFinish?: (
+    userId: string,
+    modelId: string,
+    usage: TokenUsage,
+  ) => Promise<void>;
+
+  /** Called after image generation completes */
+  onImageFinish?: (
+    userId: string,
+    modelId: string,
+    cost: number,
+  ) => Promise<void>;
+
+  /**
+   * Middleware hook — called after JWT verification.
+   * Return a Response to short-circuit, or null to continue.
+   */
+  middleware?: (
+    req: import("next/server").NextRequest,
+    session: { userId: string; name: string; role: string },
+  ) => Promise<import("next/server").NextResponse | null> | import("next/server").NextResponse | null;
+
+  /** Admin panel tabs this plugin provides */
+  adminTabs?: PluginAdminTab[];
+
+  /**
+   * Additional API routes: key is sub-path (e.g. "providers"),
+   * value is map of HTTP method to handler.
+   */
+  apiRoutes?: Record<
+    string,
+    Record<string, PluginRouteHandler>
+  >;
 }

@@ -43,6 +43,8 @@ export interface LocalStreamParams {
   reasoningEnabled: boolean;
   maxOutputTokens: number;
   abortSignal: AbortSignal;
+  /** Override base URL (from virtual provider rotation) */
+  baseURL?: string;
 }
 
 // ─── Message format conversion ───────────────────────────────────────
@@ -158,7 +160,7 @@ export function createLocalLLMResponse(params: LocalStreamParams): Response {
         emit({ type: "start" });
         emit({ type: "start-step" });
 
-        const baseURL = getLocalLLMBaseURL(modelId);
+        const baseURL = params.baseURL || getLocalLLMBaseURL(modelId);
         const openaiMsgs = toOpenAIMessages(system, messages);
 
         const localAbort = new AbortController();

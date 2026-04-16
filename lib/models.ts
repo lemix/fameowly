@@ -16,6 +16,8 @@ export interface ModelOption {
   /** Defaults to `false` */
   supportsTemperature?: boolean;
   description?: string;
+  /** Links this model to a virtual provider (from admin panel) */
+  virtualProviderId?: string;
 }
 
 export interface ModelsConfig {

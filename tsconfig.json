@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@premium": ["./premium/index.ts"],
+      "@premium/*": ["./premium/*"]
     }
   },
   "include": [

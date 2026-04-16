@@ -10,11 +10,14 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG ENABLE_PREMIUM=true
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set Next.js to standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV ENABLE_PREMIUM=${ENABLE_PREMIUM}
 RUN npm run build
 
 # ---- Stage 3: Runner ----

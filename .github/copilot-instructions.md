@@ -31,7 +31,7 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 ## Project Structure
 - app/ # Next.js App Router pages & API routes
-- page.tsx # Home page — mode orchestrator (chat/image)
+  - page.tsx # Home page — mode orchestrator (chat/image)
   - (chat)/_components/ # Chat mode components
   - (image)/_components/ # Image generation mode components
 - api/ # API routes (chat, image, upload, auth, etc.)
@@ -39,6 +39,7 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - components/ # Shared UI components (sidebar, chat-message, etc.)
 - lib/ # Server & shared utilities, types, domain logic
 - data/ # Runtime data (users.json, chats/, uploads/)
+- premium/ # Git submodule with premium plugins (providers, billing, etc.)
 
 
 ## Key Technical Decisions
@@ -52,6 +53,19 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   before sending them to the LLM. The client does not send raw data.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
+- **Plugin System**: Premium features are implemented as plugins in `premium/` submodule.
+  Core routes (chat, image) try plugin hooks first, then fallback to base logic.
+  Admin UI dynamically loads plugin tabs from `/api/premium/status`.
+
+## Plugin System
+
+- **PremiumPlugin Interface**: Plugins implement hooks: `resolveCredentials`, `createProviderModel`, 
+  `onChatFinish`, `onImageFinish`, `middleware`, `adminTabs`, `apiRoutes`.
+- **Adding New Plugins**: Create folder in `premium/plugins/`, implement `PremiumPlugin`, 
+  add to `premium/index.ts`. Components in `premium/plugins/{plugin}/components/`.
+- **Plugin Bridge**: `lib/premium.ts` loads plugins from `@premium`, delegates calls.
+  When premium absent, uses `lib/premium-stub.ts` (empty plugins array).
+- **Build Modes**: `npm run build` (with premium), `npm run build:os` (open-source via `ENABLE_PREMIUM=false`).
 
 ## Code Style
 
@@ -64,7 +78,9 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 ## Commands
 
 - `npm run dev` — development server
+- `npm run dev:os` — development server (open-source mode, no premium)
 - `npm run build` — production build  
+- `npm run build:os` — production build (open-source mode, no premium)
 - `docker compose up -d` — Docker deployment
 
 ## Additional Conventions
@@ -76,3 +92,5 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 | ISP           | Components receive only the props they need, not the full hook state                        |
 | DIP           | Hooks depend on abstractions (types in `lib/types.ts`), not concrete API endpoints          |
 | Max 200 lines | Hard limit. Violation = immediate decomposition                                             |
+| Plugin OCP    | New premium feature = new plugin in `premium/plugins/`, not edits to core routes            |
+| Plugin DIP    | Plugins depend on core abstractions, core routes try plugins first, then fallback          |

@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:os": "ENABLE_PREMIUM=false next dev",
     "build": "next build",
+    "build:os": "ENABLE_PREMIUM=false next build",
     "start": "next start",
     "lint": "eslint"
   },
