@@ -4,11 +4,13 @@
   "license": "BUSL-1.1",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/ensure-premium-stub.js",
     "dev": "next dev",
-    "dev:os": "ENABLE_PREMIUM=false next dev",
+    "dev:os": "node scripts/ensure-premium-stub.js && ENABLE_PREMIUM=false next dev",
     "build": "next build",
-    "build:os": "ENABLE_PREMIUM=false next build",
+    "build:os": "node scripts/ensure-premium-stub.js && ENABLE_PREMIUM=false next build",
     "start": "next start",
+    "start:os": "ENABLE_PREMIUM=false next start",
     "lint": "eslint"
   },
   "dependencies": {

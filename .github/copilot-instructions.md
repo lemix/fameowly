@@ -61,10 +61,15 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 - **PremiumPlugin Interface**: Plugins implement hooks: `resolveCredentials`, `createProviderModel`, 
   `onChatFinish`, `onImageFinish`, `middleware`, `adminTabs`, `apiRoutes`.
-- **Adding New Plugins**: Create folder in `premium/plugins/`, implement `PremiumPlugin`, 
-  add to `premium/index.ts`. Components in `premium/plugins/{plugin}/components/`.
+- **Adding New Plugins** (3 files to update):
+  1. Create folder `premium/plugins/{plugin}/`, implement `PremiumPlugin`, register in `premium/index.ts`.
+  2. Add OSS stub entry to `lib/plugin-stub-registry.js` (importPath + exportName).
+  3. Add static import line to admin page loader map in `app/admin/page.tsx`.
+  4. Stubs in `lib/premium-stubs/` and generated `premium/` are created automatically by `scripts/ensure-premium-stub.js`.
 - **Plugin Bridge**: `lib/premium.ts` loads plugins from `@premium`, delegates calls.
   When premium absent, uses `lib/premium-stub.ts` (empty plugins array).
+- **Stub Generation**: `scripts/ensure-premium-stub.js` runs via `postinstall` and before OSS builds.
+  Reads `lib/plugin-stub-registry.js` and creates `premium/` + `lib/premium-stubs/` fallback files.
 - **Build Modes**: `npm run build` (with premium), `npm run build:os` (open-source via `ENABLE_PREMIUM=false`).
 
 ## Code Style
