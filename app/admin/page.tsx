@@ -30,7 +30,8 @@ const pluginComponents: Record<string, React.ComponentType> = {};
 
 function getTabComponent(tab: PluginAdminTab): React.ComponentType | null {
   if (!pluginComponents[tab.id]) {
-    // Known component mappings — each must be a static string for the bundler
+    // Static loader map — bundler requires literal strings for dynamic imports.
+    // When adding a new plugin, also update: lib/plugin-stub-registry.js
     const loaders: Record<string, () => Promise<Record<string, React.ComponentType>>> = {
       "providers": () => import("@premium/plugins/providers/components/provider-manager"),
       "models": () => import("@premium/plugins/providers/components/model-manager"),
