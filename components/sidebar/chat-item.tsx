@@ -64,8 +64,8 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
       className={cn(
         "group relative flex items-center rounded-xl px-3 py-2 text-sm transition-all cursor-pointer",
         isActive
-          ? "bg-blue-600/10 text-blue-300 ring-1 ring-blue-500/20"
-          : "text-slate-300 hover:bg-white/[0.04]"
+          ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+          : "text-th-fg-s hover:bg-th-subtle/10"
       )}
       onClick={() => !editing && onSelect()}
     >
@@ -80,14 +80,14 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
               if (e.key === "Enter") handleSave();
               if (e.key === "Escape") { setTitle(chat.title); setEditing(false); }
             }}
-            className="flex-1 rounded bg-slate-700 px-2 py-0.5 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 rounded bg-th-input px-2 py-0.5 text-sm text-th-fg outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <button onClick={handleSave} className="rounded p-0.5 text-green-400 hover:bg-slate-600">
+          <button onClick={handleSave} className="rounded p-0.5 text-th-green hover:bg-th-muted">
             <Check className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => { setTitle(chat.title); setEditing(false); }}
-            className="rounded p-0.5 text-slate-400 hover:bg-slate-600"
+            className="rounded p-0.5 text-th-fg-m hover:bg-th-muted"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -101,20 +101,20 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className={cn(
-                "rounded-lg p-2 -mr-1 text-slate-500 transition-all",
+                "rounded-lg p-2 -mr-1 text-th-fg-f transition-all",
                 menuOpen
-                  ? "bg-slate-700 text-slate-300"
-                  : "opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-slate-700 hover:text-slate-300"
+                  ? "bg-th-subtle text-th-fg-s"
+                  : "opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-th-subtle hover:text-th-fg-s"
               )}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-lg border border-th-border-s bg-th-panel shadow-xl">
                 <button
                   onClick={() => { setMenuOpen(false); setEditing(true); }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-th-fg-s hover:bg-th-subtle"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Переименовать

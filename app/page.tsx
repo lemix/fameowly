@@ -10,12 +10,13 @@ import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { usePageState } from "@/hooks/use-page-state";
 import { useUserInfo } from "@/hooks/use-user-info";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Main Component ──────────────────────────────────────────────────
 
 export default function ChatPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex h-[100dvh] items-center justify-center bg-slate-900 text-white"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
+    <Suspense fallback={<div className="flex h-[100dvh] items-center justify-center bg-th-page text-th-fg"><Loader2 className="h-6 w-6 animate-spin text-th-accent" /></div>}>
       <ChatPage />
     </Suspense>
   );
@@ -25,6 +26,7 @@ function ChatPage() {
   const s = usePageState();
   const user = useUserInfo();
   const { viewportHeight, isKeyboardOpen } = useVisualViewport();
+  const { mode: themeMode, cycleTheme } = useTheme();
 
   // When the mobile keyboard is open, constrain the container to the
   // visual viewport so the header stays visible (iOS Safari fallback;
@@ -33,7 +35,7 @@ function ChatPage() {
     isKeyboardOpen && viewportHeight ? `${viewportHeight}px` : "100dvh";
 
   return (
-    <div className="flex bg-slate-900 text-white" style={{ height: containerHeight }}>
+    <div className="flex bg-th-page text-th-fg" style={{ height: containerHeight }}>
       <Sidebar
         isOpen={s.sidebarOpen}
         onClose={() => s.setSidebarOpen(false)}
@@ -67,6 +69,8 @@ function ChatPage() {
           onToggleSidebar={() => s.setSidebarOpen(!s.sidebarOpen)}
           user={user}
           modelUnavailable={s.modelUnavailable}
+          themeMode={themeMode}
+          onCycleTheme={cycleTheme}
         />
 
         <ChatErrorBoundary>

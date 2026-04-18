@@ -33,10 +33,10 @@ export function ImageInput({
 
   return (
     <div className="relative px-3 pt-2 md:px-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-      <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent" />
+      <div className="pointer-events-none absolute -top-8 left-0 right-0 h-8 bg-gradient-to-t from-th-page to-transparent" />
 
       <div
-        className="mx-auto w-full max-w-4xl rounded-2xl bg-slate-800/80 shadow-xl shadow-black/30 ring-1 ring-slate-700/50"
+        className="mx-auto w-full max-w-4xl rounded-2xl bg-th-panel/80 shadow-xl shadow-th-shadow ring-1 ring-th-ring/50"
         data-testid="image-input-island"
       >
         {/* Reference files preview */}
@@ -44,12 +44,12 @@ export function ImageInput({
           <div className="px-4 pt-3">
             <div className="flex flex-wrap gap-2">
               {refAttachments.map((pa, idx) => (
-                <div key={idx} className="relative rounded-lg bg-slate-700/60 p-1">
+                <div key={idx} className="relative rounded-lg bg-th-subtle/60 p-1">
                   {pa.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={pa.preview} alt={pa.file.name} className="h-12 w-12 rounded object-cover" />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-slate-700 text-[10px] text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-th-subtle text-[10px] text-th-fg-m">
                       {pa.file.name.split(".").pop()?.toUpperCase() || "FILE"}
                     </div>
                   )}
@@ -60,14 +60,14 @@ export function ImageInput({
                   )}
                   <button
                     onClick={() => onRemoveRefAttachment(idx)}
-                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-600 text-slate-300 hover:bg-red-500 hover:text-white transition"
+                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-th-muted text-th-fg-s hover:bg-red-500 hover:text-white transition"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
             </div>
-            <span className="mt-1 block text-[10px] text-slate-500">
+            <span className="mt-1 block text-[10px] text-th-fg-f">
               Файлы для контекста ({refAttachments.length}/10)
             </span>
           </div>
@@ -78,7 +78,7 @@ export function ImageInput({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition cursor-pointer hover:text-white hover:bg-slate-700/60"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-th-fg-m transition cursor-pointer hover:text-th-fg hover:bg-th-subtle/60"
             title="Прикрепить файлы"
           >
             <Paperclip className="h-5 w-5" />
@@ -106,7 +106,7 @@ export function ImageInput({
                 onSubmit(e as unknown as React.FormEvent);
               }
             }}
-            className="flex-1 resize-none bg-transparent px-2 py-2.5 text-base text-white placeholder-slate-500 outline-none"
+            className="flex-1 resize-none bg-transparent px-2 py-2.5 text-base text-th-fg placeholder-th-fg-f outline-none"
             style={{ maxHeight: "200px", fontSize: "16px" }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -117,7 +117,7 @@ export function ImageInput({
           <button
             type="submit"
             disabled={isLoading || !prompt.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 transition cursor-pointer hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition cursor-pointer hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
             title="Создать"
           >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
@@ -136,8 +136,8 @@ export function ImageInput({
                 className={cn(
                   "flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition",
                   aspectRatio === ar.id
-                    ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
-                    : "bg-slate-700/40 text-slate-500 ring-1 ring-slate-700/50 hover:text-slate-300 hover:bg-slate-700/60"
+                    ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                    : "bg-th-subtle/40 text-th-fg-f ring-1 ring-th-ring/50 hover:text-th-fg-s hover:bg-th-subtle/60"
                 )}
                 data-testid={`aspect-chip-${ar.id}`}
               >
@@ -149,7 +149,7 @@ export function ImageInput({
 
           {/* Resolution chips */}
           <div className="flex items-center gap-1.5" data-testid="resolution-chips">
-            <span className="text-xs text-slate-500 mr-1">Качество:</span>
+            <span className="text-xs text-th-fg-f mr-1">Качество:</span>
             {RESOLUTIONS.map((r) => (
               <button
                 key={r.id}
@@ -158,8 +158,8 @@ export function ImageInput({
                 className={cn(
                   "flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition",
                   resolution === r.id
-                    ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
-                    : "bg-slate-700/40 text-slate-500 ring-1 ring-slate-700/50 hover:text-slate-300 hover:bg-slate-700/60"
+                    ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                    : "bg-th-subtle/40 text-th-fg-f ring-1 ring-th-ring/50 hover:text-th-fg-s hover:bg-th-subtle/60"
                 )}
                 data-testid={`resolution-chip-${r.id}`}
               >

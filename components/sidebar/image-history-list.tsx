@@ -75,7 +75,7 @@ export function ImageHistoryList({
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => { onNewImageGeneration(); onClose(); }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600/10 border border-blue-500/20 px-4 py-3 text-sm font-medium text-blue-400 transition-all hover:bg-blue-600/20 hover:border-blue-500/30 active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-th-accent-bg border border-th-accent-ring px-4 py-3 text-sm font-medium text-th-accent transition-all hover:bg-th-accent-bg/80 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           Новая генерация
@@ -85,14 +85,14 @@ export function ImageHistoryList({
       {/* Image items grouped by date */}
       <div className="flex-1 overflow-y-auto px-3 pb-2">
         {imageHistory.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-slate-500">
+          <p className="px-3 py-8 text-center text-sm text-th-fg-f">
             Нет сгенерированных изображений
           </p>
         )}
         {groups.map((group) => (
           <div key={group.label}>
-            <div className="sticky top-0 z-10 bg-[#0d1525] px-1 pb-1.5 pt-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+            <div className="sticky top-0 z-10 bg-th-sidebar px-1 pb-1.5 pt-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-th-fg-f">
                 {group.label}
               </p>
             </div>
@@ -104,16 +104,16 @@ export function ImageHistoryList({
                   className={cn(
                     "group relative flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer",
                     activeImageId === item.id
-                      ? "bg-blue-600/10 text-blue-300 ring-1 ring-blue-500/20"
-                      : "text-slate-300 hover:bg-white/[0.04]"
+                      ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                      : "text-th-fg-s hover:bg-th-subtle/10"
                   )}
                 >
                   {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <div className="h-10 w-10 rounded-lg bg-slate-700 flex items-center justify-center shrink-0">
-                      <ImageIcon className="h-4 w-4 text-slate-500" />
+                    <div className="h-10 w-10 rounded-lg bg-th-subtle flex items-center justify-center shrink-0">
+                      <ImageIcon className="h-4 w-4 text-th-fg-f" />
                     </div>
                   )}
                   <span className="flex-1 min-w-0 line-clamp-2 leading-snug">{item.prompt}</span>
@@ -122,7 +122,7 @@ export function ImageHistoryList({
                   <div className="relative mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setDeleteImageId(item.id)}
-                      className="rounded-lg p-2 -mr-1 text-slate-500 transition-all opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-slate-700 hover:text-red-400"
+                      className="rounded-lg p-2 -mr-1 text-th-fg-f transition-all opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-th-subtle hover:text-red-400"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

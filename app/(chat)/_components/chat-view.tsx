@@ -127,7 +127,7 @@ export function ChatView({
             <div className="flex justify-center mb-4">
               <button
                 onClick={handleLoadMore}
-                className="flex items-center gap-1.5 rounded-full bg-slate-800 px-4 py-2 text-xs font-medium text-slate-400 ring-1 ring-slate-700/50 transition hover:bg-slate-700 hover:text-slate-300"
+                className="flex items-center gap-1.5 rounded-full bg-th-panel px-4 py-2 text-xs font-medium text-th-fg-m ring-1 ring-th-ring/50 transition hover:bg-th-subtle hover:text-th-fg-s"
                 data-testid="load-more-messages"
               >
                 <ChevronUp className="h-3.5 w-3.5" />

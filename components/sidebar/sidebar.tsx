@@ -56,10 +56,9 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-white/[0.06] bg-slate-850 transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-th-border/30 bg-th-sidebar transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        style={{ backgroundColor: "#0d1525" }}
         data-testid="sidebar"
       >
         {/* Logo */}
@@ -67,17 +66,18 @@ export function Sidebar({
           <div className="flex shrink-0 items-center justify-center">
             <Image src="/logo.png" alt="Logo" width={42} height={42} unoptimized className="select-none pointer-events-none" draggable={false} />
           </div>
-          <Image src="/fameowly.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5" draggable={false} />
+          <Image src="/fameowly.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5 hidden dark:block" draggable={false} />
+          <Image src="/fameowly-light.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5 block dark:hidden" draggable={false} />
         </div>
 
         {/* Mode Tabs */}
         <div className="px-3 pb-3">
-          <div className="flex rounded-lg bg-slate-900/80 p-0.5">
+          <div className="flex rounded-lg bg-th-page/80 p-0.5">
             <button
               onClick={() => onModeChange("chat")}
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition min-h-[44px]",
-                mode === "chat" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
+                mode === "chat" ? "bg-blue-600 text-white shadow" : "text-th-fg-m hover:text-th-fg"
               )}
             >
               <MessageSquare className="h-4 w-4" />
@@ -87,7 +87,7 @@ export function Sidebar({
               onClick={() => onModeChange("image")}
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition min-h-[44px]",
-                mode === "image" ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-white"
+                mode === "image" ? "bg-blue-600 text-white shadow" : "text-th-fg-m hover:text-th-fg"
               )}
             >
               <ImageIcon className="h-4 w-4" />

@@ -45,7 +45,7 @@ export function ImagePreviewModal({
     >
       <button
         onClick={onClose}
-        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-slate-800/80 text-slate-300 transition hover:bg-slate-700 hover:text-white"
+        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-th-panel/80 text-th-fg-s transition hover:bg-th-subtle hover:text-th-fg"
       >
         <X className="h-5 w-5" />
       </button>

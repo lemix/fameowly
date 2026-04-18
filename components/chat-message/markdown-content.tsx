@@ -20,7 +20,7 @@ export function MarkdownContent({ content }: { content: string }) {
           if (isInline) {
             return (
               <code
-                className="rounded bg-slate-700/60 px-1.5 py-0.5 text-[0.8125rem] text-blue-300 font-mono"
+                className="rounded bg-th-subtle/60 px-1.5 py-0.5 text-[0.8125rem] text-th-accent font-mono"
                 {...props}
               >
                 {children}
@@ -35,24 +35,24 @@ export function MarkdownContent({ content }: { content: string }) {
         },
         table({ children }) {
           return (
-            <div className="my-3 overflow-x-auto rounded-lg border border-slate-700">
+            <div className="my-3 overflow-x-auto rounded-lg border border-th-border">
               <table className="min-w-full text-sm">{children}</table>
             </div>
           );
         },
         thead({ children }) {
-          return <thead className="bg-slate-800/60">{children}</thead>;
+          return <thead className="bg-th-panel/60">{children}</thead>;
         },
         th({ children }) {
           return (
-            <th className="border-b border-slate-700 px-3 py-2 text-left text-xs font-semibold text-slate-300">
+            <th className="border-b border-th-border px-3 py-2 text-left text-xs font-semibold text-th-fg-s">
               {children}
             </th>
           );
         },
         td({ children }) {
           return (
-            <td className="border-b border-slate-700/50 px-3 py-2 text-slate-300">
+            <td className="border-b border-th-border/50 px-3 py-2 text-th-fg-s">
               {children}
             </td>
           );
@@ -63,7 +63,7 @@ export function MarkdownContent({ content }: { content: string }) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 underline decoration-blue-400/30 underline-offset-2 hover:decoration-blue-400"
+              className="text-th-accent underline decoration-th-accent/30 underline-offset-2 hover:decoration-th-accent"
             >
               {children}
             </a>
@@ -71,7 +71,7 @@ export function MarkdownContent({ content }: { content: string }) {
         },
         blockquote({ children }) {
           return (
-            <blockquote className="my-3 border-l-3 border-blue-500/50 pl-4 text-slate-400 italic">
+            <blockquote className="my-3 border-l-3 border-blue-500/50 pl-4 text-th-fg-m italic">
               {children}
             </blockquote>
           );

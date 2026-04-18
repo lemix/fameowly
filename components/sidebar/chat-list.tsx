@@ -72,7 +72,7 @@ export function ChatList({
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={onNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600/10 border border-blue-500/20 px-4 py-3 text-sm font-medium text-blue-400 transition-all hover:bg-blue-600/20 hover:border-blue-500/30 active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-th-accent-bg border border-th-accent-ring px-4 py-3 text-sm font-medium text-th-accent transition-all hover:bg-th-accent-bg/80 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           Новый чат
@@ -82,14 +82,14 @@ export function ChatList({
       {/* Chat items grouped by date */}
       <div className="flex-1 overflow-y-auto px-3 pb-2">
         {chats.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-slate-500">
+          <p className="px-3 py-8 text-center text-sm text-th-fg-f">
             Нет чатов. Начните новый!
           </p>
         )}
         {groups.map((group) => (
           <div key={group.label}>
-            <div className="sticky top-0 z-10 bg-[#0d1525] px-1 pb-1.5 pt-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+            <div className="sticky top-0 z-10 bg-th-sidebar px-1 pb-1.5 pt-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-th-fg-f">
                 {group.label}
               </p>
             </div>

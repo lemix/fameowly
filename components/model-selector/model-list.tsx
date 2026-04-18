@@ -27,8 +27,8 @@ export function ModelList({ groups, pick, user, family, onSelect }: ModelListPro
         <div key={group.tier}>
           <div
             className={cn(
-              "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500 snap-start",
-              gi > 0 && "mt-4 border-t border-slate-700/40 pt-4",
+              "px-3 pt-1 pb-2 text-xs font-semibold uppercase tracking-widest text-th-fg-f snap-start",
+              gi > 0 && "mt-4 border-t border-th-border/40 pt-4",
             )}
           >
             {group.icon} {group.label}
@@ -44,17 +44,17 @@ export function ModelList({ groups, pick, user, family, onSelect }: ModelListPro
                 className={cn(
                   "flex w-full items-center gap-3 px-3 text-left rounded-xl h-[56px]",
                   "transition-all duration-150 active:scale-[0.97] snap-start",
-                  isActive ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5",
+                  isActive ? "bg-th-accent-bg ring-1 ring-th-accent-ring" : "hover:bg-th-subtle/40",
                 )}
                 data-testid={`model-option-${model.id}`}
               >
-                <Sparkles className="h-5 w-5 shrink-0 text-slate-400" />
-                <span className="flex-1 min-w-0 text-sm font-semibold text-slate-100 truncate">
+                <Sparkles className="h-5 w-5 shrink-0 text-th-fg-m" />
+                <span className="flex-1 min-w-0 text-sm font-semibold text-th-fg truncate">
                   {model.name}
                 </span>
                 <PriceBadge model={model} user={user} family={family} />
                 {isActive && (
-                  <Check className="h-4 w-4 shrink-0 text-white" data-testid="model-check-icon" />
+                  <Check className="h-4 w-4 shrink-0 text-th-accent" data-testid="model-check-icon" />
                 )}
               </button>
             );
