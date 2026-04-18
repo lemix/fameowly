@@ -40,26 +40,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800/80 p-8 shadow-2xl backdrop-blur-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-th-page via-th-panel to-th-page">
+      <div className="w-full max-w-sm rounded-2xl border border-th-border bg-th-panel/80 p-8 shadow-2xl backdrop-blur-sm">
         <div className="mb-6 flex flex-col items-center gap-2">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
             <Bot className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Family AI Hub</h1>
-          <p className="text-sm text-slate-400">Войдите в свой аккаунт</p>
+          <h1 className="text-2xl font-bold text-th-fg">Family AI Hub</h1>
+          <p className="text-sm text-th-fg-m">Войдите в свой аккаунт</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-300">
+            <label className="mb-1 block text-sm font-medium text-th-fg-s">
               Имя
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Ваше имя"
               required
               autoFocus
@@ -67,14 +67,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-300">
+            <label className="mb-1 block text-sm font-medium text-th-fg-s">
               Пароль
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="••••••••"
               required
             />

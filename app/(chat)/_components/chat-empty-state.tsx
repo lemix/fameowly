@@ -24,14 +24,14 @@ export function ChatEmptyState({
 }: ChatEmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/20">
-        <Bot className="h-7 w-7 text-blue-400" />
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-th-accent-bg">
+        <Bot className="h-7 w-7 text-th-accent" />
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-th-fg">
           Привет! Чем могу помочь?
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-th-fg-f">
           Выберите режим и начните диалог
         </p>
       </div>
@@ -51,8 +51,8 @@ export function ChatEmptyState({
               className={cn(
                 "flex items-center rounded-xl border px-4 py-3 text-left text-sm font-medium transition min-h-[3.5rem]",
                 selectedPresetId === preset.id
-                  ? "border-blue-500 bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/30"
-                  : "border-slate-700/50 bg-slate-800/50 text-slate-400 hover:border-slate-500/60 hover:text-slate-300 hover:bg-slate-800/80"
+                  ? "border-blue-500 bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                  : "border-th-border/50 bg-th-panel/50 text-th-fg-m hover:border-th-border hover:text-th-fg-s hover:bg-th-panel/80"
               )}
             >
               {preset.name}
@@ -66,7 +66,7 @@ export function ChatEmptyState({
             placeholder="Введите свой системный промпт..."
             rows={3}
             data-testid="custom-prompt-textarea"
-            className="mt-3 w-full resize-none rounded-xl border border-slate-600 bg-slate-800 p-4 text-base text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            className="mt-3 w-full resize-none rounded-xl border border-th-border-s bg-th-panel p-4 text-base text-th-fg placeholder-th-fg-f outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             style={{ fontSize: "16px" }}
           />
         )}

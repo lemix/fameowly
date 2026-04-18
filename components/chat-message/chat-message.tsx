@@ -45,8 +45,8 @@ export const ChatMessage = memo(function ChatMessage({
     <div className={cn("group/msg mb-4 flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {/* Assistant avatar */}
       {!isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600/20 mt-0.5">
-          <Bot className="h-3.5 w-3.5 text-blue-400" />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-th-accent-bg mt-0.5">
+          <Bot className="h-3.5 w-3.5 text-th-accent" />
         </div>
       )}
 
@@ -59,31 +59,31 @@ export const ChatMessage = memo(function ChatMessage({
         {/* Reasoning block */}
         {!isUser && (m.reasoning || isReasoning) && (
           <div className={cn(
-            "w-full rounded-lg border bg-purple-500/5",
-            isReasoning ? "border-purple-500/40" : "border-purple-500/20"
+            "w-full rounded-lg border bg-th-purple-bg",
+            isReasoning ? "border-th-purple-muted/40" : "border-th-purple-muted/20"
           )}>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-purple-300 hover:text-purple-200 transition"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-th-purple hover:text-th-purple-fg transition"
             >
               <Brain className={cn("h-3 w-3", isReasoning && "animate-pulse")} />
               <span>{isReasoning ? "Нейросеть рассуждает..." : "Размышления"}</span>
               {m.reasoning && (
-                <span className="text-[10px] text-purple-400/60 ml-1">
+                <span className="text-[10px] text-th-purple-muted/60 ml-1">
                   ~{Math.ceil(m.reasoning.length / 3)} токенов
                 </span>
               )}
               {isReasoning && (
                 <span className="ml-1 flex gap-0.5">
-                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="h-1 w-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="h-1 w-1 rounded-full bg-th-purple animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="h-1 w-1 rounded-full bg-th-purple animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="h-1 w-1 rounded-full bg-th-purple animate-bounce" style={{ animationDelay: "300ms" }} />
                 </span>
               )}
               <ChevronDown className={cn("ml-auto h-3 w-3 transition-transform", showExpanded && "rotate-180")} />
             </button>
             {showExpanded && m.reasoning && (
-              <div className="border-t border-purple-500/20 px-3 py-2 text-xs text-slate-400 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+              <div className="border-t border-th-purple-muted/20 px-3 py-2 text-xs text-th-fg-m leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
                 {m.reasoning}
               </div>
             )}
@@ -103,20 +103,20 @@ export const ChatMessage = memo(function ChatMessage({
         {/* Message bubble */}
         <div className={cn(
           "relative rounded-2xl px-4 py-2.5 text-sm max-w-full overflow-hidden",
-          isUser ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-200 border border-slate-700/60"
+          isUser ? "bg-blue-600 text-white" : "bg-th-panel text-th-fg-s border border-th-border/60"
         )}>
           {!isUser ? (
             m.content ? (
-              <div className="prose prose-invert prose-sm max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5">
+              <div className="prose prose-sm max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5">
                 <MarkdownContent content={m.content} />
               </div>
             ) : (isLoading || isStreaming) ? (
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-th-fg-m">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>{isReasoning ? "Ожидание ответа..." : "Генерация ответа..."}</span>
               </div>
             ) : m.error ? null : (
-              <div className="text-slate-500 italic text-xs">Пустой ответ</div>
+              <div className="text-th-fg-f italic text-xs">Пустой ответ</div>
             )
           ) : (
             <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
@@ -136,8 +136,8 @@ export const ChatMessage = memo(function ChatMessage({
 
       {/* User avatar */}
       {isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-700 mt-0.5">
-          <User className="h-3.5 w-3.5 text-slate-300" />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-th-subtle mt-0.5">
+          <User className="h-3.5 w-3.5 text-th-fg-s" />
         </div>
       )}
     </div>

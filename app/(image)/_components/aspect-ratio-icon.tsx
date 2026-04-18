@@ -7,8 +7,8 @@ interface AspectRatioIconProps {
 
 /** SVG shape icon for aspect ratio chips */
 export function AspectRatioIcon({ type, active }: AspectRatioIconProps) {
-  const fill = active ? "rgba(96, 165, 250, 0.3)" : "rgba(100, 116, 139, 0.2)";
-  const stroke = active ? "#60a5fa" : "#64748b";
+  const fill = active ? "rgba(96, 165, 250, 0.3)" : "var(--th-fg-f, rgba(100, 116, 139, 0.2))";
+  const stroke = active ? "#60a5fa" : "var(--th-fg-f, #64748b)";
 
   const shapes: Record<AspectRatioOption["iconType"], { w: number; h: number }> = {
     "landscape-wide": { w: 16, h: 9 },

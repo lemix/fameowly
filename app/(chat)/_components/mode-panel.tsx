@@ -95,7 +95,7 @@ export function ModePanel({
       >
         <div
           className={cn(
-            "flex items-center rounded-full bg-slate-800/90 shadow-lg backdrop-blur-sm ring-1 ring-slate-700/50",
+            "flex items-center rounded-full bg-th-panel/90 shadow-lg backdrop-blur-sm ring-1 ring-th-ring/50",
             isKeyboardOpen ? "gap-1 px-1.5 py-0.5" : "gap-1.5 px-2 py-1",
           )}
         >
@@ -108,8 +108,8 @@ export function ModePanel({
                 "flex items-center rounded-full font-medium transition",
                 isKeyboardOpen ? "h-7 gap-1 px-2 text-xs" : "h-9 gap-1.5 px-3 text-sm",
                 reasoningEnabled
-                  ? "bg-purple-600/30 text-purple-200 ring-1 ring-purple-500/40"
-                  : "text-slate-400 hover:text-slate-300 hover:bg-slate-700/60",
+                  ? "bg-th-purple-bg text-th-purple-fg ring-1 ring-th-purple-muted/40"
+                  : "text-th-fg-m hover:text-th-fg-s hover:bg-th-subtle/60",
               )}
               data-testid="reasoning-pill"
             >
@@ -120,7 +120,7 @@ export function ModePanel({
 
           {/* Separator */}
           {supportsReasoning && supportsTemperature && (
-            <div className={cn("w-px bg-slate-700/60", isKeyboardOpen ? "h-4" : "h-6")} />
+            <div className={cn("w-px bg-th-subtle/60", isKeyboardOpen ? "h-4" : "h-6")} />
           )}
 
           {/* Temperature chips */}
@@ -135,8 +135,8 @@ export function ModePanel({
                     "flex items-center rounded-full font-medium transition",
                     isKeyboardOpen ? "h-7 gap-1 px-2 text-xs" : "h-9 gap-1.5 px-3 text-sm",
                     activePresetId === preset.id
-                      ? "bg-blue-600/25 text-blue-300 ring-1 ring-blue-500/40"
-                      : "text-slate-500 hover:text-slate-400 hover:bg-slate-700/60",
+                      ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                      : "text-th-fg-f hover:text-th-fg-m hover:bg-th-subtle/60",
                   )}
                   data-testid={`temp-chip-${preset.id}`}
                 >

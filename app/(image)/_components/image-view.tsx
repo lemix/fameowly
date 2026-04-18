@@ -62,8 +62,8 @@ export function ImageView({
           {/* Loading */}
           {imageLoading && (
             <div className="mt-16 flex flex-col items-center justify-center gap-3 text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-blue-400" />
-              <p className="text-sm text-slate-400">Генерация изображения...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-th-accent" />
+              <p className="text-sm text-th-fg-m">Генерация изображения...</p>
             </div>
           )}
         </div>

@@ -28,14 +28,14 @@ export class ChatErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
           <div className="text-5xl">😿</div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-th-fg">
             Ой, что-то пошло не так
           </h2>
-          <p className="max-w-md text-sm text-slate-400">
+          <p className="max-w-md text-sm text-th-fg-m">
             Произошла непредвиденная ошибка. Попробуйте перезагрузить страницу.
           </p>
           {this.state.error && (
-            <p className="max-w-md text-xs text-slate-600 break-all">
+            <p className="max-w-md text-xs text-th-fg-d break-all">
               {this.state.error.message}
             </p>
           )}

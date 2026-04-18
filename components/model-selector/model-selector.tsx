@@ -127,7 +127,7 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
         onClick={() => { if (locked.current) return; open ? close() : setOpen(true); }}
         className={cn(
           "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition min-h-[40px] w-[200px] max-w-full outline-none",
-          modelUnavailable ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20" : "bg-slate-800/50 border border-white/5 text-slate-200 hover:bg-slate-800 hover:text-white shadow-sm cursor-pointer",
+          modelUnavailable ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20" : "bg-th-panel/50 border border-th-border/20 text-th-fg-s hover:bg-th-panel hover:text-th-fg shadow-sm cursor-pointer",
         )}
         data-testid="model-selector-trigger"
       >
@@ -135,16 +135,16 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
           <><AlertTriangle className="h-4 w-4 shrink-0" /><span className="truncate font-medium">Модель недоступна</span></>
         ) : (
           <>
-            {selected.isLocal ? <Shield className="h-4 w-4 shrink-0 text-emerald-500" /> : <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />}
+            {selected.isLocal ? <Shield className="h-4 w-4 shrink-0 text-emerald-500" /> : <Sparkles className="h-4 w-4 shrink-0 text-th-fg-m" />}
             <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">{selected.name}</span>
           </>
         )}
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform ml-auto", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-th-fg-f transition-transform ml-auto", open && "rotate-180")} />
       </button>
 
       {open && !isMobile && (
         <div
-          className={cn("absolute left-0 top-full z-50 mt-2 pt-2 pb-2 w-[24rem] rounded-2xl border border-slate-700/50 bg-slate-800/95 shadow-2xl backdrop-blur-sm overflow-hidden", closing ? "animate-popover-out" : "animate-popover-in")}
+          className={cn("absolute left-0 top-full z-50 mt-2 pt-2 pb-2 w-[24rem] rounded-2xl border border-th-border/50 bg-th-panel/95 shadow-2xl backdrop-blur-sm overflow-hidden", closing ? "animate-popover-out" : "animate-popover-in")}
           data-testid="model-popover"
         >
           {tabsUI}
@@ -159,17 +159,17 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
         <>
           <div className={cn("fixed inset-0 z-40 bg-black/50", closing ? "animate-fade-out" : "modal-overlay")} onClick={close} data-testid="model-sheet-overlay" />
           <div
-            className={cn("fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[70dvh] rounded-t-2xl bg-slate-800 shadow-2xl", closing ? "animate-sheet-out" : "modal-content-mobile")}
+            className={cn("fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[70dvh] rounded-t-2xl bg-th-panel shadow-2xl", closing ? "animate-sheet-out" : "modal-content-mobile")}
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             onTouchStart={(e) => { touchY.current = e.touches[0].clientY; }}
             onTouchEnd={(e) => { if (e.changedTouches[0].clientY - touchY.current > 80) close(); }}
             data-testid="model-bottom-sheet"
           >
             <div className="shrink-0">
-              <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-slate-600" /></div>
+              <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-th-muted" /></div>
               <div className="flex items-center justify-between px-4 pb-2">
-                <h3 className="text-sm font-semibold text-white">Выбор модели</h3>
-                <button onClick={close} className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700"><X className="h-4 w-4" /></button>
+                <h3 className="text-sm font-semibold text-th-fg">Выбор модели</h3>
+                <button onClick={close} className="flex h-8 w-8 items-center justify-center rounded-full text-th-fg-m hover:bg-th-subtle"><X className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="shrink-0">

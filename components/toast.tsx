@@ -37,7 +37,7 @@ export function Toast({ message, duration = 2500, onDone }: ToastProps) {
     >
       <div
         key={message}
-        className={`animate-toast-in rounded-full bg-slate-700/90 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-sm ring-1 ring-slate-600/50 transition-all duration-300 ${
+        className={`animate-toast-in rounded-full bg-th-subtle/90 px-4 py-2 text-sm font-medium text-th-fg shadow-lg backdrop-blur-sm ring-1 ring-th-ring/50 transition-all duration-300 ${
           isLeaving ? "translate-y-[-8px] opacity-0" : ""
         }`}
       >

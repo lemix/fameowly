@@ -33,7 +33,7 @@ test.describe("Model Selector — Desktop", () => {
   test("default tab matches selected model (world for cloud model)", async ({ page }) => {
     await page.getByTestId("model-selector-trigger").click();
     const worldTab = page.getByTestId("tab-world");
-    await expect(worldTab).toHaveClass(/bg-slate-700/);
+    await expect(worldTab).toHaveClass(/bg-th-subtle/);
     await expect(page.getByTestId("tab-banner-world")).toBeVisible();
   });
 
@@ -132,7 +132,7 @@ test.describe("Model Selector — Desktop", () => {
 
     await page.getByTestId("model-selector-trigger").click();
     const localTab = page.getByTestId("tab-local");
-    await expect(localTab).toHaveClass(/bg-slate-700/);
+    await expect(localTab).toHaveClass(/bg-th-subtle/);
     await expect(page.getByTestId("model-option-qwen3.5-122b-a10b")).toBeVisible();
   });
 });

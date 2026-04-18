@@ -51,22 +51,22 @@ export function ConfirmModal({
         if (e.target === overlayRef.current) onCancel();
       }}
     >
-      <div className="w-full max-w-sm rounded-t-2xl border border-slate-700 bg-slate-800 p-5 shadow-2xl sm:rounded-xl modal-content modal-content-mobile">
+      <div className="w-full max-w-sm rounded-t-2xl border border-th-border bg-th-panel p-5 shadow-2xl sm:rounded-xl modal-content modal-content-mobile">
         {/* Mobile drag handle */}
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-600 sm:hidden" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-th-muted sm:hidden" />
         <div className="mb-3 flex items-start gap-3">
           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${variant === "danger" ? "bg-red-500/15" : "bg-blue-500/15"}`}>
-            <XCircle className={`h-5 w-5 ${variant === "danger" ? "text-red-400" : "text-blue-400"}`} />
+            <XCircle className={`h-5 w-5 ${variant === "danger" ? "text-red-400" : "text-th-accent"}`} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">{title}</h3>
-            <p className="mt-1 text-xs text-slate-400 leading-relaxed">{message}</p>
+            <h3 className="text-sm font-semibold text-th-fg">{title}</h3>
+            <p className="mt-1 text-xs text-th-fg-m leading-relaxed">{message}</p>
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onCancel}
-            className="rounded-lg bg-slate-700 px-4 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-slate-600 sm:py-2"
+            className="rounded-lg bg-th-subtle px-4 py-2.5 text-xs font-medium text-th-fg-s transition hover:bg-th-muted sm:py-2"
           >
             {cancelLabel}
           </button>

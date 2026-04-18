@@ -12,7 +12,7 @@ interface ImageResultProps {
 export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: ImageResultProps) {
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-slate-700">
+      <div className="overflow-hidden rounded-xl border border-th-border">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.imageUrl!}
@@ -20,15 +20,15 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
           className="w-full cursor-pointer transition hover:opacity-90"
           onClick={() => onPreview(item.imageUrl)}
         />
-        <div className="border-t border-slate-700 bg-slate-800/50 px-4 py-3">
-          <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+        <div className="border-t border-th-border bg-th-panel/50 px-4 py-3">
+          <p className="text-sm text-th-fg-s whitespace-pre-wrap leading-relaxed">
             {item.prompt}
           </p>
 
           {/* Reference files */}
           {item.referenceFiles && item.referenceFiles.length > 0 && (
             <div className="mt-2.5 flex flex-wrap gap-2">
-              <span className="text-[10px] text-slate-500 w-full mb-0.5">Файлы контекста:</span>
+              <span className="text-[10px] text-th-fg-f w-full mb-0.5">Файлы контекста:</span>
               {item.referenceFiles.map((ref, i) =>
                 ref.mimeType.startsWith("image/") ? (
                   <button
@@ -41,7 +41,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
                     <img
                       src={ref.url}
                       alt={ref.name}
-                      className="h-12 w-12 rounded-lg object-cover border border-slate-600 transition group-hover/ref:border-blue-500 group-hover/ref:opacity-80"
+                      className="h-12 w-12 rounded-lg object-cover border border-th-border-s transition group-hover/ref:border-blue-500 group-hover/ref:opacity-80"
                     />
                   </button>
                 ) : (
@@ -49,7 +49,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
                     key={i}
                     href={ref.url}
                     download={ref.name}
-                    className="flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-700/50 px-2.5 py-1.5 text-[11px] text-slate-400 transition hover:border-blue-500 hover:text-blue-400"
+                    className="flex items-center gap-1.5 rounded-lg border border-th-border-s bg-th-subtle/50 px-2.5 py-1.5 text-[11px] text-th-fg-m transition hover:border-blue-500 hover:text-th-accent"
                     title={`Скачать ${ref.name}`}
                   >
                     <Download className="h-3 w-3" />
@@ -62,7 +62,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
 
           {/* Metadata row */}
           <div className="mt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+              <div className="flex items-center gap-2 text-[10px] text-th-fg-f">
               <span>{item.modelName}</span>
               <span>•</span>
               {item.aspectRatio && (
@@ -90,7 +90,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
               <a
                 href={item.imageUrl!}
                 download={`image-${item.id}.png`}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-slate-400 transition cursor-pointer hover:bg-slate-700 hover:text-white"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-th-fg-m transition cursor-pointer hover:bg-th-subtle hover:text-th-fg"
                 title="Скачать"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -98,7 +98,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
               </a>
               <button
                 onClick={() => onDelete(item.id)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-slate-400 transition cursor-pointer hover:bg-red-500/10 hover:text-red-400"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-th-fg-m transition cursor-pointer hover:bg-red-500/10 hover:text-red-400"
                 title="Удалить"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -118,7 +118,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
           <Sparkles className="h-4 w-4" />
           Создать новое изображение
         </button>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-th-fg-f">
           Или выберите другое изображение в истории
         </p>
       </div>

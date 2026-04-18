@@ -44,7 +44,7 @@ function getTabComponent(tab: PluginAdminTab): React.ComponentType | null {
         const Component = Object.values(mod).find((v) => typeof v === "function") as React.ComponentType;
         return { default: Component };
       }),
-      { loading: () => <div className="text-slate-400 py-8 text-center">Загрузка…</div> },
+      { loading: () => <div className="text-th-fg-m py-8 text-center">Загрузка…</div> },
     );
   }
   return pluginComponents[tab.id];
@@ -150,12 +150,12 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-900 text-white">
+    <div className="flex min-h-screen flex-col bg-th-page text-th-fg">
       {/* Header */}
-      <header className="flex items-center gap-4 border-b border-slate-700 px-6 py-4">
+      <header className="flex items-center gap-4 border-b border-th-border px-6 py-4">
         <button
           onClick={() => router.push("/")}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-th-fg-s transition hover:bg-th-panel hover:text-th-fg"
         >
           <ArrowLeft className="h-4 w-4" />
           Чат
@@ -168,13 +168,13 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="mx-auto w-full max-w-2xl px-6 pt-6">
-        <div className="flex gap-1 rounded-lg bg-slate-800 p-1">
+        <div className="flex gap-1 rounded-lg bg-th-panel p-1">
           <button
             onClick={() => setActiveTab("users")}
             className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
               activeTab === "users"
-                ? "bg-slate-700 text-white"
-                : "text-slate-400 hover:text-white"
+                ? "bg-th-subtle text-th-fg"
+                : "text-th-fg-m hover:text-th-fg"
             }`}
           >
             <User className="h-4 w-4" />
@@ -186,8 +186,8 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
                 activeTab === tab.id
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-400 hover:text-white"
+                ? "bg-th-subtle text-th-fg"
+                : "text-th-fg-m hover:text-th-fg"
               }`}
             >
               {tab.label}
@@ -220,9 +220,9 @@ export default function AdminPage() {
         )}
 
         {/* Add User Form */}
-        <div className="mb-8 rounded-xl border border-slate-700 bg-slate-800/80 p-6">
+        <div className="mb-8 rounded-xl border border-th-border bg-th-panel/80 p-6">
           <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-            <UserPlus className="h-5 w-5 text-blue-400" />
+            <UserPlus className="h-5 w-5 text-th-accent" />
             Добавить пользователя
           </h2>
           <form onSubmit={addUser} className="flex flex-wrap gap-3">
@@ -232,7 +232,7 @@ export default function AdminPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               required
-              className="flex-1 min-w-[120px] rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500"
+              className="flex-1 min-w-[120px] rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg placeholder-th-fg-m outline-none focus:border-blue-500"
             />
             <input
               type="text"
@@ -240,12 +240,12 @@ export default function AdminPage() {
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
               required
-              className="flex-1 min-w-[120px] rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500"
+              className="flex-1 min-w-[120px] rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg placeholder-th-fg-m outline-none focus:border-blue-500"
             />
             <select
               value={newRole}
               onChange={(e) => setNewRole(e.target.value as "user" | "admin" | "family" | "client")}
-              className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+              className="rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg outline-none focus:border-blue-500"
             >
               <option value="user">Пользователь</option>
               <option value="family">Семья</option>
@@ -254,7 +254,7 @@ export default function AdminPage() {
             </select>
             <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium transition hover:bg-blue-500"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
             >
               Добавить
             </button>
@@ -262,30 +262,30 @@ export default function AdminPage() {
         </div>
 
         {/* Users Table */}
-        <div className="rounded-xl border border-slate-700 bg-slate-800/80 p-6">
+        <div className="rounded-xl border border-th-border bg-th-panel/80 p-6">
           <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-            <User className="h-5 w-5 text-slate-400" />
+            <User className="h-5 w-5 text-th-fg-m" />
             Пользователи ({users.length})
           </h2>
           <div className="space-y-2">
             {users.map((u) => (
               <div
                 key={u.id}
-                className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-th-border bg-th-page/50 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                       u.role === "admin"
                         ? "bg-amber-500/20 text-amber-400"
-                        : "bg-blue-500/20 text-blue-400"
+                        : "bg-blue-500/20 text-th-accent"
                     }`}
                   >
                     {u.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <span className="font-medium">{u.name}</span>
-                    <span className="ml-2 rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
+                    <span className="ml-2 rounded bg-th-subtle px-2 py-0.5 text-xs text-th-fg-s">
                       {{ admin: "Админ", user: "Пользователь", family: "Семья", client: "Клиент" }[u.role]}
                     </span>
                   </div>
@@ -296,14 +296,14 @@ export default function AdminPage() {
                       setResetId(u.id);
                       setResetPass("");
                     }}
-                    className="rounded p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+                    className="rounded p-2 text-th-fg-m transition hover:bg-th-subtle hover:text-th-fg"
                     title="Сбросить пароль"
                   >
                     <KeyRound className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => deleteUser(u.id, u.name)}
-                    className="rounded p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded p-2 text-th-fg-m transition hover:bg-red-500/10 hover:text-red-400"
                     title="Удалить"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -319,12 +319,12 @@ export default function AdminPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <form
               onSubmit={resetPassword}
-              className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-xl border border-th-border bg-th-panel p-6 shadow-2xl"
             >
               <h3 className="mb-4 text-base font-semibold">Сбросить пароль</h3>
-              <p className="mb-3 text-sm text-slate-400">
+              <p className="mb-3 text-sm text-th-fg-m">
                 Для:{" "}
-                <strong className="text-white">
+                <strong className="text-th-fg">
                   {users.find((u) => u.id === resetId)?.name}
                 </strong>
               </p>
@@ -335,19 +335,19 @@ export default function AdminPage() {
                 onChange={(e) => setResetPass(e.target.value)}
                 required
                 autoFocus
-                className="mb-4 w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500"
+                className="mb-4 w-full rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg placeholder-th-fg-m outline-none focus:border-blue-500"
               />
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setResetId(null)}
-                  className="rounded-lg px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
+                  className="rounded-lg px-4 py-2 text-sm text-th-fg-s transition hover:bg-th-subtle"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium transition hover:bg-blue-500"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
                 >
                   Сбросить
                 </button>
