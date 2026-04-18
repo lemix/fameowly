@@ -11,7 +11,6 @@ export function ModelBanner({ activeTab }: ModelBannerProps) {
         className="mx-3 mt-2 mb-2 flex items-start gap-2 rounded-lg bg-emerald-500/10 px-3 py-2"
         data-testid="tab-banner-local"
       >
-        <span className="shrink-0 text-sm leading-snug">🛡️</span>
         <p className="text-xs text-th-emerald-fg leading-snug">
           Эти модели запущены на собственных серверах fameowly.
           Ваши данные не отправляются иностранным корпорациям.
@@ -26,7 +25,6 @@ export function ModelBanner({ activeTab }: ModelBannerProps) {
         className="mx-3 mt-2 mb-2 flex items-start gap-2 rounded-lg bg-blue-500/10 px-3 py-2"
         data-testid="tab-banner-world"
       >
-        <span className="shrink-0 text-sm leading-snug">☁️</span>
         <p className="text-xs text-th-accent leading-snug">
           Доступ через облачные провайдеры Google и OpenRouter.
         </p>
