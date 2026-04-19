@@ -16,6 +16,8 @@ export interface ModelOption {
   /** Defaults to `false` */
   supportsTemperature?: boolean;
   description?: string;
+  /** OpenAI-compatible base URL for local models (e.g. http://host:port/v1) */
+  baseURL?: string;
   /** Links this model to a virtual provider (from admin panel) */
   virtualProviderId?: string;
 }
