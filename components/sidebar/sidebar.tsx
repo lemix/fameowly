@@ -3,6 +3,7 @@
 import { MessageSquare, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { ThemeLogo } from "./theme-logo";
 import type { ChatListItem, Mode, ImageHistoryItemClient } from "@/lib/types";
 import { ChatList } from "./chat-list";
 import { ImageHistoryList } from "./image-history-list";
@@ -66,8 +67,7 @@ export function Sidebar({
           <div className="flex shrink-0 items-center justify-center">
             <Image src="/logo.png" alt="Logo" width={42} height={42} unoptimized className="select-none pointer-events-none" draggable={false} />
           </div>
-          <Image src="/fameowly.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5 hidden dark:block" draggable={false} />
-          <Image src="/fameowly-light.svg" alt="Fameowly" width={140} height={28} className="h-6 w-auto select-none translate-y-0.5 block dark:hidden" draggable={false} />
+          <ThemeLogo />
         </div>
 
         {/* Mode Tabs */}
