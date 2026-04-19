@@ -71,6 +71,7 @@ function ChatPage() {
           modelUnavailable={s.modelUnavailable}
           themeMode={themeMode}
           onCycleTheme={cycleTheme}
+          chatId={s.activeChatId}
         />
 
         <ChatErrorBoundary>

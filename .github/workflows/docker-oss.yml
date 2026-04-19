@@ -51,6 +51,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            ENABLE_PREMIUM=false
+            ENABLE_PLUGINS=false
           cache-from: type=gha,scope=oss
           cache-to: type=gha,mode=max,scope=oss
