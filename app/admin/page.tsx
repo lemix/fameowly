@@ -150,7 +150,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-th-page text-th-fg">
+    <div className="flex h-[100dvh] flex-col bg-th-page text-th-fg overflow-hidden">
       {/* Header */}
       <header className="flex items-center gap-4 border-b border-th-border px-6 py-4">
         <button
@@ -196,6 +196,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-6 py-8">
         {activeTab !== "users" && premiumStatus ? (
           (() => {
@@ -357,6 +358,7 @@ export default function AdminPage() {
         )}
           </>
         )}
+      </div>
       </div>
     </div>
   );
