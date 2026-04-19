@@ -37,7 +37,7 @@ export function ChatEmptyState({
       </div>
 
       {/* System prompt presets */}
-      <div className="mt-4 w-full max-w-lg">
+      <div className="mt-4 mb-8 w-full max-w-lg">
         <div className="grid grid-cols-2 gap-3">
           {presets.map((preset) => (
             <button

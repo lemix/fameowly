@@ -1,4 +1,4 @@
-import { Menu, Loader2, RefreshCw, Sun, Moon, Monitor } from "lucide-react";
+import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
 import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
@@ -21,7 +21,7 @@ interface AppHeaderProps {
 }
 
 const THEME_META: Record<ThemeMode, { icon: typeof Sun; label: string }> = {
-  auto: { icon: Monitor, label: "Авто" },
+  auto: { icon: SunMoon, label: "Авто" },
   light: { icon: Sun, label: "Светлая" },
   dark: { icon: Moon, label: "Тёмная" },
 };
