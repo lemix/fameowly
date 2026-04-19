@@ -29,6 +29,12 @@ function getStoredTheme(): ThemeMode {
 function applyTheme(mode: ThemeMode) {
   const resolved = mode === "auto" ? getSystemTheme() : mode;
   document.documentElement.classList.toggle("dark", resolved === "dark");
+
+  // Update meta theme-color for mobile toolbar tinting
+  const color = resolved === "dark" ? "#0f172a" : "#ffffff";
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((el) => (el.content = color));
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────

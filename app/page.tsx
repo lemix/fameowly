@@ -35,7 +35,7 @@ function ChatPage() {
     isKeyboardOpen && viewportHeight ? `${viewportHeight}px` : "100dvh";
 
   return (
-    <div className="flex bg-th-page text-th-fg" style={{ height: containerHeight }}>
+    <div className="flex bg-th-page text-th-fg safe-area-top" style={{ height: containerHeight }}>
       <Sidebar
         isOpen={s.sidebarOpen}
         onClose={() => s.setSidebarOpen(false)}
