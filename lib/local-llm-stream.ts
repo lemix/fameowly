@@ -199,6 +199,7 @@ export function createLocalLLMResponse(params: LocalStreamParams): Response {
             model: modelId,
             messages: openaiMsgs,
             stream: true,
+            stream_options: { include_usage: true },
             temperature,
             max_tokens: maxOutputTokens,
           };
