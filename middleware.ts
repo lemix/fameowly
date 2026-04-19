@@ -14,7 +14,9 @@ export async function middleware(request: NextRequest) {
   if (
     publicPaths.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/icons") ||
+    /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff2?|ttf|eot)$/.test(pathname)
   ) {
     return NextResponse.next();
   }
