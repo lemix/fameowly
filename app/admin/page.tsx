@@ -19,8 +19,8 @@ interface UserRecord {
   role: "admin" | "user" | "family" | "client";
 }
 
-interface PremiumStatus {
-  premium: boolean;
+interface PluginStatus {
+  hasPlugins: boolean;
   plugins: string[];
   adminTabs: PluginAdminTab[];
 }
@@ -33,8 +33,8 @@ function getTabComponent(tab: PluginAdminTab): React.ComponentType | null {
     // Static loader map — bundler requires literal strings for dynamic imports.
     // When adding a new plugin, also update: lib/plugin-stub-registry.js
     const loaders: Record<string, () => Promise<Record<string, React.ComponentType>>> = {
-      "providers": () => import("@premium/plugins/providers/components/provider-manager"),
-      "models": () => import("@premium/plugins/providers/components/model-manager"),
+      "providers": () => import("@plugins/ext/providers/components/provider-manager"),
+      "models": () => import("@plugins/ext/providers/components/model-manager"),
     };
     const loader = loaders[tab.id];
     if (!loader) return null;
@@ -60,14 +60,14 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("users");
-  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
+  const [pluginStatus, setPluginStatus] = useState<PluginStatus | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/premium/status")
+    fetch("/api/plugins/capabilities")
       .then((r) => r.json())
-      .then((data: PremiumStatus) => setPremiumStatus(data))
-      .catch(() => setPremiumStatus({ premium: false, plugins: [], adminTabs: [] }));
+      .then((data: PluginStatus) => setPluginStatus(data))
+      .catch(() => setPluginStatus({ hasPlugins: false, plugins: [], adminTabs: [] }));
   }, []);
 
   const fetchUsers = useCallback(async () => {
@@ -180,7 +180,7 @@ export default function AdminPage() {
             <User className="h-4 w-4" />
             Пользователи
           </button>
-          {premiumStatus?.adminTabs.map((tab) => (
+          {pluginStatus?.adminTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -198,9 +198,9 @@ export default function AdminPage() {
 
       <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-6 py-8">
-        {activeTab !== "users" && premiumStatus ? (
+        {activeTab !== "users" && pluginStatus ? (
           (() => {
-            const tab = premiumStatus.adminTabs.find((t) => t.id === activeTab);
+            const tab = pluginStatus.adminTabs.find((t) => t.id === activeTab);
             if (!tab) return null;
             const TabComponent = getTabComponent(tab);
             if (!TabComponent) return null;

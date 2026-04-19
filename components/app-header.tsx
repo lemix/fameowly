@@ -2,6 +2,7 @@ import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
 import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
+import { ChatUsageBadge } from "./chat-usage-badge";
 
 interface AppHeaderProps {
   mode: Mode;
@@ -18,6 +19,7 @@ interface AppHeaderProps {
   modelUnavailable?: boolean;
   themeMode: ThemeMode;
   onCycleTheme: () => void;
+  chatId?: string | null;
 }
 
 const THEME_META: Record<ThemeMode, { icon: typeof Sun; label: string }> = {
@@ -34,6 +36,7 @@ export function AppHeader({
   isLoading, status, onToggleSidebar,
   user, modelUnavailable,
   themeMode, onCycleTheme,
+  chatId,
 }: AppHeaderProps) {
   const models = mode === "chat" ? chatModels : imageModels;
   const activeModel = mode === "chat" ? selectedModel : selectedImageModel;
@@ -73,6 +76,8 @@ export function AppHeader({
             </span>
           </span>
         )}
+
+        {mode === "chat" && <ChatUsageBadge chatId={chatId ?? null} />}
       </div>
 
       <div className="flex items-center gap-1">

@@ -122,12 +122,29 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+/** Single usage record persisted by the usage tracker */
+export interface UsageRecord {
+  id: string;
+  userId: string;
+  /** Chat ID this record belongs to (undefined for image) */
+  chatId?: string;
+  modelId: string;
+  modelName: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** Calculated cost based on pricePer1MTokens, 0 if not set */
+  cost: number;
+  type: "chat" | "image";
+  createdAt: string;
+}
+
 /** Admin tab descriptor provided by a plugin */
 export interface PluginAdminTab {
   id: string;
   label: string;
   icon: string;
-  /** Path to component module, resolved via @premium/... */
+  /** Path to component module, resolved via @plugins/ext/... */
   componentPath: string;
 }
 
@@ -136,12 +153,16 @@ export type PluginRouteHandler = (
   req: import("next/server").NextRequest,
 ) => Promise<import("next/server").NextResponse> | import("next/server").NextResponse;
 
-/** Plugin interface — every premium plugin implements this */
-export interface PremiumPlugin {
+/** Plugin interface — every extension plugin implements this */
+export interface Plugin {
   /** Unique plugin id, e.g. "providers", "billing" */
   id: string;
   /** Human-readable name */
   name: string;
+
+  /** Register plugin services into the DI container */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register?: (container: any) => void;
 
   /**
    * Override credential resolution.

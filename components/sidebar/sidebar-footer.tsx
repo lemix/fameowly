@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Github } from "lucide-react";
+import { Settings, LogOut, Github, BarChart3 } from "lucide-react";
 import { useUserInfo } from "@/hooks/use-user-info";
+import { usePluginCapabilities } from "@/hooks/use-plugin-capabilities";
 
-// ─── Component ───────────────────────────────────────────────────────
+// ─── Component ─────────────────────────────────────────────────────────────
 
 export function SidebarFooter() {
   const router = useRouter();
   const user = useUserInfo();
+  const { hasPlugins } = usePluginCapabilities();
   const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
@@ -36,6 +38,15 @@ export function SidebarFooter() {
           <Github className="h-4 w-4" />
           GitHub
         </a>
+      )}
+      {hasPlugins && (
+        <button
+          onClick={() => router.push("/usage")}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
+        >
+          <BarChart3 className="h-4 w-4" />
+          Потребление
+        </button>
       )}
       <button
         onClick={handleLogout}

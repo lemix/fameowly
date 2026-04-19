@@ -2,29 +2,29 @@ import fs from "fs";
 import path from "path";
 import type { NextConfig } from "next";
 
-const premiumDir = path.join(import.meta.dirname, "premium");
-const premiumEnabled =
-  process.env.ENABLE_PREMIUM !== "false" &&
-  fs.existsSync(path.join(premiumDir, "index.ts"));
+const pluginsDir = path.join(import.meta.dirname, "premium");
+const pluginsEnabled =
+  process.env.ENABLE_PLUGINS !== "false" &&
+  fs.existsSync(path.join(pluginsDir, "index.ts"));
 
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["sharp"],
-  // When premium/ submodule is absent, alias @premium to empty stubs
-  ...(premiumEnabled
+  // When plugins directory is absent, alias @plugins to empty stubs
+  ...(pluginsEnabled
     ? {}
     : {
         turbopack: {
           resolveAlias: {
-            "@premium": "./lib/premium-stub.ts",
-            "@premium/plugins/*": "./lib/premium-stubs/*",
+            "@plugins": "./lib/plugin-stub.ts",
+            "@plugins/ext/*": "./lib/plugin-stubs/*",
           },
         },
         webpack(config: Record<string, Record<string, Record<string, string>>>) {
-          const stubTs = path.join(import.meta.dirname, "lib", "premium-stub.ts");
-          const stubDir = path.join(import.meta.dirname, "lib", "premium-stubs");
-          config.resolve.alias["@premium"] = stubTs;
-          config.resolve.alias["@premium/plugins"] = stubDir;
+          const stubTs = path.join(import.meta.dirname, "lib", "plugin-stub.ts");
+          const stubDir = path.join(import.meta.dirname, "lib", "plugin-stubs");
+          config.resolve.alias["@plugins"] = stubTs;
+          config.resolve.alias["@plugins/ext"] = stubDir;
           return config;
         },
       }),

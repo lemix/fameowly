@@ -11,6 +11,8 @@ export interface ModelOption {
   isLocal?: boolean;
   /** Token cost for client-role users. Undefined = model hidden from clients */
   clientPrice?: number;
+  /** Price per 1M tokens (USD or arbitrary units) for usage tracking */
+  pricePer1MTokens?: number;
   /** Defaults to `false` */
   supportsReasoning?: boolean;
   /** Defaults to `false` */
