@@ -5,6 +5,7 @@
  */
 
 import { readModelsConfig } from "./models.server";
+import { getLocalLLMBaseURL } from "./local-llm-config";
 import type { BaseProvider, ResolvedCredentials } from "./types";
 
 /**
@@ -19,6 +20,15 @@ export function resolveCredentials(
   const allModels = [...chatModels, ...imageModels];
   const model = allModels.find((m) => m.id === modelId);
   const baseProvider = (model?.provider ?? provider) as BaseProvider;
+
+  if (baseProvider === "local") {
+    return {
+      baseProvider: "local",
+      apiKey: "",
+      // Priority: model.baseURL → LOCAL_LLM_HOSTS[modelId] → LOCAL_LLM_URL → default
+      baseURL: model?.baseURL || getLocalLLMBaseURL(modelId),
+    };
+  }
 
   return resolveFromEnv(baseProvider);
 }
