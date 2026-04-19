@@ -20,25 +20,6 @@ export function SidebarFooter() {
 
   return (
     <div className="border-t border-th-border/30 p-3 space-y-1">
-      {isAdmin ? (
-        <button
-          onClick={() => router.push("/admin")}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-        >
-          <Settings className="h-4 w-4" />
-          Админ-панель
-        </button>
-      ) : (
-        <a
-          href="https://github.com/lemix"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-        >
-          <Github className="h-4 w-4" />
-          GitHub
-        </a>
-      )}
       {hasPlugins && (
         <button
           onClick={() => router.push("/usage")}
@@ -55,6 +36,25 @@ export function SidebarFooter() {
         <LogOut className="h-4 w-4" />
         Выйти
       </button>
+      {isAdmin ? (
+        <button
+          onClick={() => router.push("/admin")}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
+        >
+          <Settings className="h-4 w-4" />
+          Админ-панель
+        </button>
+      ) : (
+        <a
+          href="https://github.com/lemix/fameowly"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
+        >
+          <Github className="h-4 w-4" />
+          GitHub
+        </a>
+      )}
       {!isAdmin && (
         <p className="px-3 pt-1 text-xs text-th-fg-f">
           © 2026 Fameowly
