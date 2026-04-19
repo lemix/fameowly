@@ -1,16 +1,16 @@
 /**
- * Premium plugin loader — the single bridge between open-source core and
- * premium plugins. Loads the plugin registry from @premium and delegates
- * to plugin hooks. When premium/ is absent, all functions are no-ops
+ * Plugin bridge — the single bridge between open-source core and
+ * extension plugins. Loads the plugin registry from @plugins and delegates
+ * to plugin hooks. When plugins directory is absent, all functions are no-ops
  * and fall through to base implementations.
  *
- * @premium is a tsconfig/turbopack alias:
- *   - When premium/ submodule is present → resolves to ./premium
- *   - When absent → resolves to ./lib/premium-stub (empty array)
+ * @plugins is a tsconfig/turbopack alias:
+ *   - When plugins directory is present → resolves to ./premium (or any custom folder)
+ *   - When absent → resolves to ./lib/plugin-stub (empty array)
  */
 
 import type {
-  PremiumPlugin,
+  Plugin,
   ResolvedCredentials,
   TokenUsage,
   PluginAdminTab,
@@ -18,18 +18,18 @@ import type {
 } from "./types";
 
 // Import plugin registry — aliased at build time
-import { plugins as registeredPlugins } from "@premium";
+import { plugins as registeredPlugins } from "@plugins";
 
 // ─── Core API ────────────────────────────────────────────────────────
 
 /** All loaded plugins */
-export function getPlugins(): PremiumPlugin[] {
-  if (process.env.ENABLE_PREMIUM === "false") return [];
+export function getPlugins(): Plugin[] {
+  if (process.env.ENABLE_PLUGINS === "false") return [];
   return registeredPlugins;
 }
 
-/** Whether any premium plugins are loaded */
-export function hasPremium(): boolean {
+/** Whether any extension plugins are loaded */
+export function hasPlugins(): boolean {
   return getPlugins().length > 0;
 }
 

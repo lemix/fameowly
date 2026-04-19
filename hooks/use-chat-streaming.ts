@@ -53,7 +53,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: buildApiMessages(allMsgs), model: model.id, provider: model.provider,
-          systemPrompt: systemPrompt || chatSystemPrompt,
+          systemPrompt: systemPrompt || chatSystemPrompt, chatId,
           ...(localOptions ? { temperature: localOptions.temperature, reasoningEnabled: localOptions.reasoningEnabled } : {}),
         }),
         signal: controller.signal,

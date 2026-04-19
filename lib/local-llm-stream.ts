@@ -45,6 +45,8 @@ export interface LocalStreamParams {
   abortSignal: AbortSignal;
   /** Override base URL (from virtual provider rotation) */
   baseURL?: string;
+  /** Called after stream completes with usage stats (if available) */
+  onFinish?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void;
 }
 
 // ─── Message format conversion ───────────────────────────────────────
@@ -99,37 +101,61 @@ interface ChatDelta {
   reasoning_content?: string | null;
 }
 
+/** Captured usage from the final SSE chunk */
+interface StreamUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+interface ParsedStream {
+  deltas: AsyncGenerator<ChatDelta>;
+  /** Call after iteration completes to get captured usage */
+  getUsage: () => StreamUsage | null;
+}
+
 /** Parse llama.cpp Chat Completions SSE stream into delta objects */
-async function* parseChatStream(
-  response: Response,
-): AsyncGenerator<ChatDelta> {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+function parseChatStream(response: Response): ParsedStream {
+  let capturedUsage: StreamUsage | null = null;
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+  async function* iterate(): AsyncGenerator<ChatDelta> {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") return;
-        try {
-          const parsed = JSON.parse(data);
-          const delta: ChatDelta = parsed.choices?.[0]?.delta;
-          if (delta) yield delta;
-        } catch { /* skip malformed JSON */ }
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") return;
+          try {
+            const parsed = JSON.parse(data);
+            // Capture usage from the chunk (llama.cpp sends it in the final chunk)
+            if (parsed.usage) {
+              capturedUsage = parsed.usage as StreamUsage;
+            }
+            const delta: ChatDelta = parsed.choices?.[0]?.delta;
+            if (delta) yield delta;
+          } catch { /* skip malformed JSON */ }
+        }
       }
+    } finally {
+      reader.releaseLock();
     }
-  } finally {
-    reader.releaseLock();
   }
+
+  return {
+    deltas: iterate(),
+    getUsage: () => capturedUsage,
+  };
 }
 
 // ─── Main stream builder ─────────────────────────────────────────────
@@ -139,7 +165,7 @@ async function* parseChatStream(
  * Fetches directly from llama.cpp to access reasoning_content natively.
  */
 export function createLocalLLMResponse(params: LocalStreamParams): Response {
-  const { modelId, system, messages, temperature, reasoningEnabled, maxOutputTokens, abortSignal } = params;
+  const { modelId, system, messages, temperature, reasoningEnabled, maxOutputTokens, abortSignal, onFinish } = params;
   const encoder = new TextEncoder();
   let aborted = false;
   abortSignal.addEventListener("abort", () => { aborted = true; }, { once: true });
@@ -199,9 +225,10 @@ export function createLocalLLMResponse(params: LocalStreamParams): Response {
         // Stream processing — dual mode: native reasoning_content OR tag fallback
         let usedNative = false;
         let fallback: ReasoningStreamParser | null = null;
+        const stream = parseChatStream(response);
 
         try {
-          for await (const delta of parseChatStream(response)) {
+          for await (const delta of stream.deltas) {
             if (aborted) break;
 
             // 1) Native reasoning_content from llama.cpp server
@@ -254,6 +281,18 @@ export function createLocalLLMResponse(params: LocalStreamParams): Response {
         if (tStarted) emit({ type: "text-end", id: T });
         emit({ type: "finish-step" });
         emit({ type: "finish", finishReason: timedOut ? "length" : "stop" });
+
+        // Report usage to the callback (if provided and usage available)
+        if (onFinish) {
+          const usage = stream.getUsage();
+          if (usage) {
+            onFinish({
+              promptTokens: usage.prompt_tokens ?? 0,
+              completionTokens: usage.completion_tokens ?? 0,
+              totalTokens: usage.total_tokens ?? 0,
+            });
+          }
+        }
 
         // Inner helper — emit parsed pieces from fallback parser
         function emitParsed(pieces: Array<{ type: "reasoning" | "text"; content: string }>) {

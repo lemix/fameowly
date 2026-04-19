@@ -1,7 +1,5 @@
 import { streamText } from "ai";
-import { resolveCredentials as baseResolveCredentials } from "@/lib/provider-resolver";
-import { createProviderModel as baseCreateProviderModel } from "@/lib/providers/factory";
-import { pluginResolveCredentials, pluginCreateProviderModel } from "@/lib/premium";
+import { initializeContainer, container } from "@/lib/plugin-loader";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
 import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
@@ -9,6 +7,9 @@ import { resolveFileUrl } from "@/lib/file-storage";
 import type { ChatAttachment } from "@/lib/chat-store";
 import type { ResolvedCredentials } from "@/lib/types";
 import type { LanguageModel } from "ai";
+
+// Initialize DI container on first import
+initializeContainer();
 
 export const maxDuration = 120;
 
@@ -178,8 +179,7 @@ export async function POST(req: Request) {
     let result;
 
     const credentials: ResolvedCredentials =
-      pluginResolveCredentials(modelId, provider, userRole) ??
-      baseResolveCredentials(modelId, provider, userRole);
+      container.get("providerResolver").resolve(modelId, provider, userRole)!;
 
     if (credentials.baseProvider === "local") {
       // Local provider: fetch directly from llama.cpp (no AI SDK provider needed).
@@ -187,6 +187,8 @@ export async function POST(req: Request) {
       const temperature = typeof rawTemperature === "number"
         ? rawTemperature
         : reasoningEnabled ? 0.6 : 0.7;
+      const localUserId = req.headers.get("x-user-id") || "unknown";
+      const localChatId = body.chatId as string | undefined;
 
       return createLocalLLMResponse({
         modelId,
@@ -197,11 +199,14 @@ export async function POST(req: Request) {
         maxOutputTokens: 16384,
         abortSignal: req.signal,
         ...(credentials.baseURL ? { baseURL: credentials.baseURL } : {}),
+        onFinish(usage) {
+          container.get("usageTracker").onChatFinish(localUserId, modelId, usage, localChatId)
+            .catch((err) => console.error("[usage-tracker] local chat finish error:", err));
+        },
       });
     }
 
-    const model = (pluginCreateProviderModel(credentials, modelId)
-      ?? baseCreateProviderModel(credentials, modelId)) as LanguageModel | null;
+    const model = container.get("modelFactory").create(credentials, modelId) as LanguageModel | null;
     if (!model) {
       return new Response(
         JSON.stringify({ error: `Не удалось создать провайдер: ${provider}` }),
@@ -209,12 +214,24 @@ export async function POST(req: Request) {
       );
     }
 
+    const userId = req.headers.get("x-user-id") || "unknown";
+
     result = streamText({
       model,
       system,
       messages: coreMessages,
       abortSignal: req.signal,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
+      onFinish({ usage }) {
+        if (usage) {
+          const chatId = body.chatId as string | undefined;
+          container.get("usageTracker").onChatFinish(userId, modelId, {
+            promptTokens: usage.inputTokens ?? 0,
+            completionTokens: usage.outputTokens ?? 0,
+            totalTokens: usage.totalTokens ?? 0,
+          }, chatId).catch((err) => console.error("[usage-tracker] chat finish error:", err));
+        }
+      },
     });
 
     return result.toUIMessageStreamResponse();

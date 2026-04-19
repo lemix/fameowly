@@ -4,8 +4,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { readModelsConfig } from "@/lib/models.server";
-import { resolveCredentials as baseResolveCredentials } from "@/lib/provider-resolver";
-import { pluginResolveCredentials } from "@/lib/premium";
+import { initializeContainer, container } from "@/lib/plugin-loader";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { resizeToTarget } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
@@ -85,8 +84,9 @@ export async function POST(req: NextRequest) {
     };
 
     // Resolve credentials via virtual providers / .env fallback
-    const credentials = pluginResolveCredentials(modelId, modelInfo.provider, userRole)
-      ?? baseResolveCredentials(modelId, modelInfo.provider, userRole);
+    initializeContainer();
+
+    const credentials = container.get("providerResolver").resolve(modelId, modelInfo.provider, userRole)!;
 
     if (modelInfo.provider === "google") {
       const apiKey = credentials.apiKey;
@@ -206,6 +206,8 @@ export async function POST(req: NextRequest) {
         const description = textPart?.text || undefined;
 
         addImageHistoryItem(userId, historyItem);
+        container.get("usageTracker").onImageFinish(userId, modelId, modelInfo.pricePer1MTokens ?? 0)
+          .catch((err) => console.error("[usage-tracker] image finish error:", err));
         return NextResponse.json({ imageUrl, description, historyItem });
       }
 
@@ -281,6 +283,8 @@ export async function POST(req: NextRequest) {
 
     historyItem.imageUrl = imageUrl || null;
     addImageHistoryItem(userId, historyItem);
+    container.get("usageTracker").onImageFinish(userId, modelId, modelInfo.pricePer1MTokens ?? 0)
+      .catch((err) => console.error("[usage-tracker] image finish error:", err));
     return NextResponse.json({ imageUrl, historyItem });
   } catch (error) {
     console.error("Image API error:", error);

@@ -12,15 +12,15 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG ENABLE_PREMIUM=true
+ARG ENABLE_PLUGINS=true
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set Next.js to standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV ENABLE_PREMIUM=${ENABLE_PREMIUM}
-RUN if [ "$ENABLE_PREMIUM" = "false" ]; then npm run build:os; else npm run build; fi
+ENV ENABLE_PLUGINS=${ENABLE_PLUGINS}
+RUN if [ "$ENABLE_PLUGINS" = "false" ]; then npm run build:os; else npm run build; fi
 
 # ---- Stage 3: Runner ----
 FROM node:20-alpine AS runner
