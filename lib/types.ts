@@ -160,6 +160,10 @@ export interface Plugin {
   /** Human-readable name */
   name: string;
 
+  /** Register plugin services into the DI container */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register?: (container: any) => void;
+
   /**
    * Override credential resolution.
    * Return null to fall through to next plugin or base resolver.
