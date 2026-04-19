@@ -117,6 +117,9 @@ html, body {
 }
 
 /* Safe area for devices with notch / home indicator */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }

@@ -52,12 +52,12 @@ export function Sidebar({
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={onClose} />
+        <div className="fixed inset-0 z-20 bg-black/50 backdrop-blur-[1px] md:hidden" onClick={onClose} />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-th-border/30 bg-th-sidebar transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-th-border/30 bg-th-sidebar safe-area-top transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         data-testid="sidebar"

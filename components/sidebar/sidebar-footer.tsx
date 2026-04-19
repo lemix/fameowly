@@ -1,12 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Github } from "lucide-react";
+import { useUserInfo } from "@/hooks/use-user-info";
 
 // ─── Component ───────────────────────────────────────────────────────
 
 export function SidebarFooter() {
   const router = useRouter();
+  const user = useUserInfo();
+  const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -15,13 +18,25 @@ export function SidebarFooter() {
 
   return (
     <div className="border-t border-th-border/30 p-3 space-y-1">
-      <button
-        onClick={() => router.push("/admin")}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-      >
-        <Settings className="h-4 w-4" />
-        Админ-панель
-      </button>
+      {isAdmin ? (
+        <button
+          onClick={() => router.push("/admin")}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
+        >
+          <Settings className="h-4 w-4" />
+          Админ-панель
+        </button>
+      ) : (
+        <a
+          href="https://github.com/lemix"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
+        >
+          <Github className="h-4 w-4" />
+          GitHub
+        </a>
+      )}
       <button
         onClick={handleLogout}
         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-red-500/10 hover:text-red-400"
@@ -29,6 +44,11 @@ export function SidebarFooter() {
         <LogOut className="h-4 w-4" />
         Выйти
       </button>
+      {!isAdmin && (
+        <p className="px-3 pt-1 text-xs text-th-fg-f">
+          © 2026 Fameowly
+        </p>
+      )}
     </div>
   );
 }

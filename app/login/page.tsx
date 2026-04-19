@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, Bot } from "lucide-react";
+import { LogIn } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [name, setName] = useState("");
@@ -40,13 +41,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-th-page via-th-panel to-th-page">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-th-page via-th-panel to-th-page px-4">
       <div className="w-full max-w-sm rounded-2xl border border-th-border bg-th-panel/80 p-8 shadow-2xl backdrop-blur-sm">
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
-            <Bot className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-th-fg">Family AI Hub</h1>
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <Image src="/logo.png" alt="Fameowly" width={56} height={56} unoptimized className="select-none" draggable={false} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/fameowly.svg" alt="Fameowly" width={160} height={32} className="h-7 w-auto select-none dark:block hidden" draggable={false} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/fameowly-light.svg" alt="Fameowly" width={160} height={32} className="h-7 w-auto select-none dark:hidden block" draggable={false} />
           <p className="text-sm text-th-fg-m">Войдите в свой аккаунт</p>
         </div>
 
