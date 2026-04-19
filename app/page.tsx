@@ -93,6 +93,7 @@ function ChatPage() {
               pendingAttachments={s.pendingAttachments}
               onAddFiles={s.addFiles}
               onRemoveAttachment={s.removeAttachment}
+              onRetryAttachment={s.retryAttachment}
               selectedPresetId={s.selectedPresetId}
               onSelectPreset={s.setSelectedPresetId}
               customSystemPrompt={s.customSystemPrompt}

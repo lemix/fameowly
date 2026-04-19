@@ -29,10 +29,12 @@ export interface UserInfo {
 }
 
 export interface PendingAttachment {
+  id: string;
   file: File;
   preview: string;
   uploading: boolean;
   uploaded?: ChatAttachment;
+  error?: boolean;
 }
 
 export interface SystemPromptPreset {

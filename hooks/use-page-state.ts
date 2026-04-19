@@ -103,7 +103,9 @@ export function usePageState() {
   const handleChatSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || modelUnavailable) return;
-    const attachments: ChatAttachment[] = fileUpload.pendingAttachments.filter((pa) => pa.uploaded).map((pa) => pa.uploaded!);
+    const attachments: ChatAttachment[] = fileUpload.pendingAttachments
+      .filter((pa) => pa.uploaded && !pa.error)
+      .map((pa) => pa.uploaded!);
     const sp = chat.messages.length === 0 ? currentSystemPrompt : undefined;
 
     // Task 3: Build localOptions based on model capabilities.
