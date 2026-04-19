@@ -162,7 +162,17 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
             className={cn("fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[70dvh] rounded-t-2xl bg-th-panel shadow-2xl", closing ? "animate-sheet-out" : "modal-content-mobile")}
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             onTouchStart={(e) => { touchY.current = e.touches[0].clientY; }}
-            onTouchEnd={(e) => { if (e.changedTouches[0].clientY - touchY.current > 80) close(); }}
+            onTouchMove={(e) => {
+              // Prevent sheet drag when list is scrollable and not at top
+              if (scrollRef.current && scrollRef.current.scrollTop > 0) {
+                touchY.current = e.touches[0].clientY;
+              }
+            }}
+            onTouchEnd={(e) => {
+              const dy = e.changedTouches[0].clientY - touchY.current;
+              const atTop = !scrollRef.current || scrollRef.current.scrollTop <= 0;
+              if (atTop && dy > 80) close();
+            }}
             data-testid="model-bottom-sheet"
           >
             <div className="shrink-0">
