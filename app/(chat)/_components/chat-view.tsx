@@ -33,6 +33,7 @@ interface ChatViewProps {
   pendingAttachments: PendingAttachment[];
   onAddFiles: (files: FileList | File[]) => void;
   onRemoveAttachment: (idx: number) => void;
+  onRetryAttachment?: (idx: number) => void;
   selectedPresetId: string;
   onSelectPreset: (id: string) => void;
   customSystemPrompt: string;
@@ -54,7 +55,7 @@ export function ChatView({
   isLoading, isReasoningPhase,
   input, onInputChange, onSubmit, onStop,
   onDeleteMessage, onRetry, onDeleteLastExchange, onUpdateSystemPrompt,
-  pendingAttachments, onAddFiles, onRemoveAttachment,
+  pendingAttachments, onAddFiles, onRemoveAttachment, onRetryAttachment,
   selectedPresetId, onSelectPreset, customSystemPrompt, onCustomPromptChange,
   showSystemPromptPanel, onShowPanelChange,
   supportsTemperature, supportsReasoning,
@@ -193,6 +194,7 @@ export function ChatView({
           pendingAttachments={pendingAttachments}
           onAddFiles={onAddFiles}
           onRemoveAttachment={onRemoveAttachment}
+          onRetryAttachment={onRetryAttachment}
           onFocusChange={setInputFocused}
         />
       </div>

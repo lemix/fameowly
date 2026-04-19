@@ -44,7 +44,7 @@ export function ImageInput({
           <div className="px-4 pt-3">
             <div className="flex flex-wrap gap-2">
               {refAttachments.map((pa, idx) => (
-                <div key={idx} className="relative rounded-lg bg-th-subtle/60 p-1">
+                <div key={pa.id} className="relative rounded-lg bg-th-subtle/60 p-1">
                   {pa.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={pa.preview} alt={pa.file.name} className="h-12 w-12 rounded object-cover" />
