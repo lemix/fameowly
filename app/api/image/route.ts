@@ -8,6 +8,7 @@ import { initializeContainer, container } from "@/lib/plugin-loader";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { resizeToTarget } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
+import { getVertexAccessToken } from "@/lib/providers/vertex-auth";
 import {
   addImageHistoryItem,
   saveGeneratedImage,
@@ -88,13 +89,43 @@ export async function POST(req: NextRequest) {
 
     const credentials = container.get("providerResolver").resolve(modelId, modelInfo.provider, userRole)!;
 
-    if (modelInfo.provider === "google") {
-      const apiKey = credentials.apiKey;
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: "Google API key not configured" },
-          { status: 500 }
-        );
+    if (modelInfo.provider === "google" || modelInfo.provider === "google-vertex") {
+      const isVertex = modelInfo.provider === "google-vertex";
+
+      // Build endpoint URL + auth headers depending on provider flavor.
+      let endpoint: string;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+      if (isVertex) {
+        try {
+          const auth = await getVertexAccessToken({
+            project: credentials.project,
+            location: credentials.location,
+            credentialsJson: credentials.credentialsJson,
+          });
+          headers["Authorization"] = `Bearer ${auth.token}`;
+          const host =
+            auth.location === "global"
+              ? "https://aiplatform.googleapis.com"
+              : `https://${auth.location}-aiplatform.googleapis.com`;
+          endpoint =
+            `${host}/v1/projects/${auth.project}/locations/${auth.location}` +
+            `/publishers/google/models/${modelId}:generateContent`;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Vertex AI auth failed";
+          historyItem.error = msg;
+          addImageHistoryItem(userId, historyItem);
+          return NextResponse.json({ error: msg, historyItem }, { status: 500 });
+        }
+      } else {
+        const apiKey = credentials.apiKey;
+        if (!apiKey) {
+          return NextResponse.json(
+            { error: "Google API key not configured" },
+            { status: 500 }
+          );
+        }
+        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
       }
 
       // Build parts (text + optional reference files)
@@ -124,19 +155,16 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const response = await proxyFetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: {
-              responseModalities: ["TEXT", "IMAGE"],
-            },
-          }),
-        }
-      );
+      const response = await proxyFetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+          },
+        }),
+      });
 
       if (!response.ok) {
         const errBody = await response.text();

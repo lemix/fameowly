@@ -60,7 +60,7 @@ export interface ImageHistoryItemClient {
 // ─── Virtual Provider types ──────────────────────────────────────────
 
 /** Base provider type (physical provider) */
-export type BaseProvider = "google" | "openrouter" | "local";
+export type BaseProvider = "google" | "google-vertex" | "openrouter" | "local";
 
 /** Key group — a set of keys/endpoints assigned to a user role */
 export interface KeyGroup {
@@ -79,6 +79,10 @@ export interface VirtualProvider {
   baseProvider: BaseProvider;
   /** Key groups keyed by user role; "default" is the fallback */
   groups: Record<string, KeyGroup>;
+  /** Vertex AI only: GCP location (e.g. "global", "us-central1"). Overrides env. */
+  vertexLocation?: string;
+  /** Vertex AI only: GCP project ID. Overrides project_id from SA JSON / env. */
+  vertexProject?: string;
 }
 
 /** Persisted rotation counters */
@@ -92,8 +96,16 @@ export interface RotationState {
 /** Resolved credentials ready for use */
 export interface ResolvedCredentials {
   baseProvider: BaseProvider;
+  /** API key (google / openrouter) — empty for vertex/local */
   apiKey: string;
+  /** Base URL — used by openrouter / local */
   baseURL?: string;
+  /** Vertex AI: GCP project ID */
+  project?: string;
+  /** Vertex AI: GCP location, e.g. "us-central1" */
+  location?: string;
+  /** Vertex AI: Service Account JSON key (raw JSON string) */
+  credentialsJson?: string;
 }
 
 /** Per-chat generation settings (persisted in localStorage) */

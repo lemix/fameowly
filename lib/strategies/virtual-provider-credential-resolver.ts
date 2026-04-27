@@ -68,6 +68,18 @@ export class VirtualProviderCredentialResolver implements ProviderResolver {
       return { baseProvider: "local", apiKey: "", baseURL: key };
     }
 
+    if (vp.baseProvider === "google-vertex") {
+      // For Vertex AI the rotated "key" is a Service Account JSON string.
+      // VP-level vertexLocation/vertexProject overrides env defaults.
+      return {
+        baseProvider: "google-vertex",
+        apiKey: "",
+        project: vp.vertexProject || process.env.GOOGLE_VERTEX_PROJECT,
+        location: vp.vertexLocation || process.env.GOOGLE_VERTEX_LOCATION,
+        credentialsJson: key,
+      };
+    }
+
     return { baseProvider: vp.baseProvider, apiKey: key };
   }
 
@@ -77,6 +89,14 @@ export class VirtualProviderCredentialResolver implements ProviderResolver {
         return {
           baseProvider: "google",
           apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "",
+        };
+      case "google-vertex":
+        return {
+          baseProvider: "google-vertex",
+          apiKey: "",
+          project: process.env.GOOGLE_VERTEX_PROJECT,
+          location: process.env.GOOGLE_VERTEX_LOCATION,
+          credentialsJson: process.env.GOOGLE_VERTEX_CREDENTIALS_JSON,
         };
       case "openrouter":
         return {
