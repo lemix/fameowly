@@ -5,7 +5,7 @@ export type ModelTier = "basic" | "advanced" | "ultra";
 export interface ModelOption {
   id: string;
   name: string;
-  provider: "google" | "openrouter" | "local";
+  provider: "google" | "google-vertex" | "openrouter" | "local";
   tier: ModelTier;
   /** Defaults to `true` when provider is "local", `false` otherwise */
   isLocal?: boolean;
@@ -58,6 +58,7 @@ export const TIER_ICONS: Record<ModelTier, string> = {
 
 export const PROVIDER_COLORS: Record<ModelOption["provider"], string> = {
   google: "bg-green-400",
+  "google-vertex": "bg-sky-400",
   openrouter: "bg-orange-400",
   local: "bg-emerald-400",
 };

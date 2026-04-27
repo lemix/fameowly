@@ -37,6 +37,14 @@ export class EnvCredentialResolver implements ProviderResolver {
           baseProvider: "google",
           apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "",
         };
+      case "google-vertex":
+        return {
+          baseProvider: "google-vertex",
+          apiKey: "",
+          project: process.env.GOOGLE_VERTEX_PROJECT,
+          location: process.env.GOOGLE_VERTEX_LOCATION,
+          credentialsJson: process.env.GOOGLE_VERTEX_CREDENTIALS_JSON,
+        };
       case "openrouter":
         return {
           baseProvider: "openrouter",
