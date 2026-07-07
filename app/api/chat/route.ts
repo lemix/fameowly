@@ -166,14 +166,29 @@ export async function POST(req: Request) {
           }
         }
 
+        // Skip user messages with no usable content — Vertex/Gemini rejects
+        // requests containing a message with empty `parts`.
         if (contentParts.length === 0) {
-          contentParts.push({ type: "text", text: "" });
+          continue;
         }
 
         coreMessages.push({ role: "user", content: contentParts });
       } else if (msg.role === "assistant") {
-        coreMessages.push({ role: "assistant", content: msg.content || "" });
+        // Skip empty assistant messages (interrupted/failed generations).
+        // An empty `parts` array breaks Vertex/Gemini on the next request.
+        if (!msg.content || !msg.content.trim()) {
+          continue;
+        }
+        coreMessages.push({ role: "assistant", content: msg.content });
       }
+    }
+
+    // Guard against a request with no valid messages at all.
+    if (coreMessages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Нет сообщений для отправки" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     let result;
