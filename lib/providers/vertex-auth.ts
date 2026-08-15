@@ -19,6 +19,8 @@
  */
 
 import fs from "fs";
+import type { GoogleAuthOptions } from "google-auth-library";
+import { proxyFetch } from "../proxy-fetch";
 
 const DEFAULT_LOCATION = "us-central1";
 
@@ -136,25 +138,38 @@ export function resolveVertexAuth(input: VertexAuthInput = {}): VertexAuthResolv
 }
 
 /**
+ * Build GoogleAuth options. The OAuth token exchange with oauth2.googleapis.com
+ * is done by gaxios, which ignores SOCKS proxies — inject `proxyFetch` as its
+ * transport so token requests use the same route as the API calls.
+ */
+function buildGoogleAuthOptions(credentials: ServiceAccountJson): GoogleAuthOptions {
+  return {
+    credentials: {
+      client_email: credentials.client_email!,
+      private_key: credentials.private_key!,
+    },
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    clientOptions: {
+      transporterOptions: { fetchImplementation: proxyFetch },
+    },
+  };
+}
+
+/**
  * Produce `googleAuthOptions` to pass into `createVertex({...})`.
  * Returns null when credentials cannot be resolved (caller decides what to do).
  */
 export function buildVertexProviderOptions(input: VertexAuthInput = {}): {
   project: string;
   location: string;
-  googleAuthOptions: { credentials: { client_email: string; private_key: string } };
+  googleAuthOptions: GoogleAuthOptions;
 } | null {
   try {
     const { project, location, credentials } = resolveVertexAuth(input);
     return {
       project,
       location,
-      googleAuthOptions: {
-        credentials: {
-          client_email: credentials.client_email!,
-          private_key: credentials.private_key!,
-        },
-      },
+      googleAuthOptions: buildGoogleAuthOptions(credentials),
     };
   } catch (err) {
     console.error((err as Error).message);
@@ -173,13 +188,7 @@ export async function getVertexAccessToken(
 
   // Lazy import \u2014 avoids loading google-auth-library on cold paths.
   const { GoogleAuth } = await import("google-auth-library");
-  const auth = new GoogleAuth({
-    credentials: {
-      client_email: credentials.client_email,
-      private_key: credentials.private_key,
-    },
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
+  const auth = new GoogleAuth(buildGoogleAuthOptions(credentials));
 
   const client = await auth.getClient();
   const tokenResponse = await client.getAccessToken();
