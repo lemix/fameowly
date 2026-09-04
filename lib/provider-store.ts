@@ -8,11 +8,11 @@
 
 import fs from "fs";
 import path from "path";
+import { DATA_DIR } from "./paths";
 import type { VirtualProvider, RotationState } from "./types";
 
 // ─── File paths ──────────────────────────────────────────────────────
 
-const DATA_DIR = path.join(process.cwd(), "data");
 const PROVIDERS_FILE = path.join(DATA_DIR, "providers.json");
 const ROTATION_FILE = path.join(DATA_DIR, "rotation-state.json");
 

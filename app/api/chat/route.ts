@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     if (userRole === "client") {
       const { chatModels } = readModelsConfig();
       const modelConfig = chatModels.find((m) => m.id === modelId);
-      if (!modelConfig || modelConfig.clientPrice == null) {
+      if (!modelConfig || !modelConfig.availableForClients) {
         return new Response(
           JSON.stringify({ error: "Модель недоступна" }),
           { status: 403, headers: { "Content-Type": "application/json" } }

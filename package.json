@@ -5,12 +5,13 @@
   "private": true,
   "scripts": {
     "postinstall": "node scripts/ensure-premium-stub.js",
+    "init:data": "node scripts/init-data-dir.js",
     "dev": "next dev",
-    "dev:os": "node scripts/ensure-premium-stub.js && ENABLE_PLUGINS=false next dev",
+    "dev:os": "node scripts/ensure-premium-stub.js && DATA_DIR=./data-oss node scripts/init-data-dir.js && ENABLE_PLUGINS=false DATA_DIR=./data-oss next dev -p 3010",
     "build": "next build",
     "build:os": "node scripts/ensure-premium-stub.js && ENABLE_PLUGINS=false next build",
     "start": "next start",
-    "start:os": "ENABLE_PLUGINS=false next start",
+    "start:os": "ENABLE_PLUGINS=false DATA_DIR=./data-oss next start -p 3010",
     "lint": "eslint"
   },
   "dependencies": {

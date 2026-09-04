@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { MIME_TYPES } from "@/lib/file-storage";
+import { DATA_DIR } from "@/lib/paths";
 import fs from "fs";
 import path from "path";
 
 const COOKIE_NAME = "session";
 
-const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
 export async function GET(
   request: NextRequest,

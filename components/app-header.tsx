@@ -77,7 +77,7 @@ export function AppHeader({
           </span>
         )}
 
-        {mode === "chat" && <ChatUsageBadge chatId={chatId ?? null} />}
+        {mode === "chat" && <ChatUsageBadge chatId={chatId ?? null} status={status} />}
       </div>
 
       <div className="flex items-center gap-1">

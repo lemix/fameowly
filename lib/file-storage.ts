@@ -3,8 +3,8 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { DATA_DIR } from "./paths";
 
-const DATA_DIR = path.join(process.cwd(), "data");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const MAX_BASE64_SIZE = 512 * 1024; // 512KB — inline as base64
 

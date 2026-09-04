@@ -84,11 +84,10 @@ export async function pluginOnChatFinish(
 export async function pluginOnImageFinish(
   userId: string,
   modelId: string,
-  cost: number,
 ): Promise<void> {
   for (const plugin of getPlugins()) {
     if (plugin.onImageFinish) {
-      await plugin.onImageFinish(userId, modelId, cost);
+      await plugin.onImageFinish(userId, modelId);
     }
   }
 }

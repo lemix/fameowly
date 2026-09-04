@@ -145,7 +145,14 @@ export interface UsageRecord {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
-  /** Calculated cost based on pricePer1MTokens, 0 if not set */
+  /** Price snapshot (USD per 1M tokens) taken when the request was made */
+  inputPricePer1M?: number;
+  outputPricePer1M?: number;
+  /** Commercial multiplier snapshot */
+  markup?: number;
+  /** Provider cost in USD before markup */
+  baseCost?: number;
+  /** Charged cost in USD; 0 when the model has no prices configured */
   cost: number;
   type: "chat" | "image";
   createdAt: string;
@@ -206,7 +213,6 @@ export interface Plugin {
   onImageFinish?: (
     userId: string,
     modelId: string,
-    cost: number,
   ) => Promise<void>;
 
   /**

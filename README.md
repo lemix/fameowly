@@ -71,4 +71,24 @@ cp data/models.json.example data/models.json
 
 When deploying via Docker, mount your `models.json` into the container as shown above.
 
-Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`. Omitting `clientPrice` from a model entry hides that model from users with the `client` role.
+Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`. Set `availableForClients: true` to expose a model to users with the `client` role (legacy configs that use `clientPrice` are migrated automatically).
+
+#### Pricing fields
+
+| Field | Meaning |
+|---|---|
+| `inputPricePer1M` | Provider price in USD per 1M prompt tokens |
+| `outputPricePer1M` | Provider price in USD per 1M completion tokens |
+| `pricePerImage` | Provider price in USD per generated image |
+| `markup` | Commercial multiplier applied on top of the provider price (default `1`) |
+
+A request costs `(promptTokens/1M × inputPricePer1M + completionTokens/1M × outputPricePer1M) × markup`. Models without prices are treated as free. The computed cost is stored with each usage record, so later price edits never change already billed requests.
+
+### Running the open-source build locally
+
+```bash
+npm run dev      # premium build, data/,      http://localhost:3000
+npm run dev:os   # open-source build, data-oss/, http://localhost:3010
+```
+
+`dev:os` sets `ENABLE_PLUGINS=false` and `DATA_DIR=./data-oss`, so it never touches premium data. Point `DATA_DIR` at any directory to run additional isolated instances.

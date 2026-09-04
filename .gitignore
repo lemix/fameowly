@@ -38,6 +38,9 @@ yarn-error.log*
 /data/*
 !/data/models.json.example
 
+# isolated data dir for open-source runs (npm run dev:os)
+/data-oss
+
 # vercel
 .vercel
 

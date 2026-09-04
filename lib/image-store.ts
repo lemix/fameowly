@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { DATA_DIR } from "./paths";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -19,7 +20,6 @@ export interface ImageHistoryItem {
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-const DATA_DIR = path.join(process.cwd(), "data");
 const IMAGES_DIR = path.join(DATA_DIR, "images");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 

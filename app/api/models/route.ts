@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import {
   readModelsConfig,
   filterModelsForRole,
+  stripPricingForRole,
   saveModelsConfig,
 } from "@/lib/models.server";
 import type { ModelsConfig } from "@/lib/models";
@@ -13,7 +14,7 @@ export async function GET() {
   const role = headersList.get("x-user-role");
   const config = readModelsConfig();
   const filtered = filterModelsForRole(config, role);
-  return NextResponse.json(filtered);
+  return NextResponse.json(stripPricingForRole(filtered, role));
 }
 
 /** PUT /api/models — overwrite models config (admin only) */
