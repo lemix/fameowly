@@ -8,9 +8,9 @@
 
 import fs from "fs";
 import path from "path";
+import { DATA_DIR } from "./paths";
 import type { UsageRecord } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
 const USAGE_DIR = path.join(DATA_DIR, "usage");
 
 function ensureUsageDir(): void {
@@ -42,20 +42,4 @@ export function addUsageRecord(userId: string, record: UsageRecord): void {
   const records = getUserUsage(userId);
   records.push(record);
   fs.writeFileSync(userFile(userId), JSON.stringify(records, null, 2));
-}
-
-/** Get paginated usage records for a user (newest first) */
-export function getUserUsagePaginated(
-  userId: string,
-  page: number,
-  pageSize: number,
-): { records: UsageRecord[]; total: number; totalPages: number } {
-  const all = getUserUsage(userId);
-  // Sort newest first
-  all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const total = all.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const start = (page - 1) * pageSize;
-  const records = all.slice(start, start + pageSize);
-  return { records, total, totalPages };
 }

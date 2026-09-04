@@ -5,7 +5,11 @@
       "name": "Gemini Flash",
       "provider": "google",
       "tier": "basic",
+      "availableForClients": true,
       "clientPrice": 1,
+      "inputPricePer1M": 0.3,
+      "outputPricePer1M": 2.5,
+      "markup": 1,
       "supportsTemperature": true,
       "description": "Мгновенные ответы на каждый день"
     },

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { DATA_DIR } from "./paths";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -47,7 +48,6 @@ export interface ChatListItem {
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-const DATA_DIR = path.join(process.cwd(), "data");
 const CHATS_DIR = path.join(DATA_DIR, "chats");
 
 function ensureDir(dir: string) {

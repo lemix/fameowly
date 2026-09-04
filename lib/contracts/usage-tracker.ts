@@ -15,9 +15,5 @@ export interface UsageTracker {
   ): Promise<void>;
 
   /** Called after an image generation completes */
-  onImageFinish(
-    userId: string,
-    modelId: string,
-    cost: number,
-  ): Promise<void>;
+  onImageFinish(userId: string, modelId: string): Promise<void>;
 }

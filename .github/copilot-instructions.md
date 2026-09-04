@@ -82,11 +82,14 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 ## Commands
 
-- `npm run dev` — development server
-- `npm run dev:os` — development server (open-source mode, no premium)
+- `npm run dev` — development server (premium, `data/`, port 3000)
+- `npm run dev:os` — development server (open-source, `data-oss/`, port 3010)
 - `npm run build` — production build  
-- `npm run build:os` — production build (open-source mode, no premium)
+- `npm run build:os` — production build (open-source mode, `ENABLE_PLUGINS=false`)
 - `docker compose up -d` — Docker deployment
+
+Runtime data lives in `DATA_DIR` (default `./data`). OSS runs use a separate
+directory so they never corrupt premium data.
 
 ## Additional Conventions
 

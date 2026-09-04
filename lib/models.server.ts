@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { DATA_DIR } from "./paths";
 import {
   AVAILABLE_MODELS,
   IMAGE_MODELS,
@@ -7,20 +8,25 @@ import {
   type ModelsConfig,
 } from "./models";
 
-const MODELS_JSON_PATH = path.join(process.cwd(), "data", "models.json");
+const MODELS_JSON_PATH = path.join(DATA_DIR, "models.json");
 
 /**
  * Apply defaults to a raw model entry from JSON config.
  * - `isLocal` defaults to `true` when provider is "local", `false` otherwise
  * - `supportsReasoning` / `supportsTemperature` default to `false`
- * - `clientPrice` stays as-is (undefined = not available to client-role users)
+ * - legacy `pricePer1MTokens` becomes both input and output price
+ * - legacy `clientPrice` presence becomes `availableForClients`
  */
 function normalizeModel(raw: ModelOption): ModelOption {
+  const legacyPrice = raw.pricePer1MTokens;
   return {
     ...raw,
     isLocal: raw.isLocal ?? (raw.provider === "local"),
     supportsReasoning: raw.supportsReasoning ?? false,
     supportsTemperature: raw.supportsTemperature ?? false,
+    inputPricePer1M: raw.inputPricePer1M ?? legacyPrice,
+    outputPricePer1M: raw.outputPricePer1M ?? legacyPrice,
+    availableForClients: raw.availableForClients ?? raw.clientPrice != null,
   };
 }
 
@@ -68,7 +74,7 @@ export function saveModelsConfig(config: ModelsConfig): void {
 
 /**
  * Filter models based on user role.
- * Client-role users only see models that have `clientPrice` defined.
+ * Client-role users only see models flagged as available to clients.
  */
 export function filterModelsForRole(
   config: ModelsConfig,
@@ -76,7 +82,28 @@ export function filterModelsForRole(
 ): ModelsConfig {
   if (role !== "client") return config;
   return {
-    chatModels: config.chatModels.filter((m) => m.clientPrice != null),
-    imageModels: config.imageModels.filter((m) => m.clientPrice != null),
+    chatModels: config.chatModels.filter((m) => m.availableForClients),
+    imageModels: config.imageModels.filter((m) => m.availableForClients),
+  };
+}
+
+/** Strip internal cost fields — only admins may see them */
+export function stripPricingForRole(
+  config: ModelsConfig,
+  role: string | null,
+): ModelsConfig {
+  if (role === "admin") return config;
+  const strip = (m: ModelOption): ModelOption => {
+    const clone: ModelOption = { ...m };
+    delete clone.inputPricePer1M;
+    delete clone.outputPricePer1M;
+    delete clone.pricePerImage;
+    delete clone.pricePer1MTokens;
+    delete clone.markup;
+    return clone;
+  };
+  return {
+    chatModels: config.chatModels.map(strip),
+    imageModels: config.imageModels.map(strip),
   };
 }

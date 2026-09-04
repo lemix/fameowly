@@ -1,14 +1,16 @@
 /**
- * Usage API — returns paginated token usage records for the authenticated user.
- * Available to all authenticated users (each user sees only their own data).
+ * Usage API — returns usage records grouped into months and weeks.
+ *
+ * Each user sees only their own data; admins may request another user's
+ * records via the `userId` query parameter.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
-import { getUserUsagePaginated } from "@/lib/usage-store";
+import { getUserUsage } from "@/lib/usage-store";
+import { listUsageMonths, buildMonthView } from "@/lib/usage-periods";
 
 const COOKIE_NAME = "session";
-const DEFAULT_PAGE_SIZE = 20;
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -22,16 +24,25 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const pageSize = Math.max(1, Math.min(100, parseInt(searchParams.get("pageSize") || String(DEFAULT_PAGE_SIZE), 10)));
+  const requestedUserId = searchParams.get("userId");
+  if (
+    requestedUserId &&
+    requestedUserId !== session.userId &&
+    session.role !== "admin"
+  ) {
+    return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  }
 
-  const result = getUserUsagePaginated(session.userId, page, pageSize);
+  const records = getUserUsage(requestedUserId || session.userId);
+  const months = listUsageMonths(records);
+  const requested = searchParams.get("month");
+  const month =
+    requested && months.some((m) => m.key === requested)
+      ? requested
+      : months[0]?.key;
 
   return NextResponse.json({
-    records: result.records,
-    total: result.total,
-    page,
-    pageSize,
-    totalPages: result.totalPages,
+    months,
+    view: month ? buildMonthView(records, month) : null,
   });
 }

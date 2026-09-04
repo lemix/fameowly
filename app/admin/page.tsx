@@ -10,8 +10,10 @@ import {
   KeyRound,
   Shield,
   User,
+  BarChart3,
 } from "lucide-react";
 import type { PluginAdminTab } from "@/lib/types";
+import { UserUsageModal } from "@/components/usage/user-usage-modal";
 
 interface UserRecord {
   id: string;
@@ -57,6 +59,7 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState<"user" | "admin" | "family" | "client">("user");
   const [resetId, setResetId] = useState<string | null>(null);
   const [resetPass, setResetPass] = useState("");
+  const [usageUser, setUsageUser] = useState<UserRecord | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("users");
@@ -293,6 +296,13 @@ export default function AdminPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setUsageUser(u)}
+                    className="rounded p-2 text-th-fg-m transition hover:bg-th-subtle hover:text-th-fg"
+                    title="Потребление"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => {
                       setResetId(u.id);
                       setResetPass("");
@@ -355,6 +365,14 @@ export default function AdminPage() {
               </div>
             </form>
           </div>
+        )}
+
+        {usageUser && (
+          <UserUsageModal
+            userId={usageUser.id}
+            userName={usageUser.name}
+            onClose={() => setUsageUser(null)}
+          />
         )}
           </>
         )}

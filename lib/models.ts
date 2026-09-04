@@ -9,9 +9,19 @@ export interface ModelOption {
   tier: ModelTier;
   /** Defaults to `true` when provider is "local", `false` otherwise */
   isLocal?: boolean;
-  /** Token cost for client-role users. Undefined = model hidden from clients */
+  /** Whether client-role users may select this model */
+  availableForClients?: boolean;
+  /** @deprecated superseded by `availableForClients`; kept for config back-compat */
   clientPrice?: number;
-  /** Price per 1M tokens (USD or arbitrary units) for usage tracking */
+  /** Provider price in USD per 1M input (prompt) tokens. Undefined = free */
+  inputPricePer1M?: number;
+  /** Provider price in USD per 1M output (completion) tokens. Undefined = free */
+  outputPricePer1M?: number;
+  /** Provider price in USD per generated image. Undefined = free */
+  pricePerImage?: number;
+  /** Commercial multiplier applied to the provider price. Undefined = 1 */
+  markup?: number;
+  /** @deprecated migrated into `inputPricePer1M` / `outputPricePer1M` on read */
   pricePer1MTokens?: number;
   /** Defaults to `false` */
   supportsReasoning?: boolean;
@@ -32,10 +42,10 @@ export interface ModelsConfig {
 // ─── Default models (fallback if JSON not found) ─────────────────────
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  { id: "gemini-flash-lite-latest", name: "Gemini Flash Lite", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
-  { id: "gemini-flash-latest", name: "Gemini Flash", provider: "google", tier: "advanced", isLocal: false, clientPrice: 3 },
-  { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", provider: "openrouter", tier: "advanced", isLocal: false, clientPrice: 3 },
-  { id: "gemini-3.1-pro-preview", name: "Gemini Pro", provider: "google", tier: "ultra", isLocal: false, clientPrice: 5 },
+  { id: "gemini-flash-lite-latest", name: "Gemini Flash Lite", provider: "google", tier: "basic", isLocal: false, availableForClients: true },
+  { id: "gemini-flash-latest", name: "Gemini Flash", provider: "google", tier: "advanced", isLocal: false, availableForClients: true },
+  { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", provider: "openrouter", tier: "advanced", isLocal: false, availableForClients: true },
+  { id: "gemini-3.1-pro-preview", name: "Gemini Pro", provider: "google", tier: "ultra", isLocal: false, availableForClients: true },
 ];
 
 // ─── Tier display info ───────────────────────────────────────────────
@@ -64,9 +74,9 @@ export const PROVIDER_COLORS: Record<ModelOption["provider"], string> = {
 };
 
 export const IMAGE_MODELS: ModelOption[] = [
-  { id: "gemini-3.1-flash-image-preview", name: "Nano Banana 2", provider: "google", tier: "advanced", isLocal: false, clientPrice: 2 },
-  { id: "gemini-3-pro-image-preview", name: "Nano Banana Pro", provider: "google", tier: "ultra", isLocal: false, clientPrice: 5 },
-  { id: "gemini-2.5-flash-image", name: "Nano Banana", provider: "google", tier: "basic", isLocal: false, clientPrice: 1 },
+  { id: "gemini-3.1-flash-image-preview", name: "Nano Banana 2", provider: "google", tier: "advanced", isLocal: false, availableForClients: true },
+  { id: "gemini-3-pro-image-preview", name: "Nano Banana Pro", provider: "google", tier: "ultra", isLocal: false, availableForClients: true },
+  { id: "gemini-2.5-flash-image", name: "Nano Banana", provider: "google", tier: "basic", isLocal: false, availableForClients: true },
 ];
 
 /** Find the default model: first basic, then advanced, then ultra, then first */

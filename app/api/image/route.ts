@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // Validate model access for client-role users
     const userRole = req.headers.get("x-user-role") || "user";
-    if (userRole === "client" && modelInfo.clientPrice == null) {
+    if (userRole === "client" && !modelInfo.availableForClients) {
       return NextResponse.json(
         { error: "Модель недоступна" },
         { status: 403 }
@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
         const description = textPart?.text || undefined;
 
         addImageHistoryItem(userId, historyItem);
-        container.get("usageTracker").onImageFinish(userId, modelId, modelInfo.pricePer1MTokens ?? 0)
+        container.get("usageTracker").onImageFinish(userId, modelId)
           .catch((err) => console.error("[usage-tracker] image finish error:", err));
         return NextResponse.json({ imageUrl, description, historyItem });
       }
@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
 
     historyItem.imageUrl = imageUrl || null;
     addImageHistoryItem(userId, historyItem);
-    container.get("usageTracker").onImageFinish(userId, modelId, modelInfo.pricePer1MTokens ?? 0)
+    container.get("usageTracker").onImageFinish(userId, modelId)
       .catch((err) => console.error("[usage-tracker] image finish error:", err));
     return NextResponse.json({ imageUrl, historyItem });
   } catch (error) {

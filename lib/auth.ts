@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { DATA_DIR } from "./paths";
 
 // ------- Types -------
 export type UserRole = "admin" | "user" | "family" | "client";
@@ -21,7 +22,6 @@ export interface SessionPayload {
 }
 
 // ------- Constants -------
-const DATA_DIR = path.join(process.cwd(), "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const JWT_SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-me-please-32chars"

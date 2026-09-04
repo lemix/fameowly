@@ -16,11 +16,7 @@ export class NoopUsageTracker implements UsageTracker {
     // No-op in OSS
   }
 
-  async onImageFinish(
-    _userId: string,
-    _modelId: string,
-    _cost: number,
-  ): Promise<void> {
+  async onImageFinish(_userId: string, _modelId: string): Promise<void> {
     // No-op in OSS
   }
 }
