@@ -100,6 +100,68 @@ test.describe("Mobile layout 375x667", () => {
   });
 });
 
+test.describe("Sidebar vertical budget 375x667", () => {
+  test.use({ viewport: MOBILE });
+
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.getByRole("button", { name: "Открыть меню" }).click();
+    await settled(page.getByTestId("sidebar"));
+  });
+
+  test("footer collapses to an icon row on a short viewport", async ({ page }) => {
+    const footer = page.getByTestId("sidebar-footer");
+    await expect(footer).toHaveAttribute("data-compact", "true");
+
+    // Item count varies by edition and role — labels must be exposed, not rendered
+    const buttons = footer.locator("[data-testid^='footer-']");
+    expect(await buttons.count()).toBeGreaterThanOrEqual(2);
+    for (const b of await buttons.all()) {
+      await expect(b).toHaveAttribute("aria-label", /.+/);
+      expect((await b.innerText()).trim()).toBe("");
+    }
+
+    await expect(page.getByTestId("footer-logout")).toBeVisible();
+    await expect(page.getByTestId("footer-github")).toBeVisible();
+
+    const box = (await footer.boundingBox())!;
+    expect(box.height).toBeLessThan(120);
+  });
+
+  test("search hands the whole sidebar over to the results list", async ({ page }) => {
+    const list = page.getByTestId("sidebar").locator(".overflow-y-auto");
+    const before = (await list.boundingBox())!.height;
+
+    await page.getByTestId("nav-search-chats").click();
+    await expect(page.getByTestId("chat-search-input")).toBeFocused();
+
+    await expect(page.getByTestId("sidebar-footer")).toBeHidden();
+    await expect(page.getByTestId("mode-tab-chat")).toBeHidden();
+    await expect(page.getByTestId("nav-new-chat")).toBeHidden();
+    await expect(page.getByTestId("nav-folders")).toBeHidden();
+
+    expect((await list.boundingBox())!.height).toBeGreaterThan(before);
+  });
+
+  test("results stay above an open keyboard", async ({ page }) => {
+    await page.getByTestId("nav-search-chats").click();
+    await page.getByTestId("chat-search-input").fill("zzz-no-such-chat");
+
+    // Android Chrome with interactiveWidget:resizes-content shrinks the layout viewport
+    const KEYBOARD_VIEWPORT = { width: MOBILE.width, height: 377 };
+    await page.setViewportSize(KEYBOARD_VIEWPORT);
+
+    const sidebar = page.getByTestId("sidebar");
+    await expect.poll(async () => (await sidebar.boundingBox())!.height).toBe(377);
+
+    const list = sidebar.locator(".overflow-y-auto");
+    const box = (await list.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(KEYBOARD_VIEWPORT.height);
+    expect(box.height).toBeGreaterThan(200);
+    await expect(list).toContainText("Ничего не найдено");
+  });
+});
+
 test.describe("Desktop layout at the former hybrid band 1000x800", () => {
   test.use({ viewport: HYBRID });
 
@@ -118,5 +180,15 @@ test.describe("Desktop layout at the former hybrid band 1000x800", () => {
     await page.getByTestId("model-selector-trigger").click();
     await expect(page.getByTestId("model-popover")).toBeVisible();
     await expect(page.getByTestId("model-bottom-sheet")).toHaveCount(0);
+  });
+
+  test("sidebar keeps labelled footer and full chrome while searching", async ({ page }) => {
+    await expect(page.getByTestId("sidebar-footer")).toHaveAttribute("data-compact", "false");
+    await expect(page.getByTestId("footer-logout")).toContainText("Выйти");
+
+    await page.getByTestId("nav-search-chats").click();
+    await expect(page.getByTestId("sidebar-footer")).toBeVisible();
+    await expect(page.getByTestId("mode-tab-chat")).toBeVisible();
+    await expect(page.getByTestId("nav-folders")).toBeVisible();
   });
 });
