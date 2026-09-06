@@ -32,6 +32,8 @@ export async function POST(req: Request) {
       systemPrompt,
       temperature: rawTemperature,
       reasoningEnabled: rawReasoningEnabled,
+      chatId,
+      assistantMessageId,
     } = body as {
       messages: ApiMessage[];
       model: string;
@@ -39,6 +41,8 @@ export async function POST(req: Request) {
       systemPrompt?: string;
       temperature?: number;
       reasoningEnabled?: boolean;
+      chatId?: string;
+      assistantMessageId?: string;
     };
 
     if (!messages || !modelId || !provider) {
@@ -193,6 +197,9 @@ export async function POST(req: Request) {
 
     let result;
 
+    const userMessageId = messages.findLast((m) => m.role === "user")?.id;
+    const userId = req.headers.get("x-user-id") || "unknown";
+
     const credentials: ResolvedCredentials =
       container.get("providerResolver").resolve(modelId, provider, userRole)!;
 
@@ -202,8 +209,6 @@ export async function POST(req: Request) {
       const temperature = typeof rawTemperature === "number"
         ? rawTemperature
         : reasoningEnabled ? 0.6 : 0.7;
-      const localUserId = req.headers.get("x-user-id") || "unknown";
-      const localChatId = body.chatId as string | undefined;
 
       return createLocalLLMResponse({
         modelId,
@@ -215,7 +220,8 @@ export async function POST(req: Request) {
         abortSignal: req.signal,
         ...(credentials.baseURL ? { baseURL: credentials.baseURL } : {}),
         onFinish(usage) {
-          container.get("usageTracker").onChatFinish(localUserId, modelId, usage, localChatId)
+          container.get("usageTracker")
+            .onChatFinish({ userId, modelId, usage, chatId, userMessageId, assistantMessageId })
             .catch((err) => console.error("[usage-tracker] local chat finish error:", err));
         },
       });
@@ -229,8 +235,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const userId = req.headers.get("x-user-id") || "unknown";
-
     result = streamText({
       model,
       system,
@@ -239,12 +243,18 @@ export async function POST(req: Request) {
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       onFinish({ usage }) {
         if (usage) {
-          const chatId = body.chatId as string | undefined;
-          container.get("usageTracker").onChatFinish(userId, modelId, {
-            promptTokens: usage.inputTokens ?? 0,
-            completionTokens: usage.outputTokens ?? 0,
-            totalTokens: usage.totalTokens ?? 0,
-          }, chatId).catch((err) => console.error("[usage-tracker] chat finish error:", err));
+          container.get("usageTracker").onChatFinish({
+            userId,
+            modelId,
+            usage: {
+              promptTokens: usage.inputTokens ?? 0,
+              completionTokens: usage.outputTokens ?? 0,
+              totalTokens: usage.totalTokens ?? 0,
+            },
+            chatId,
+            userMessageId,
+            assistantMessageId,
+          }).catch((err) => console.error("[usage-tracker] chat finish error:", err));
         }
       },
     });

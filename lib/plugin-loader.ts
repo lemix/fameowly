@@ -2,7 +2,7 @@
  * Plugin loader — registers strategies in the DI container at startup.
  *
  * Resolution order:
- * 1. Register OSS defaults (VirtualProviderCredentialResolver, BaseModelFactory, NoopUsageTracker)
+ * 1. Register OSS defaults (VirtualProviderCredentialResolver, BaseModelFactory, ChatTotalsUsageTracker)
  * 2. If extension plugins are present and ENABLE_PLUGINS !== "false",
  *    load plugins — each calls container.register() to override.
  *
@@ -12,7 +12,7 @@
 import { container } from "./container";
 import { VirtualProviderCredentialResolver } from "./strategies/virtual-provider-credential-resolver";
 import { BaseModelFactory } from "./strategies/base-model-factory";
-import { NoopUsageTracker } from "./strategies/noop-usage-tracker";
+import { ChatTotalsUsageTracker } from "./strategies/chat-totals-usage-tracker";
 import { plugins as extensionPlugins } from "@plugins";
 
 let _initialized = false;
@@ -28,7 +28,7 @@ export function initializeContainer(): void {
   // OSS defaults — virtual provider resolver handles both VP + .env fallback
   container.register("providerResolver", new VirtualProviderCredentialResolver());
   container.register("modelFactory", new BaseModelFactory());
-  container.register("usageTracker", new NoopUsageTracker());
+  container.register("usageTracker", new ChatTotalsUsageTracker());
 
   // Extension plugins override via container.register()
   loadExtensionPlugins();

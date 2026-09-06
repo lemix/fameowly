@@ -7,6 +7,8 @@ interface PluginCapabilities {
   plugins: string[];
   /** Ids of UI slots filled by plugins */
   uiSlots: string[];
+  /** False until the capabilities request settles */
+  ready: boolean;
 }
 
 const cache: { value: PluginCapabilities | null; promise: Promise<PluginCapabilities> | null } = {
@@ -14,7 +16,7 @@ const cache: { value: PluginCapabilities | null; promise: Promise<PluginCapabili
   promise: null,
 };
 
-const EMPTY: PluginCapabilities = { hasPlugins: false, plugins: [], uiSlots: [] };
+const EMPTY: PluginCapabilities = { hasPlugins: false, plugins: [], uiSlots: [], ready: false };
 
 function fetchCapabilities(): Promise<PluginCapabilities> {
   if (cache.promise) return cache.promise;
@@ -25,11 +27,12 @@ function fetchCapabilities(): Promise<PluginCapabilities> {
         hasPlugins: data.hasPlugins ?? false,
         plugins: data.plugins ?? [],
         uiSlots: data.uiSlots ?? [],
+        ready: true,
       };
       cache.value = value;
       return value;
     })
-    .catch(() => EMPTY);
+    .catch(() => ({ ...EMPTY, ready: true }));
   return cache.promise;
 }
 

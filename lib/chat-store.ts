@@ -22,6 +22,17 @@ export interface ChatMessageData {
   createdAt: string;
 }
 
+export interface ChatUsageTotals {
+  /** Append-only: deleting messages never gives spent tokens back */
+  promptTokens: number;
+  completionTokens: number;
+  requests: number;
+  /** Last exact context size reported by the provider */
+  contextTokens: number;
+  /** Chat revision the context measurement was taken at */
+  contextRevision: number;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -31,6 +42,10 @@ export interface ChatSession {
   updatedAt: string;
   /** Updated only when messages change; used for sorting. Missing in old files — falls back to updatedAt. */
   lastMessageAt?: string;
+  /** Bumped only when messages are removed; missing in old files means 0 */
+  revision?: number;
+  /** Token aggregate; absent when a plugin owns the consumption journal */
+  usage?: ChatUsageTotals;
   messages: ChatMessageData[];
 }
 
@@ -126,6 +141,7 @@ export function createChat(
     createdAt: now,
     updatedAt: now,
     lastMessageAt: now,
+    revision: 0,
     messages: [],
   };
   const filePath = getChatFilePath(userId, chat.id);
@@ -149,6 +165,11 @@ export function updateChat(
 
   if (updates.title !== undefined) chat.title = updates.title;
   if (updates.messages !== undefined) {
+    // Appending leaves the context measurement valid; losing a message does not.
+    const nextIds = new Set(updates.messages.map((m) => m.id));
+    const removed = chat.messages.some((m) => !nextIds.has(m.id));
+    if (removed) chat.revision = (chat.revision ?? 0) + 1;
+
     chat.messages = updates.messages;
     // Only update lastMessageAt when messages change (not on rename/model change)
     chat.lastMessageAt = new Date().toISOString();
@@ -209,12 +230,42 @@ export function deleteMessage(
   const chat = getChat(userId, chatId);
   if (!chat) return null;
 
-  chat.messages = chat.messages.filter((m) => m.id !== messageId);
+  const remaining = chat.messages.filter((m) => m.id !== messageId);
+  if (remaining.length !== chat.messages.length) {
+    chat.revision = (chat.revision ?? 0) + 1;
+  }
+  chat.messages = remaining;
   chat.updatedAt = new Date().toISOString();
 
   const filePath = getChatFilePath(userId, chatId);
   fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
   return chat;
+}
+
+/**
+ * Add one request to the chat token aggregate.
+ * Totals only grow; the context measurement is overwritten and stamped with
+ * the revision it was taken at, so later deletions mark it as stale.
+ */
+export function recordChatUsage(
+  userId: string,
+  chatId: string,
+  usage: { promptTokens: number; completionTokens: number }
+): void {
+  const chat = getChat(userId, chatId);
+  if (!chat) return;
+
+  const totals = chat.usage;
+  chat.usage = {
+    promptTokens: (totals?.promptTokens ?? 0) + usage.promptTokens,
+    completionTokens: (totals?.completionTokens ?? 0) + usage.completionTokens,
+    requests: (totals?.requests ?? 0) + 1,
+    contextTokens: usage.promptTokens + usage.completionTokens,
+    contextRevision: chat.revision ?? 0,
+  };
+
+  const filePath = getChatFilePath(userId, chatId);
+  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
 }
 
 /** Delete a chat session */

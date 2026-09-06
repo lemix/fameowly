@@ -58,7 +58,9 @@ interface PluginSlotProps {
 }
 
 export function PluginSlot({ id, props, fallback = null }: PluginSlotProps) {
-  const { uiSlots } = usePluginCapabilities();
+  const { uiSlots, ready } = usePluginCapabilities();
+
+  if (!ready) return null;
 
   const Component = slotComponents[id];
   if (!Component || !uiSlots.includes(id)) return <>{fallback}</>;

@@ -2,6 +2,7 @@ import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
 import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
+import { ChatTokenBadge } from "./chat-token-badge";
 import { PluginSlot } from "@/lib/plugin-ui";
 
 interface AppHeaderProps {
@@ -78,7 +79,11 @@ export function AppHeader({
         )}
 
         {mode === "chat" && (
-          <PluginSlot id="chat-usage" props={{ chatId: chatId ?? null, status }} />
+          <PluginSlot
+            id="chat-usage"
+            props={{ chatId: chatId ?? null, status }}
+            fallback={<ChatTokenBadge chatId={chatId ?? null} status={status} />}
+          />
         )}
       </div>
 
