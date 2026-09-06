@@ -82,7 +82,6 @@ export function stripPricingForNonAdmin(
     delete clone.outputPricePer1M;
     delete clone.pricePerImage;
     delete clone.pricePer1MTokens;
-    delete clone.markup;
     return clone;
   };
   return {

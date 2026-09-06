@@ -24,10 +24,14 @@ const loaders: Record<string, Loader> = {
   "usage-page": () => import("@plugins/ext/billing/components/usage-page"),
   "user-usage": () => import("@plugins/ext/billing/components/user-usage-modal"),
   "chat-usage": () => import("@plugins/ext/billing/components/chat-usage-badge"),
+  "user-profile": () => import("@plugins/ext/billing/components/user-profile-cell"),
+  "user-filter": () => import("@plugins/ext/billing/components/user-filter"),
+  "rate-plans": () => import("@plugins/ext/billing/components/rate-plan-manager"),
+  "tags": () => import("@plugins/ext/billing/components/tag-manager"),
 };
 
 // Slots rendered inline next to other controls must not show a block placeholder.
-const INLINE_SLOTS = new Set(["chat-usage", "user-usage"]);
+const INLINE_SLOTS = new Set(["chat-usage", "user-usage", "user-profile", "user-filter"]);
 
 // Built once at module scope: dynamic() defers the actual import until render,
 // while keeping component identity stable across renders.
