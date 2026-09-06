@@ -14,6 +14,11 @@ export function useUserInfo() {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
+          return;
+        }
+        // Role or password changed — the token is valid but superseded
+        if (res.status === 401 && window.location.pathname !== "/login") {
+          window.location.href = "/login";
         }
       } catch {
         // silent — user stays null

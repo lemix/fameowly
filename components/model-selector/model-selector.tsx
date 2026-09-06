@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ChevronDown, AlertTriangle, Shield, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ModelOption, UserInfo } from "@/lib/types";
+import type { ModelOption } from "@/lib/types";
 import { TIER_LABELS, TIER_ORDER, TIER_ICONS } from "@/lib/models";
 import { ModelList, type ModelTab, type TierGroup } from "./model-list";
 import { ModelTabs } from "./model-tabs";
@@ -13,13 +13,7 @@ interface ModelSelectorProps {
   models: ModelOption[];
   selected: ModelOption;
   onChange: (model: ModelOption) => void;
-  user: UserInfo | null;
   modelUnavailable?: boolean;
-}
-
-function isFamilyUser(user: UserInfo | null): boolean {
-  if (!user) return true;
-  return user.role === "admin" || user.role === "family" || user.role === "user";
 }
 
 const CLOSE_DELAY = 220;
@@ -27,7 +21,7 @@ const EXIT_MS = 180;
 /** Hard cap for the scrollable area (≈7 items + headers). Content shorter than this auto-shrinks. */
 const SCROLL_MAX_H = 420;
 
-export function ModelSelector({ models, selected, onChange, user, modelUnavailable }: ModelSelectorProps) {
+export function ModelSelector({ models, selected, onChange, modelUnavailable }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [pick, setPick] = useState(selected.id);
@@ -114,12 +108,11 @@ export function ModelSelector({ models, selected, onChange, user, modelUnavailab
     return () => document.removeEventListener("mousedown", handler);
   }, [open, isMobile, close]);
 
-  const family = isFamilyUser(user);
   const handleSelect = useCallback((m: ModelOption) => { setPick(m.id); onChange(m); setTimeout(close, CLOSE_DELAY); }, [onChange, close]);
 
   const tabsUI = showTabs && <ModelTabs activeTab={activeTab} onTabChange={setActiveTab} />;
   const bannerUI = <ModelBanner activeTab={showTabs ? activeTab : null} />;
-  const listContent = <ModelList groups={groups} pick={pick} user={user} family={family} onSelect={handleSelect} />;
+  const listContent = <ModelList groups={groups} pick={pick} onSelect={handleSelect} />;
 
   return (
     <div ref={popoverRef} className="relative">

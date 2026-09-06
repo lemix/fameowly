@@ -1,5 +1,5 @@
 import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
-import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
+import type { ModelOption, Mode, ChatStatus } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
 import { ChatTokenBadge } from "./chat-token-badge";
@@ -16,7 +16,6 @@ interface AppHeaderProps {
   isLoading: boolean;
   status: ChatStatus;
   onToggleSidebar: () => void;
-  user: UserInfo | null;
   modelUnavailable?: boolean;
   themeMode: ThemeMode;
   onCycleTheme: () => void;
@@ -35,7 +34,7 @@ export function AppHeader({
   chatModels, imageModels,
   onModelChange, onImageModelChange,
   isLoading, status, onToggleSidebar,
-  user, modelUnavailable,
+  modelUnavailable,
   themeMode, onCycleTheme,
   chatId,
 }: AppHeaderProps) {
@@ -59,7 +58,6 @@ export function AppHeader({
           models={models}
           selected={activeModel}
           onChange={handleChange}
-          user={user}
           modelUnavailable={modelUnavailable}
         />
 

@@ -1,7 +1,6 @@
 import { streamText } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
-import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
 import type { ChatAttachment } from "@/lib/chat-store";
@@ -52,17 +51,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate model access for client-role users
+    // Model access is a plugin concern; the OSS policy grants everything.
     const userRole = req.headers.get("x-user-role") || "user";
-    if (userRole === "client") {
-      const { chatModels } = readModelsConfig();
-      const modelConfig = chatModels.find((m) => m.id === modelId);
-      if (!modelConfig || !modelConfig.availableForClients) {
-        return new Response(
-          JSON.stringify({ error: "Модель недоступна" }),
-          { status: 403, headers: { "Content-Type": "application/json" } }
-        );
-      }
+    const requestUserId = req.headers.get("x-user-id") || "unknown";
+    if (!container.get("modelAccessPolicy").canUse(requestUserId, modelId)) {
+      return new Response(
+        JSON.stringify({ error: "Модель недоступна" }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const system = systemPrompt || DEFAULT_SYSTEM_PROMPT;

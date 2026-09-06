@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 import type { PluginAdminTab } from "@/lib/types";
 import { PluginSlot } from "@/lib/plugin-ui";
+import { useUserInfo } from "@/hooks/use-user-info";
 
 interface UserRecord {
   id: string;
   name: string;
-  role: "admin" | "user" | "family" | "client";
+  role: "admin" | "user";
 }
 
 interface PluginStatus {
@@ -31,7 +32,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [newName, setNewName] = useState("");
   const [newPass, setNewPass] = useState("");
-  const [newRole, setNewRole] = useState<"user" | "admin" | "family" | "client">("user");
+  const [newRole, setNewRole] = useState<"user" | "admin">("user");
   const [resetId, setResetId] = useState<string | null>(null);
   const [resetPass, setResetPass] = useState("");
   const [usageUser, setUsageUser] = useState<UserRecord | null>(null);
@@ -39,6 +40,7 @@ export default function AdminPage() {
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("users");
   const [pluginStatus, setPluginStatus] = useState<PluginStatus | null>(null);
+  const currentUserId = useUserInfo()?.id;
   const router = useRouter();
 
   useEffect(() => {
@@ -106,6 +108,22 @@ export default function AdminPage() {
       return;
     }
     showMessage(`Пользователь "${name}" удалён`);
+    fetchUsers();
+  }
+
+  async function changeRole(u: UserRecord, role: UserRecord["role"]) {
+    if (role === u.role) return;
+    const res = await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: u.id, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showMessage(data.error, true);
+      return;
+    }
+    showMessage(`Роль «${u.name}» изменена, активные сессии сброшены`);
     fetchUsers();
   }
 
@@ -217,12 +235,10 @@ export default function AdminPage() {
             />
             <select
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value as "user" | "admin" | "family" | "client")}
+              onChange={(e) => setNewRole(e.target.value as "user" | "admin")}
               className="rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg outline-none focus:border-blue-500"
             >
               <option value="user">Пользователь</option>
-              <option value="family">Семья</option>
-              <option value="client">Клиент</option>
               <option value="admin">Админ</option>
             </select>
             <button
@@ -258,9 +274,16 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <span className="font-medium">{u.name}</span>
-                    <span className="ml-2 rounded bg-th-subtle px-2 py-0.5 text-xs text-th-fg-s">
-                      {{ admin: "Админ", user: "Пользователь", family: "Семья", client: "Клиент" }[u.role]}
-                    </span>
+                    <select
+                      value={u.role}
+                      onChange={(e) => changeRole(u, e.target.value as UserRecord["role"])}
+                      disabled={u.id === currentUserId}
+                      title={u.id === currentUserId ? "Свою роль менять нельзя" : "Роль"}
+                      className="ml-2 rounded bg-th-subtle px-2 py-0.5 text-xs text-th-fg-s outline-none disabled:opacity-60"
+                    >
+                      <option value="user">Пользователь</option>
+                      <option value="admin">Админ</option>
+                    </select>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

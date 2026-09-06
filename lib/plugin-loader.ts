@@ -13,6 +13,11 @@ import { container } from "./container";
 import { VirtualProviderCredentialResolver } from "./strategies/virtual-provider-credential-resolver";
 import { BaseModelFactory } from "./strategies/base-model-factory";
 import { ChatTotalsUsageTracker } from "./strategies/chat-totals-usage-tracker";
+import {
+  NoPricingPolicy,
+  OpenModelAccessPolicy,
+  NoopUserLifecycle,
+} from "./strategies/open-policies";
 import { plugins as extensionPlugins } from "@plugins";
 
 let _initialized = false;
@@ -29,6 +34,9 @@ export function initializeContainer(): void {
   container.register("providerResolver", new VirtualProviderCredentialResolver());
   container.register("modelFactory", new BaseModelFactory());
   container.register("usageTracker", new ChatTotalsUsageTracker());
+  container.register("pricingPolicy", new NoPricingPolicy());
+  container.register("modelAccessPolicy", new OpenModelAccessPolicy());
+  container.register("userLifecycle", new NoopUserLifecycle());
 
   // Extension plugins override via container.register()
   loadExtensionPlugins();

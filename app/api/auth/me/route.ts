@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession, findUserById } from "@/lib/auth";
+import { authorize } from "@/lib/auth";
 
 const COOKIE_NAME = "session";
 
-/** GET /api/auth/me — return current user info (id, name, role) */
+/** GET /api/auth/me — current user; 401 once the session is superseded */
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  if (!token) {
-    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
-  }
-
-  const session = await verifySession(token);
-  if (!session) {
-    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
-  }
-
-  const user = findUserById(session.userId);
+  const user = await authorize(request.cookies.get(COOKIE_NAME)?.value);
   if (!user) {
-    return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
   return NextResponse.json({

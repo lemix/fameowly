@@ -54,15 +54,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate model access for client-role users
-    const userRole = req.headers.get("x-user-role") || "user";
-    if (userRole === "client" && !modelInfo.availableForClients) {
-      return NextResponse.json(
-        { error: "Модель недоступна" },
-        { status: 403 }
-      );
-    }
-
     // Determine target resolution (longest side in px)
     const targetLongestSide =
       resolution === "4K" ? 4096 : resolution === "2K" ? 2048 : 0; // 0 = keep as-is
@@ -86,6 +77,15 @@ export async function POST(req: NextRequest) {
 
     // Resolve credentials via virtual providers / .env fallback
     initializeContainer();
+
+    const userRole = req.headers.get("x-user-role") || "user";
+    const userId = req.headers.get("x-user-id") || "unknown";
+    if (!container.get("modelAccessPolicy").canUse(userId, modelInfo.id)) {
+      return NextResponse.json(
+        { error: "Модель недоступна" },
+        { status: 403 }
+      );
+    }
 
     const credentials = container.get("providerResolver").resolve(modelId, modelInfo.provider, userRole)!;
 
