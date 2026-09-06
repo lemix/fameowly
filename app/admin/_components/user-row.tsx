@@ -44,9 +44,14 @@ export function UserRow({
           <div className="flex flex-wrap items-center gap-x-2 text-xs text-th-fg-m">
             <span className={isAdmin ? "text-amber-400" : undefined}>
               {ROLE_LABELS[user.role] ?? user.role}
-            </span>            <PluginSlot
+            </span>
+            <PluginSlot
               id="user-profile"
               props={{ userId: user.id, mode: "summary", version: profileVersion }}
+            />
+            <PluginSlot
+              id="user-month-usage"
+              props={{ userId: user.id, version: profileVersion }}
             />
           </div>
         </div>

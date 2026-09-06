@@ -32,6 +32,9 @@ export default function AdminPage() {
   const [status, setStatus] = useState<PluginStatus>(EMPTY_STATUS);
   const router = useRouter();
 
+  // Plugin tabs may render wide tables, the user list stays narrow
+  const widthCls = activeTab === "users" ? "max-w-2xl" : "max-w-5xl";
+
   useEffect(() => {
     let cancelled = false;
     fetch("/api/plugins/capabilities")
@@ -57,7 +60,7 @@ export default function AdminPage() {
         </h1>
       </header>
 
-      <div className="mx-auto w-full max-w-2xl px-6 pt-6">
+      <div className={`mx-auto w-full ${widthCls} px-6 pt-6`}>
         <div className="flex gap-1 rounded-lg bg-th-panel p-1">
           <button onClick={() => setActiveTab("users")} className={tabCls(activeTab === "users")}>
             <User className="h-4 w-4" />
@@ -76,7 +79,7 @@ export default function AdminPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-2xl px-6 py-8">
+        <div className={`mx-auto w-full ${widthCls} px-6 py-8`}>
           {activeTab === "users" ? (
             <UsersPanel hasUsageSlot={status.uiSlots.includes("user-usage")} />
           ) : (

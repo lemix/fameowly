@@ -9,10 +9,10 @@
 import type { TokenUsage } from "../types";
 
 export interface CostSnapshot {
-  /** Provider cost in USD, before markup */
-  baseCost: number;
-  /** Charged cost in USD */
-  cost: number;
+  /** Provider cost before markup, in integer micro-USD */
+  baseCostMicros: number;
+  /** Charged cost, in integer micro-USD */
+  costMicros: number;
   /** Multiplier applied to the provider cost */
   markup: number;
 }
