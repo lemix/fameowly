@@ -20,8 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@plugins": ["./premium/index.ts"],
-      "@plugins/ext/*": ["./premium/plugins/*", "./lib/plugin-stubs/*"]
+      "@plugins": ["./extensions/index.ts"],
+      "@plugins/ext/*": ["./extensions/plugins/*"]
     }
   },
   "include": [

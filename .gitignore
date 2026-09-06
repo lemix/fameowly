@@ -58,3 +58,8 @@ node_modules/
 
 # Local Vertex AI Service Account (do NOT commit)
 data/vertex-sa.json
+
+/internal-docs
+
+# generated plugin slot map
+/lib/generated

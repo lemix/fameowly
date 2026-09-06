@@ -24,7 +24,14 @@ export interface ServiceMap {
   userLifecycle: UserLifecycle;
 }
 
-class Container {
+/** Registry surface exposed to plugins during register() */
+export interface ServiceRegistry {
+  register<K extends keyof ServiceMap>(key: K, impl: ServiceMap[K]): void;
+  get<K extends keyof ServiceMap>(key: K): ServiceMap[K];
+  has<K extends keyof ServiceMap>(key: K): boolean;
+}
+
+class Container implements ServiceRegistry {
   private services = new Map<string, unknown>();
 
   register<K extends keyof ServiceMap>(key: K, impl: ServiceMap[K]): void {
