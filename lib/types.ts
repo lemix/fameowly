@@ -18,7 +18,7 @@ import type { UserRole } from "./auth";
 
 export type { UserRole } from "./auth";
 
-export type Mode = "chat" | "image";
+export type Mode = "chat" | "image" | "video";
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 /** Client-side user info (no password) */
@@ -127,7 +127,7 @@ export interface MessageData {
 
 // ─── Plugin system types ─────────────────────────────────────────────
 
-/** Token usage info passed to plugin hooks after generation */
+/** Token usage info reported to the UsageTracker after generation */
 export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
@@ -139,8 +139,6 @@ export interface PluginAdminTab {
   id: string;
   label: string;
   icon: string;
-  /** Path to component module, resolved via @plugins/ext/... */
-  componentPath: string;
 }
 
 /** API route handler signature */
@@ -156,49 +154,7 @@ export interface Plugin {
   name: string;
 
   /** Register plugin services into the DI container */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  register?: (container: any) => void;
-
-  /**
-   * Override credential resolution.
-   * Return null to fall through to next plugin or base resolver.
-   */
-  resolveCredentials?: (
-    modelId: string,
-    provider: string,
-    userRole: string,
-  ) => ResolvedCredentials | null;
-
-  /**
-   * Override model creation from credentials.
-   * Return undefined to fall through to base factory.
-   */
-  createProviderModel?: (
-    credentials: ResolvedCredentials,
-    modelId: string,
-  ) => unknown | undefined;
-
-  /** Called after chat stream completes */
-  onChatFinish?: (
-    userId: string,
-    modelId: string,
-    usage: TokenUsage,
-  ) => Promise<void>;
-
-  /** Called after image generation completes */
-  onImageFinish?: (
-    userId: string,
-    modelId: string,
-  ) => Promise<void>;
-
-  /**
-   * Middleware hook — called after JWT verification.
-   * Return a Response to short-circuit, or null to continue.
-   */
-  middleware?: (
-    req: import("next/server").NextRequest,
-    session: { userId: string; name: string; role: string },
-  ) => Promise<import("next/server").NextResponse | null> | import("next/server").NextResponse | null;
+  register?: (container: import("./container").ServiceRegistry) => void;
 
   /** Admin panel tabs this plugin provides */
   adminTabs?: PluginAdminTab[];

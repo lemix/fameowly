@@ -2,14 +2,13 @@ import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
 
 test.describe("Public assets accessible without auth", () => {
-  test("logo.png is served on login page (no redirect)", async ({ page }) => {
+  test("logo is served on login page (no redirect)", async ({ page }) => {
     // Go to login page (no auth)
     await page.goto("/login");
 
-    // logo.png should load successfully (not redirect to /login)
-    const response = await page.request.get("/logo.png");
+    const response = await page.request.get("/fameowly-light.svg");
     expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toContain("image");
+    expect(response.headers()["content-type"]).toContain("svg");
   });
 
   test("SVG assets are served without auth", async ({ page }) => {

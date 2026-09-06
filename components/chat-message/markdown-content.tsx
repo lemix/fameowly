@@ -71,7 +71,7 @@ export function MarkdownContent({ content }: { content: string }) {
         },
         blockquote({ children }) {
           return (
-            <blockquote className="my-3 border-l-3 border-blue-500/50 pl-4 text-th-fg-m italic">
+            <blockquote className="my-3 border-l-3 border-th-accent/50 pl-4 text-th-fg-m italic">
               {children}
             </blockquote>
           );

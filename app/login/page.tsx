@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [name, setName] = useState("");
@@ -44,11 +43,10 @@ export default function LoginPage() {
     <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-th-page via-th-panel to-th-page px-4">
       <div className="w-full max-w-sm rounded-2xl border border-th-border bg-th-panel/80 p-8 shadow-2xl backdrop-blur-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <Image src="/logo.png" alt="Fameowly" width={56} height={56} unoptimized className="select-none" draggable={false} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/fameowly.svg" alt="Fameowly" width={160} height={32} className="h-7 w-auto select-none dark:block hidden" draggable={false} />
+          <img src="/fameowly.svg" alt="Fameowly" width={343} height={71} className="hidden h-10 w-auto select-none dark:block" draggable={false} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/fameowly-light.svg" alt="Fameowly" width={160} height={32} className="h-7 w-auto select-none dark:hidden block" draggable={false} />
+          <img src="/fameowly-light.svg" alt="Fameowly" width={343} height={71} className="block h-10 w-auto select-none dark:hidden" draggable={false} />
           <p className="text-sm text-th-fg-m">Войдите в свой аккаунт</p>
         </div>
 
@@ -61,7 +59,7 @@ export default function LoginPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-th-accent focus:ring-2 focus:ring-th-accent-ring"
               placeholder="Ваше имя"
               required
               autoFocus
@@ -76,7 +74,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-th-border-s bg-th-input px-4 py-2.5 text-th-fg placeholder-th-fg-m outline-none transition focus:border-th-accent focus:ring-2 focus:ring-th-accent-ring"
               placeholder="••••••••"
               required
             />
@@ -91,7 +89,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-th-accent py-2.5 font-semibold text-white transition hover:bg-th-accent-muted disabled:opacity-50"
           >
             <LogIn className="h-4 w-4" />
             {loading ? "Вход..." : "Войти"}

@@ -41,7 +41,7 @@ export class ChatErrorBoundary extends React.Component<Props, State> {
           )}
           <button
             onClick={() => window.location.reload()}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-blue-500 min-h-[44px]"
+            className="flex items-center gap-2 rounded-xl bg-th-accent px-6 py-3 text-sm font-medium text-white transition hover:bg-th-accent-muted min-h-[44px]"
           >
             <RefreshCw className="h-4 w-4" />
             Перезагрузить страницу

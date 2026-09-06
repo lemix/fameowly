@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import type { ChatListItem } from "@/lib/types";
+import { useScrollRunway } from "@/hooks/use-scroll-runway";
 import { ChatItem } from "./chat-item";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -9,8 +9,8 @@ import { ChatItem } from "./chat-item";
 interface ChatListProps {
   chats: ChatListItem[];
   activeChatId: string | null;
+  searchQuery: string;
   onSelectChat: (chatId: string) => void;
-  onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
   onRenameChat: (chatId: string, title: string) => void;
 }
@@ -59,55 +59,51 @@ function groupChatsByDate(chats: ChatListItem[]): DateGroup[] {
 export function ChatList({
   chats,
   activeChatId,
+  searchQuery,
   onSelectChat,
-  onNewChat,
   onDeleteChat,
   onRenameChat,
 }: ChatListProps) {
-  const groups = groupChatsByDate(chats);
+  const query = searchQuery.trim().toLowerCase();
+  const filtered = query
+    ? chats.filter((c) => c.title.toLowerCase().includes(query))
+    : chats;
+  const groups = groupChatsByDate(filtered);
+  const { ref, runway } = useScrollRunway<HTMLDivElement>(filtered);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* New Chat Button */}
-      <div className="px-3 pt-3 pb-1">
-        <button
-          onClick={onNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-th-accent-bg border border-th-accent-ring px-4 py-3 text-sm font-medium text-th-accent transition-all hover:bg-th-accent-bg/80 active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
-          Новый чат
-        </button>
-      </div>
+    <div
+      ref={ref}
+      className="flex flex-1 flex-col overflow-y-auto px-[18px]"
+      style={{ paddingBottom: runway || 8 }}
+    >
+      {filtered.length === 0 && (
+        <p className="px-[10px] py-8 text-center text-sm text-th-fg-f">
+          {query ? "Ничего не найдено" : "Нет чатов. Начните новый!"}
+        </p>
+      )}
 
-      {/* Chat items grouped by date */}
-      <div className="flex-1 overflow-y-auto px-3 pb-2">
-        {chats.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-th-fg-f">
-            Нет чатов. Начните новый!
-          </p>
-        )}
-        {groups.map((group) => (
-          <div key={group.label}>
-            <div className="sticky top-0 z-10 bg-th-sidebar px-1 pb-1.5 pt-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-th-fg-f">
-                {group.label}
-              </p>
-            </div>
-            <div className="space-y-0.5">
-              {group.chats.map((chat) => (
-                <ChatItem
-                  key={chat.id}
-                  chat={chat}
-                  isActive={chat.id === activeChatId}
-                  onSelect={() => onSelectChat(chat.id)}
-                  onDelete={() => onDeleteChat(chat.id)}
-                  onRename={(title) => onRenameChat(chat.id, title)}
-                />
-              ))}
-            </div>
+      {groups.map((group) => (
+        <div key={group.label}>
+          {/* Top padding belongs to the header, not the container: `top-0` pins
+              to the padding box and would leave rows visible above it */}
+          <div className="sticky top-0 z-20 bg-th-sidebar pt-[20px] pb-[14px] pl-[10px]">
+            <p className="text-[16px] font-semibold leading-none text-th-fg">
+              {group.label}
+            </p>
           </div>
-        ))}
-      </div>
+          {group.chats.map((chat) => (
+            <ChatItem
+              key={chat.id}
+              chat={chat}
+              isActive={chat.id === activeChatId}
+              onSelect={() => onSelectChat(chat.id)}
+              onDelete={() => onDeleteChat(chat.id)}
+              onRename={(title) => onRenameChat(chat.id, title)}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

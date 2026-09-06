@@ -4,12 +4,13 @@
   "license": "BUSL-1.1",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/ensure-premium-stub.js",
+    "postinstall": "npm run prepare:plugins",
+    "prepare:plugins": "node scripts/ensure-plugin-stub.js && node scripts/generate-plugin-slots.js",
     "init:data": "node scripts/init-data-dir.js",
-    "dev": "next dev",
-    "dev:os": "node scripts/ensure-premium-stub.js && DATA_DIR=./data-oss node scripts/init-data-dir.js && ENABLE_PLUGINS=false DATA_DIR=./data-oss next dev -p 3010",
-    "build": "next build",
-    "build:os": "node scripts/ensure-premium-stub.js && ENABLE_PLUGINS=false next build",
+    "dev": "npm run prepare:plugins && next dev",
+    "dev:os": "ENABLE_PLUGINS=false npm run prepare:plugins && DATA_DIR=./data-oss node scripts/init-data-dir.js && ENABLE_PLUGINS=false DATA_DIR=./data-oss next dev -p 3010",
+    "build": "npm run prepare:plugins && next build",
+    "build:os": "ENABLE_PLUGINS=false npm run prepare:plugins && ENABLE_PLUGINS=false next build",
     "start": "next start",
     "start:os": "ENABLE_PLUGINS=false DATA_DIR=./data-oss next start -p 3010",
     "lint": "eslint"

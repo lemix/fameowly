@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, AlertTriangle } from "lucide-react";
+import { Database, AlertTriangle } from "lucide-react";
 import { useChatUsage } from "@/hooks/use-chat-usage";
 import type { ChatStatus } from "@/lib/types";
 import { Tooltip } from "./ui/tooltip";
@@ -25,7 +25,7 @@ function getContextLevel(tokens: number): "ok" | "warn" | "critical" {
 }
 
 const LEVEL_STYLES = {
-  ok: "bg-th-accent/10 text-th-accent",
+  ok: "bg-th-accent-bg text-th-accent",
   warn: "bg-amber-500/15 text-amber-500",
   critical: "bg-red-500/15 text-red-400",
 } as const;
@@ -75,10 +75,12 @@ export function ChatTokenBadge({ chatId, status }: ChatTokenBadgeProps) {
   return (
     <Tooltip content={tooltip}>
       <span
-        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium tabular-nums transition-colors ${LEVEL_STYLES[level]}`}
+        className={`inline-flex items-center gap-0.5 rounded-[20px] px-2.5 py-[5px] text-[12px] tabular-nums transition-colors ${LEVEL_STYLES[level]}`}
         data-testid="chat-token-badge"
       >
-        {level === "ok" ? <Coins className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+        {level === "ok"
+          ? <Database className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          : <AlertTriangle className="h-[18px] w-[18px]" strokeWidth={1.5} />}
         {approx}
         {formatTokens(usage.contextTokens > 0 ? usage.contextTokens : totalTokens)}
       </span>

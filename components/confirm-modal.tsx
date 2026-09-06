@@ -55,7 +55,7 @@ export function ConfirmModal({
         {/* Mobile drag handle */}
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-th-muted sm:hidden" />
         <div className="mb-3 flex items-start gap-3">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${variant === "danger" ? "bg-red-500/15" : "bg-blue-500/15"}`}>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${variant === "danger" ? "bg-red-500/15" : "bg-th-accent-bg"}`}>
             <XCircle className={`h-5 w-5 ${variant === "danger" ? "text-red-400" : "text-th-accent"}`} />
           </div>
           <div>
@@ -75,7 +75,7 @@ export function ConfirmModal({
             className={`rounded-lg px-4 py-2.5 text-xs font-medium text-white transition sm:py-2 ${
               variant === "danger"
                 ? "bg-red-600 hover:bg-red-500"
-                : "bg-blue-600 hover:bg-blue-500"
+                : "bg-th-accent hover:bg-th-accent-muted"
             }`}
           >
             {confirmLabel}

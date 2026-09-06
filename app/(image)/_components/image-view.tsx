@@ -44,7 +44,7 @@ export function ImageView({
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 md:px-4 md:py-8">
+      <div className="flex-1 overflow-y-auto px-3 pt-[71px] pb-4 md:px-4 md:pb-8">
         <div className="mx-auto w-full max-w-xl">
           {/* History view */}
           {selectedItem && selectedItem.imageUrl && (

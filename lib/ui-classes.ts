@@ -1,15 +1,15 @@
 /** Shared Tailwind class sets for form controls, cards and modals */
 
 export const inputCls =
-  "w-full rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg placeholder-th-fg-m outline-none focus:border-blue-500";
+  "w-full rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg placeholder-th-fg-m outline-none focus:border-th-accent";
 
 export const selectCls =
-  "w-full rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg outline-none focus:border-blue-500";
+  "w-full rounded-lg border border-th-border-s bg-th-input px-3 py-2 text-sm text-th-fg outline-none focus:border-th-accent";
 
 export const labelCls = "mb-1 block text-xs text-th-fg-m";
 
 export const btnPrimary =
-  "rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500";
+  "rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-th-accent-muted";
 
 export const btnGhost =
   "rounded-lg px-4 py-2 text-sm text-th-fg-s transition hover:bg-th-subtle";

@@ -34,12 +34,13 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   - page.tsx # Home page — mode orchestrator (chat/image)
   - (chat)/_components/ # Chat mode components
   - (image)/_components/ # Image generation mode components
+  - (video)/_components/ # Video mode components (placeholder, feature pending)
 - api/ # API routes (chat, image, upload, auth, etc.)
 - hooks/ # Custom React hooks (UI business logic)
 - components/ # Shared UI components (sidebar, chat-message, etc.)
 - lib/ # Server & shared utilities, types, domain logic
 - data/ # Runtime data (users.json, chats/, uploads/)
-- premium/ # Git submodule with premium plugins (providers, billing, etc.)
+- extensions/ # Git submodule with closed-source plugins (providers, billing, etc.)
 
 
 ## Key Technical Decisions
@@ -53,24 +54,78 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   before sending them to the LLM. The client does not send raw data.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
-- **Plugin System**: Premium features are implemented as plugins in `premium/` submodule.
-  Core routes (chat, image) try plugin hooks first, then fallback to base logic.
-  Admin UI dynamically loads plugin tabs from `/api/premium/status`.
+- **Plugin System**: optional features are implemented as plugins in the `extensions/` submodule.
+  Behaviour is overridden through the DI container; core routes resolve strategies
+  via `container.get(...)`. Admin UI loads plugin tabs from `/api/plugins/capabilities`.
 
 ## Plugin System
 
-- **PremiumPlugin Interface**: Plugins implement hooks: `resolveCredentials`, `createProviderModel`, 
-  `onChatFinish`, `onImageFinish`, `middleware`, `adminTabs`, `apiRoutes`.
-- **Adding New Plugins** (3 files to update):
-  1. Create folder `premium/plugins/{plugin}/`, implement `PremiumPlugin`, register in `premium/index.ts`.
-  2. Add OSS stub entry to `lib/plugin-stub-registry.js` (importPath + exportName).
-  3. Add static import line to the slot loader map in `lib/plugin-ui.tsx`.
-  4. Stubs in `lib/premium-stubs/` and generated `premium/` are created automatically by `scripts/ensure-premium-stub.js`.
-- **Plugin Bridge**: `lib/premium.ts` loads plugins from `@premium`, delegates calls.
-  When premium absent, uses `lib/premium-stub.ts` (empty plugins array).
-- **Stub Generation**: `scripts/ensure-premium-stub.js` runs via `postinstall` and before OSS builds.
-  Reads `lib/plugin-stub-registry.js` and creates `premium/` + `lib/premium-stubs/` fallback files.
-- **Build Modes**: `npm run build` (with premium), `npm run build:os` (open-source via `ENABLE_PREMIUM=false`).
+- **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`.
+  Behaviour changes go through `register(container)` — never through ad-hoc hooks.
+- **DI Container** (`lib/container.ts`): six strategy slots — `providerResolver`, `modelFactory`,
+  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`.
+  `lib/plugin-loader.ts` registers OSS defaults first; plugins override. Last register wins.
+- **Adding New Plugins** (no core files to edit):
+  1. Create folder `extensions/plugins/{plugin}/`, implement `Plugin`, register in `extensions/index.ts`.
+  2. Declare UI slots in `extensions/plugins/{plugin}/ui-slots.json`:
+     `{ "<slot-id>": { "component": "components/foo", "inline": false } }`.
+- **UI Slots**: `scripts/generate-plugin-slots.js` scans the manifests and emits
+  `lib/generated/plugin-slots.ts` (gitignored) with literal dynamic imports.
+  `PluginSlot` in `lib/plugin-ui.tsx` consumes that map and renders `fallback`
+  for slots no plugin fills. With `ENABLE_PLUGINS=false` the map is empty,
+  so plugin components are never bundled.
+- **Plugin Bridge**: `lib/plugins.ts` loads the registry from `@plugins` and exposes
+  `adminTabs` / `uiSlots` / `apiRoutes`. When the submodule is absent, `lib/plugin-stub.ts`
+  supplies an empty plugins array.
+- **Stub Generation**: `npm run prepare:plugins` (`postinstall` + before every dev/build)
+  runs `scripts/ensure-plugin-stub.js` and `scripts/generate-plugin-slots.js`.
+- **Build Modes**: `npm run build` (with plugins), `npm run build:os` (open-source via `ENABLE_PLUGINS=false`).
+
+## Documentation Is Part of the Change
+
+Documentation is not a follow-up task. A change that alters observable behaviour
+is **incomplete** until the docs are updated in the same turn. Never finish a
+task by saying docs will be updated later.
+
+When you touch the left column, update the right one:
+
+| Changed | Must update |
+|---|---|
+| Any signature in `lib/contracts/` | Extension-point table in both plugin docs |
+| `Plugin` / `PluginAdminTab` in `lib/types.ts` | Both plugin docs + `## Plugin System` above |
+| `ServiceMap` slots in `lib/container.ts` | Both plugin docs + `## Plugin System` above |
+| OSS defaults in `lib/strategies/` | "OSS default" column in both plugin docs |
+| `package.json` scripts | `## Commands` below, `README.md`, "Running it" in both plugin docs |
+| Folder layout or path aliases | `## Project Structure` above, both plugin docs |
+| New `getPluginRoute` delegator in `app/api/` | Delegated-path list in both plugin docs |
+| `ui-slots.json` schema or the slot generator | `## Plugin System` above, section 5 of both plugin docs |
+
+`internal-docs/plugin-development.md` (EN) and `internal-docs/plugin-development.ru.md`
+(RU) are translations of each other — **never update one without the other**.
+
+Verify claims before writing them down. Documentation asserting behaviour that
+the code does not have is worse than no documentation.
+
+## Breaking Change Protocol
+
+The plugin API is consumed by an out-of-tree submodule and, once published, by
+third-party developers. `tsc` cannot see those consumers, so **the compiler will
+not warn you**. Absence of type errors is not evidence that a change is safe.
+
+Before changing `lib/contracts/`, `ServiceMap`, `Plugin`, `PluginAdminTab`, the
+`ui-slots.json` schema, or a delegated API path:
+
+1. **Warn explicitly.** Open the reply with the contract name, the old shape and
+   the new shape. Do not bury it in a summary.
+2. **Show the blast radius.** Grep `extensions/` and list every consumer found,
+   including "none found" as an explicit result.
+3. **Ask before proceeding** when the change is not backwards compatible:
+   removing or renaming a member, narrowing a return type, changing a slot id.
+4. **Never silently delete** an interface member — report it as a breaking
+   change even when nothing in this repository currently uses it.
+
+Additive changes (a new optional field, a new container slot that ships an OSS
+default) are not breaking. Say so explicitly, so the distinction stays visible.
 
 ## Code Style
 
@@ -100,5 +155,9 @@ directory so they never corrupt premium data.
 | ISP           | Components receive only the props they need, not the full hook state                        |
 | DIP           | Hooks depend on abstractions (types in `lib/types.ts`), not concrete API endpoints          |
 | Max 200 lines | Hard limit. Violation = immediate decomposition                                             |
-| Plugin OCP    | New premium feature = new plugin in `premium/plugins/`, not edits to core routes            |
-| Plugin DIP    | Plugins depend on core abstractions, core routes try plugins first, then fallback          |
+| Plugin OCP    | New optional feature = new plugin in `extensions/plugins/`, not edits to core routes        |
+| Plugin DIP    | Plugins register strategies in the DI container; core depends on contracts, not on plugins  |
+| Docs sync     | Behaviour change without a doc update in the same turn = incomplete change                  |
+| Docs parity   | EN and RU plugin docs are updated together, never one alone                                 |
+| Contract warn | Touching `lib/contracts/`, `ServiceMap` or `Plugin` = explicit breaking-change warning first |
+| No silent API drops | Removing an interface member is reported even if nothing in this repo uses it          |

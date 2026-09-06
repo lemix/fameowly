@@ -29,9 +29,9 @@ export function ThemeLogo() {
     <img
       src={isDark ? "/fameowly.svg" : "/fameowly-light.svg"}
       alt="Fameowly"
-      width={140}
-      height={28}
-      className="h-6 w-auto select-none translate-y-0.5"
+      width={343}
+      height={71}
+      className="w-[146px] shrink-0 select-none"
       draggable={false}
     />
   );

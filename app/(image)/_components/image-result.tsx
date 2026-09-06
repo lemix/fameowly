@@ -41,7 +41,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
                     <img
                       src={ref.url}
                       alt={ref.name}
-                      className="h-12 w-12 rounded-lg object-cover border border-th-border-s transition group-hover/ref:border-blue-500 group-hover/ref:opacity-80"
+                      className="h-12 w-12 rounded-lg object-cover border border-th-border-s transition group-hover/ref:border-th-accent group-hover/ref:opacity-80"
                     />
                   </button>
                 ) : (
@@ -49,7 +49,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
                     key={i}
                     href={ref.url}
                     download={ref.name}
-                    className="flex items-center gap-1.5 rounded-lg border border-th-border-s bg-th-subtle/50 px-2.5 py-1.5 text-[11px] text-th-fg-m transition hover:border-blue-500 hover:text-th-accent"
+                    className="flex items-center gap-1.5 rounded-lg border border-th-border-s bg-th-subtle/50 px-2.5 py-1.5 text-[11px] text-th-fg-m transition hover:border-th-accent hover:text-th-accent"
                     title={`Скачать ${ref.name}`}
                   >
                     <Download className="h-3 w-3" />
@@ -113,7 +113,7 @@ export function ImageResult({ item, onPreview, onDelete, onNewGeneration }: Imag
       <div className="mt-6 flex flex-col items-center gap-3 text-center">
         <button
           onClick={onNewGeneration}
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500"
+          className="flex items-center gap-2 rounded-xl bg-th-accent px-5 py-2.5 text-sm font-medium text-white transition hover:bg-th-accent-muted"
         >
           <Sparkles className="h-4 w-4" />
           Создать новое изображение

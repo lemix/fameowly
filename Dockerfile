@@ -4,8 +4,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-COPY scripts/ensure-premium-stub.js ./scripts/ensure-premium-stub.js
-COPY lib/plugin-stub-registry.js ./lib/plugin-stub-registry.js
+COPY scripts/ensure-plugin-stub.js ./scripts/ensure-plugin-stub.js
+COPY scripts/generate-plugin-slots.js ./scripts/generate-plugin-slots.js
 RUN npm ci
 
 # ---- Stage 2: Build ----
