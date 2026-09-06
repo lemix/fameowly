@@ -1,26 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { authorize, authorizeAdmin } from "@/lib/auth";
+import { initializeContainer, container } from "@/lib/plugin-loader";
 import {
   readModelsConfig,
-  filterModelsForRole,
-  stripPricingForRole,
+  stripPricingForNonAdmin,
   saveModelsConfig,
 } from "@/lib/models.server";
 import type { ModelsConfig } from "@/lib/models";
 
-/** GET /api/models — return the current models config (from data/models.json) */
-export async function GET() {
-  const headersList = await headers();
-  const role = headersList.get("x-user-role");
-  const config = readModelsConfig();
-  const filtered = filterModelsForRole(config, role);
-  return NextResponse.json(stripPricingForRole(filtered, role));
+initializeContainer();
+
+const COOKIE_NAME = "session";
+
+/** GET /api/models — the catalogue this user may choose from */
+export async function GET(req: NextRequest) {
+  const user = await authorize(req.cookies.get(COOKIE_NAME)?.value);
+  if (!user) {
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  }
+
+  const config = container.get("modelAccessPolicy").filter(user.id, readModelsConfig());
+  return NextResponse.json(stripPricingForNonAdmin(config, user.role === "admin"));
 }
 
 /** PUT /api/models — overwrite models config (admin only) */
 export async function PUT(req: NextRequest) {
-  if (req.headers.get("x-user-role") !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await authorizeAdmin(req.cookies.get(COOKIE_NAME)?.value);
+  if (!admin) {
+    return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
   try {

@@ -2,11 +2,10 @@
 
 import { Coins, AlertTriangle } from "lucide-react";
 import { useChatUsage } from "@/hooks/use-chat-usage";
-import { formatCost } from "@/lib/pricing";
 import type { ChatStatus } from "@/lib/types";
 import { Tooltip } from "./ui/tooltip";
 
-interface ChatUsageBadgeProps {
+interface ChatTokenBadgeProps {
   chatId: string | null;
   /** Chat status — stats are refetched when a generation completes */
   status?: ChatStatus;
@@ -38,34 +37,37 @@ const LEVEL_HINTS = {
 } as const;
 
 /**
- * Compact context & cost indicator shown in the chat header.
- * Only renders when extension plugins are active and there's usage data.
- * Cost comes from stored per-request snapshots, so later price edits in the
- * admin panel never change an already billed chat.
+ * Context and token indicator in the chat header.
+ * Totals never shrink — deleting a message does not give spent tokens back —
+ * while the context size becomes approximate until the next reply.
  */
-export function ChatUsageBadge({ chatId, status }: ChatUsageBadgeProps) {
-  const { usage, hasPlugins } = useChatUsage(chatId, status);
+export function ChatTokenBadge({ chatId, status }: ChatTokenBadgeProps) {
+  const usage = useChatUsage(chatId, status);
 
-  if (!hasPlugins || usage.requestCount === 0) return null;
+  if (usage.requests === 0) return null;
 
-  const contextTokens = usage.lastContextTokens;
-  const level = getContextLevel(contextTokens);
+  const level = getContextLevel(usage.contextTokens);
   const hint = LEVEL_HINTS[level];
+  const approx = usage.contextStale ? "~" : "";
+  const totalTokens = usage.promptTokens + usage.completionTokens;
 
   const tooltip = (
     <span className="block space-y-1">
       <span className="block">
-        Контекст: <b>{contextTokens.toLocaleString("ru-RU")}</b> токенов
+        Контекст: <b>{approx}{usage.contextTokens.toLocaleString("ru-RU")}</b> токенов
       </span>
       <span className="block">
-        Всего обработано: <b>{usage.totalTokens.toLocaleString("ru-RU")}</b> токенов
+        Отправлено: <b>{usage.promptTokens.toLocaleString("ru-RU")}</b> · получено:{" "}
+        <b>{usage.completionTokens.toLocaleString("ru-RU")}</b>
       </span>
       <span className="block">
-        Запросов: <b>{usage.requestCount}</b>
+        Запросов: <b>{usage.requests}</b>
       </span>
-      <span className="block">
-        Стоимость чата: <b>{formatCost(usage.totalCost)}</b>
-      </span>
+      {usage.contextStale && (
+        <span className="block pt-1 text-th-fg-s">
+          Сообщения удалялись — размер контекста приблизительный до следующего ответа
+        </span>
+      )}
       {hint && <span className="block pt-1 text-th-fg-s">{hint}</span>}
     </span>
   );
@@ -74,13 +76,11 @@ export function ChatUsageBadge({ chatId, status }: ChatUsageBadgeProps) {
     <Tooltip content={tooltip}>
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium tabular-nums transition-colors ${LEVEL_STYLES[level]}`}
-        data-testid="chat-usage-badge"
+        data-testid="chat-token-badge"
       >
         {level === "ok" ? <Coins className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-        {formatTokens(contextTokens > 0 ? contextTokens : usage.totalTokens)}
-        {usage.totalCost > 0 && (
-          <span className="opacity-70">· {formatCost(usage.totalCost)}</span>
-        )}
+        {approx}
+        {formatTokens(usage.contextTokens > 0 ? usage.contextTokens : totalTokens)}
       </span>
     </Tooltip>
   );

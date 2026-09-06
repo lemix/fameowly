@@ -134,30 +134,6 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
-/** Single usage record persisted by the usage tracker */
-export interface UsageRecord {
-  id: string;
-  userId: string;
-  /** Chat ID this record belongs to (undefined for image) */
-  chatId?: string;
-  modelId: string;
-  modelName: string;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-  /** Price snapshot (USD per 1M tokens) taken when the request was made */
-  inputPricePer1M?: number;
-  outputPricePer1M?: number;
-  /** Commercial multiplier snapshot */
-  markup?: number;
-  /** Provider cost in USD before markup */
-  baseCost?: number;
-  /** Charged cost in USD; 0 when the model has no prices configured */
-  cost: number;
-  type: "chat" | "image";
-  createdAt: string;
-}
-
 /** Admin tab descriptor provided by a plugin */
 export interface PluginAdminTab {
   id: string;
@@ -226,6 +202,9 @@ export interface Plugin {
 
   /** Admin panel tabs this plugin provides */
   adminTabs?: PluginAdminTab[];
+
+  /** Ids of UI slots this plugin fills; see lib/plugin-ui.tsx */
+  uiSlots?: string[];
 
   /**
    * Additional API routes: key is sub-path (e.g. "providers"),

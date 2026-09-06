@@ -1,7 +1,6 @@
 import { streamText } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
-import { readModelsConfig } from "@/lib/models.server";
 import { resizeBase64Image } from "@/lib/image-resize";
 import { resolveFileUrl } from "@/lib/file-storage";
 import type { ChatAttachment } from "@/lib/chat-store";
@@ -32,6 +31,8 @@ export async function POST(req: Request) {
       systemPrompt,
       temperature: rawTemperature,
       reasoningEnabled: rawReasoningEnabled,
+      chatId,
+      assistantMessageId,
     } = body as {
       messages: ApiMessage[];
       model: string;
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
       systemPrompt?: string;
       temperature?: number;
       reasoningEnabled?: boolean;
+      chatId?: string;
+      assistantMessageId?: string;
     };
 
     if (!messages || !modelId || !provider) {
@@ -48,17 +51,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate model access for client-role users
+    // Model access is a plugin concern; the OSS policy grants everything.
     const userRole = req.headers.get("x-user-role") || "user";
-    if (userRole === "client") {
-      const { chatModels } = readModelsConfig();
-      const modelConfig = chatModels.find((m) => m.id === modelId);
-      if (!modelConfig || !modelConfig.availableForClients) {
-        return new Response(
-          JSON.stringify({ error: "Модель недоступна" }),
-          { status: 403, headers: { "Content-Type": "application/json" } }
-        );
-      }
+    const requestUserId = req.headers.get("x-user-id") || "unknown";
+    if (!container.get("modelAccessPolicy").canUse(requestUserId, modelId)) {
+      return new Response(
+        JSON.stringify({ error: "Модель недоступна" }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const system = systemPrompt || DEFAULT_SYSTEM_PROMPT;
@@ -193,6 +193,9 @@ export async function POST(req: Request) {
 
     let result;
 
+    const userMessageId = messages.findLast((m) => m.role === "user")?.id;
+    const userId = req.headers.get("x-user-id") || "unknown";
+
     const credentials: ResolvedCredentials =
       container.get("providerResolver").resolve(modelId, provider, userRole)!;
 
@@ -202,8 +205,6 @@ export async function POST(req: Request) {
       const temperature = typeof rawTemperature === "number"
         ? rawTemperature
         : reasoningEnabled ? 0.6 : 0.7;
-      const localUserId = req.headers.get("x-user-id") || "unknown";
-      const localChatId = body.chatId as string | undefined;
 
       return createLocalLLMResponse({
         modelId,
@@ -215,7 +216,8 @@ export async function POST(req: Request) {
         abortSignal: req.signal,
         ...(credentials.baseURL ? { baseURL: credentials.baseURL } : {}),
         onFinish(usage) {
-          container.get("usageTracker").onChatFinish(localUserId, modelId, usage, localChatId)
+          container.get("usageTracker")
+            .onChatFinish({ userId, modelId, usage, chatId, userMessageId, assistantMessageId })
             .catch((err) => console.error("[usage-tracker] local chat finish error:", err));
         },
       });
@@ -229,8 +231,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const userId = req.headers.get("x-user-id") || "unknown";
-
     result = streamText({
       model,
       system,
@@ -239,12 +239,18 @@ export async function POST(req: Request) {
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       onFinish({ usage }) {
         if (usage) {
-          const chatId = body.chatId as string | undefined;
-          container.get("usageTracker").onChatFinish(userId, modelId, {
-            promptTokens: usage.inputTokens ?? 0,
-            completionTokens: usage.outputTokens ?? 0,
-            totalTokens: usage.totalTokens ?? 0,
-          }, chatId).catch((err) => console.error("[usage-tracker] chat finish error:", err));
+          container.get("usageTracker").onChatFinish({
+            userId,
+            modelId,
+            usage: {
+              promptTokens: usage.inputTokens ?? 0,
+              completionTokens: usage.outputTokens ?? 0,
+              totalTokens: usage.totalTokens ?? 0,
+            },
+            chatId,
+            userMessageId,
+            assistantMessageId,
+          }).catch((err) => console.error("[usage-tracker] chat finish error:", err));
         }
       },
     });

@@ -1,32 +1,22 @@
-import { Coins, Gift } from "lucide-react";
+import { Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ModelOption, UserInfo } from "@/lib/types";
+import type { ModelOption } from "@/lib/types";
 
 interface PriceBadgeProps {
   model: ModelOption;
-  user: UserInfo | null;
-  family: boolean;
 }
 
-export function PriceBadge({ model, user, family }: PriceBadgeProps) {
-  if (!user) return null;
-
-  const cfg =
-    family && model.isLocal
-      ? { icon: Gift, text: "Бесплатно", color: "text-emerald-500", tid: "badge-free" }
-      : user.role === "client" && model.clientPrice != null
-        ? { icon: Coins, text: `${model.clientPrice} 🪙`, color: "text-amber-400", tid: "badge-price" }
-        : family && model.tier === "ultra" && (model.clientPrice ?? 0) > 5
-          ? { icon: Coins, text: "Дорого", color: "text-orange-500", tid: "badge-expensive" }
-          : null;
-
-  if (!cfg) return null;
-  const Icon = cfg.icon;
+/** Marks models that cost nothing to run. Money itself is a plugin concern. */
+export function PriceBadge({ model }: PriceBadgeProps) {
+  if (!model.isLocal) return null;
 
   return (
-    <span className={cn("flex items-center gap-1 shrink-0", cfg.color)} data-testid={cfg.tid}>
-      <Icon className="h-3.5 w-3.5" />
-      <span className="text-xs hidden sm:inline">{cfg.text}</span>
+    <span
+      className={cn("flex items-center gap-1 shrink-0 text-emerald-500")}
+      data-testid="badge-free"
+    >
+      <Gift className="h-3.5 w-3.5" />
+      <span className="text-xs hidden sm:inline">Бесплатно</span>
     </span>
   );
 }

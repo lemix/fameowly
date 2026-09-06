@@ -6,12 +6,22 @@
  * Last register() wins — extension plugins override OSS defaults.
  */
 
-import type { ProviderResolver, ModelFactory, UsageTracker } from "./contracts";
+import type {
+  ProviderResolver,
+  ModelFactory,
+  UsageTracker,
+  PricingPolicy,
+  ModelAccessPolicy,
+  UserLifecycle,
+} from "./contracts";
 
 export interface ServiceMap {
   providerResolver: ProviderResolver;
   modelFactory: ModelFactory;
   usageTracker: UsageTracker;
+  pricingPolicy: PricingPolicy;
+  modelAccessPolicy: ModelAccessPolicy;
+  userLifecycle: UserLifecycle;
 }
 
 class Container {

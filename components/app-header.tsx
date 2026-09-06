@@ -1,8 +1,9 @@
 import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
-import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
+import type { ModelOption, Mode, ChatStatus } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
-import { ChatUsageBadge } from "./chat-usage-badge";
+import { ChatTokenBadge } from "./chat-token-badge";
+import { PluginSlot } from "@/lib/plugin-ui";
 
 interface AppHeaderProps {
   mode: Mode;
@@ -15,7 +16,6 @@ interface AppHeaderProps {
   isLoading: boolean;
   status: ChatStatus;
   onToggleSidebar: () => void;
-  user: UserInfo | null;
   modelUnavailable?: boolean;
   themeMode: ThemeMode;
   onCycleTheme: () => void;
@@ -34,7 +34,7 @@ export function AppHeader({
   chatModels, imageModels,
   onModelChange, onImageModelChange,
   isLoading, status, onToggleSidebar,
-  user, modelUnavailable,
+  modelUnavailable,
   themeMode, onCycleTheme,
   chatId,
 }: AppHeaderProps) {
@@ -58,7 +58,6 @@ export function AppHeader({
           models={models}
           selected={activeModel}
           onChange={handleChange}
-          user={user}
           modelUnavailable={modelUnavailable}
         />
 
@@ -77,7 +76,13 @@ export function AppHeader({
           </span>
         )}
 
-        {mode === "chat" && <ChatUsageBadge chatId={chatId ?? null} status={status} />}
+        {mode === "chat" && (
+          <PluginSlot
+            id="chat-usage"
+            props={{ chatId: chatId ?? null, status }}
+            fallback={<ChatTokenBadge chatId={chatId ?? null} status={status} />}
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-1">

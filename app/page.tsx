@@ -8,7 +8,6 @@ import { ChatView } from "@/app/(chat)/_components/chat-view";
 import { ImageView } from "@/app/(image)/_components/image-view";
 import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { usePageState } from "@/hooks/use-page-state";
-import { useUserInfo } from "@/hooks/use-user-info";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -24,7 +23,6 @@ export default function ChatPageWrapper() {
 
 function ChatPage() {
   const s = usePageState();
-  const user = useUserInfo();
   const { viewportHeight, isKeyboardOpen } = useVisualViewport();
   const { mode: themeMode, cycleTheme } = useTheme();
 
@@ -67,7 +65,6 @@ function ChatPage() {
           isLoading={s.isLoading}
           status={s.status}
           onToggleSidebar={() => s.setSidebarOpen(!s.sidebarOpen)}
-          user={user}
           modelUnavailable={s.modelUnavailable}
           themeMode={themeMode}
           onCycleTheme={cycleTheme}

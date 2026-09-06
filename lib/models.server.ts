@@ -15,7 +15,6 @@ const MODELS_JSON_PATH = path.join(DATA_DIR, "models.json");
  * - `isLocal` defaults to `true` when provider is "local", `false` otherwise
  * - `supportsReasoning` / `supportsTemperature` default to `false`
  * - legacy `pricePer1MTokens` becomes both input and output price
- * - legacy `clientPrice` presence becomes `availableForClients`
  */
 function normalizeModel(raw: ModelOption): ModelOption {
   const legacyPrice = raw.pricePer1MTokens;
@@ -26,7 +25,6 @@ function normalizeModel(raw: ModelOption): ModelOption {
     supportsTemperature: raw.supportsTemperature ?? false,
     inputPricePer1M: raw.inputPricePer1M ?? legacyPrice,
     outputPricePer1M: raw.outputPricePer1M ?? legacyPrice,
-    availableForClients: raw.availableForClients ?? raw.clientPrice != null,
   };
 }
 
@@ -72,34 +70,18 @@ export function saveModelsConfig(config: ModelsConfig): void {
   fs.writeFileSync(MODELS_JSON_PATH, JSON.stringify(config, null, 2));
 }
 
-/**
- * Filter models based on user role.
- * Client-role users only see models flagged as available to clients.
- */
-export function filterModelsForRole(
-  config: ModelsConfig,
-  role: string | null,
-): ModelsConfig {
-  if (role !== "client") return config;
-  return {
-    chatModels: config.chatModels.filter((m) => m.availableForClients),
-    imageModels: config.imageModels.filter((m) => m.availableForClients),
-  };
-}
-
 /** Strip internal cost fields — only admins may see them */
-export function stripPricingForRole(
+export function stripPricingForNonAdmin(
   config: ModelsConfig,
-  role: string | null,
+  isAdmin: boolean,
 ): ModelsConfig {
-  if (role === "admin") return config;
+  if (isAdmin) return config;
   const strip = (m: ModelOption): ModelOption => {
     const clone: ModelOption = { ...m };
     delete clone.inputPricePer1M;
     delete clone.outputPricePer1M;
     delete clone.pricePerImage;
     delete clone.pricePer1MTokens;
-    delete clone.markup;
     return clone;
   };
   return {

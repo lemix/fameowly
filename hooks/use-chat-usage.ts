@@ -2,36 +2,41 @@
 
 import { useState, useEffect } from "react";
 import type { ChatStatus } from "@/lib/types";
-import { usePluginCapabilities } from "./use-plugin-capabilities";
 
-interface ChatUsage {
-  totalTokens: number;
-  totalCost: number;
-  requestCount: number;
-  /** Last request's prompt tokens = approximate current context size */
-  lastContextTokens: number;
+export interface ChatTokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  requests: number;
+  /** Last measured context size */
+  contextTokens: number;
+  /** Messages were deleted since the measurement, so the size is approximate */
+  contextStale: boolean;
 }
 
-const EMPTY: ChatUsage = { totalTokens: 0, totalCost: 0, requestCount: 0, lastContextTokens: 0 };
+const EMPTY: ChatTokenUsage = {
+  promptTokens: 0,
+  completionTokens: 0,
+  requests: 0,
+  contextTokens: 0,
+  contextStale: false,
+};
 
 /**
- * Fetch aggregated token usage for a specific chat.
- * Returns zeros when plugins are not active or chatId is null.
- * Pass the chat `status`: the record is written server-side when the stream
- * finishes, so stats are refetched on every busy → idle transition.
+ * Token aggregate of one chat.
+ * The aggregate is written server-side when a stream finishes, so it is
+ * refetched on every busy → idle transition.
  */
-export function useChatUsage(chatId: string | null, status?: ChatStatus) {
-  const { hasPlugins } = usePluginCapabilities();
-  const [loaded, setLoaded] = useState<{ chatId: string; usage: ChatUsage } | null>(null);
+export function useChatUsage(chatId: string | null, status?: ChatStatus): ChatTokenUsage {
+  const [loaded, setLoaded] = useState<{ chatId: string; usage: ChatTokenUsage } | null>(null);
   const busy = status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    if (!hasPlugins || !chatId || busy) return;
+    if (!chatId || busy) return;
 
     let cancelled = false;
-    fetch(`/api/usage/chat?chatId=${encodeURIComponent(chatId)}`)
+    fetch(`/api/chats/usage?chatId=${encodeURIComponent(chatId)}`)
       .then((r) => (r.ok ? r.json() : EMPTY))
-      .then((usage: ChatUsage) => {
+      .then((usage: ChatTokenUsage) => {
         if (!cancelled) setLoaded({ chatId, usage });
       })
       .catch(() => {
@@ -39,10 +44,8 @@ export function useChatUsage(chatId: string | null, status?: ChatStatus) {
       });
 
     return () => { cancelled = true; };
-  }, [hasPlugins, chatId, busy]);
+  }, [chatId, busy]);
 
   // Ignore data belonging to a previously opened chat
-  const usage = loaded && loaded.chatId === chatId ? loaded.usage : EMPTY;
-
-  return { usage, hasPlugins };
+  return loaded && loaded.chatId === chatId ? loaded.usage : EMPTY;
 }

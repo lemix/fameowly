@@ -64,7 +64,7 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - **Adding New Plugins** (3 files to update):
   1. Create folder `premium/plugins/{plugin}/`, implement `PremiumPlugin`, register in `premium/index.ts`.
   2. Add OSS stub entry to `lib/plugin-stub-registry.js` (importPath + exportName).
-  3. Add static import line to admin page loader map in `app/admin/page.tsx`.
+  3. Add static import line to the slot loader map in `lib/plugin-ui.tsx`.
   4. Stubs in `lib/premium-stubs/` and generated `premium/` are created automatically by `scripts/ensure-premium-stub.js`.
 - **Plugin Bridge**: `lib/premium.ts` loads plugins from `@premium`, delegates calls.
   When premium absent, uses `lib/premium-stub.ts` (empty plugins array).

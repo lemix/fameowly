@@ -1,6 +1,6 @@
 import { Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ModelOption, ModelTier, UserInfo } from "@/lib/types";
+import type { ModelOption, ModelTier } from "@/lib/types";
 import { PriceBadge } from "./price-badge";
 
 export type ModelTab = "world" | "local";
@@ -15,12 +15,10 @@ export interface TierGroup {
 interface ModelListProps {
   groups: TierGroup[];
   pick: string;
-  user: UserInfo | null;
-  family: boolean;
   onSelect: (model: ModelOption) => void;
 }
 
-export function ModelList({ groups, pick, user, family, onSelect }: ModelListProps) {
+export function ModelList({ groups, pick, onSelect }: ModelListProps) {
   return (
     <div className="px-3 pb-2" data-testid="model-list">
       {groups.map((group, gi) => (
@@ -52,7 +50,7 @@ export function ModelList({ groups, pick, user, family, onSelect }: ModelListPro
                 <span className="flex-1 min-w-0 text-sm font-semibold text-th-fg truncate">
                   {model.name}
                 </span>
-                <PriceBadge model={model} user={user} family={family} />
+                <PriceBadge model={model} />
                 {isActive && (
                   <Check className="h-4 w-4 shrink-0 text-th-accent" data-testid="model-check-icon" />
                 )}
