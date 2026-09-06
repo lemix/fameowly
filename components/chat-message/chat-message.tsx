@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, memo } from "react";
-import { Bot, User, ChevronDown, Brain, XCircle, Loader2 } from "lucide-react";
+import { ChevronDown, Brain, XCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MessageData } from "@/lib/types";
 import { MarkdownContent } from "./markdown-content";
@@ -42,15 +42,8 @@ export const ChatMessage = memo(function ChatMessage({
   const isUser = m.role === "user";
 
   return (
-    <div className={cn("group/msg mb-4 flex gap-3", isUser ? "justify-end" : "justify-start")}>
-      {/* Assistant avatar */}
-      {!isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-th-accent-bg mt-0.5">
-          <Bot className="h-3.5 w-3.5 text-th-accent" />
-        </div>
-      )}
-
-      <div className={cn("flex flex-col gap-1.5 min-w-0", isUser ? "items-end max-w-[85%] lg:max-w-[80%]" : "items-start max-w-[95%] lg:max-w-full")}>
+    <div className={cn("group/msg mb-6 flex", isUser ? "justify-end" : "justify-start")}>
+      <div className={cn("flex min-w-0 flex-col gap-2.5", isUser ? "max-w-[85%] items-end lg:max-w-[70%]" : "w-full items-start")}>
         {/* Attachments */}
         {m.attachments && m.attachments.length > 0 && (
           <AttachmentPreview attachments={m.attachments} />
@@ -100,14 +93,14 @@ export const ChatMessage = memo(function ChatMessage({
           </div>
         )}
 
-        {/* Message bubble */}
+        {/* Content — user text sits in a bubble, assistant answers run plain on the page */}
         <div className={cn(
-          "relative rounded-2xl px-4 py-2.5 text-sm max-w-full overflow-hidden",
-          isUser ? "bg-blue-600 text-white" : "bg-th-panel text-th-fg-s border border-th-border/60"
+          "relative max-w-full overflow-hidden text-sm leading-[21px]",
+          isUser ? "rounded-[10px] bg-th-bubble px-5 py-5 text-th-fg" : "w-full text-th-fg"
         )}>
           {!isUser ? (
             m.content ? (
-              <div className="prose prose-sm max-w-none leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5">
+              <div className="prose prose-sm max-w-none leading-[21px] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5">
                 <MarkdownContent content={m.content} />
               </div>
             ) : (isLoading || isStreaming) ? (
@@ -116,10 +109,10 @@ export const ChatMessage = memo(function ChatMessage({
                 <span>{isReasoning ? "Ожидание ответа..." : "Генерация ответа..."}</span>
               </div>
             ) : m.error ? null : (
-              <div className="text-th-fg-f italic text-xs">Пустой ответ</div>
+              <div className="text-xs italic text-th-fg-f">Пустой ответ</div>
             )
           ) : (
-            <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+            <p className="whitespace-pre-wrap">{m.content}</p>
           )}
         </div>
 
@@ -133,13 +126,6 @@ export const ChatMessage = memo(function ChatMessage({
           <MessageActions role="user" content={m.content} messageId={m.id} onDelete={onDelete} />
         )}
       </div>
-
-      {/* User avatar */}
-      {isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-th-subtle mt-0.5">
-          <User className="h-3.5 w-3.5 text-th-fg-s" />
-        </div>
-      )}
     </div>
   );
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { ChevronDown, AlertTriangle, Shield, X, Sparkles } from "lucide-react";
+import { AlertTriangle, Shield, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ModelOption } from "@/lib/types";
 import { TIER_LABELS, TIER_ORDER, TIER_ICONS } from "@/lib/models";
@@ -119,20 +119,26 @@ export function ModelSelector({ models, selected, onChange, modelUnavailable }: 
       <button
         onClick={() => { if (locked.current) return; open ? close() : setOpen(true); }}
         className={cn(
-          "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition min-h-[40px] w-[200px] max-w-full outline-none",
-          modelUnavailable ? "bg-red-500/10 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20" : "bg-th-panel/50 border border-th-border/20 text-th-fg-s hover:bg-th-panel hover:text-th-fg shadow-sm cursor-pointer",
+          "flex min-w-0 items-center gap-2 rounded-lg text-[16px] leading-none outline-none transition",
+          modelUnavailable ? "text-th-red hover:opacity-80" : "text-th-fg hover:text-th-accent cursor-pointer",
         )}
         data-testid="model-selector-trigger"
       >
         {modelUnavailable ? (
-          <><AlertTriangle className="h-4 w-4 shrink-0" /><span className="truncate font-medium">Модель недоступна</span></>
+          <><AlertTriangle className="h-4 w-4 shrink-0" /><span className="truncate">Модель недоступна</span></>
         ) : (
           <>
-            {selected.isLocal ? <Shield className="h-4 w-4 shrink-0 text-emerald-500" /> : <Sparkles className="h-4 w-4 shrink-0 text-th-fg-m" />}
-            <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">{selected.name}</span>
+            {selected.isLocal && <Shield className="h-4 w-4 shrink-0 text-emerald-500" />}
+            <span className="truncate max-w-[140px] sm:max-w-[240px]">{selected.name}</span>
           </>
         )}
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-th-fg-f transition-transform ml-auto", open && "rotate-180")} />
+        <svg
+          viewBox="0 0 14 7"
+          aria-hidden
+          className={cn("h-[7px] w-[14px] shrink-0 fill-current transition-transform", open && "rotate-180")}
+        >
+          <path d="M7 6.6 0 0h14z" />
+        </svg>
       </button>
 
       {open && !isMobile && (

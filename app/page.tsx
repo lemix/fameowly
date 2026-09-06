@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar/sidebar";
 import { AppHeader } from "@/components/app-header";
 import { ChatView } from "@/app/(chat)/_components/chat-view";
 import { ImageView } from "@/app/(image)/_components/image-view";
+import { VideoView } from "@/app/(video)/_components/video-view";
 import { ChatErrorBoundary } from "@/components/chat-error-boundary";
 import { usePageState } from "@/hooks/use-page-state";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
@@ -53,7 +54,7 @@ function ChatPage() {
         onNewImageGeneration={s.handleNewImageGeneration}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="relative flex flex-1 flex-col overflow-hidden">
         <AppHeader
           mode={s.mode}
           selectedModel={s.selectedModel}
@@ -133,6 +134,8 @@ function ChatPage() {
               onConfirmDeleteChange={s.setConfirmDeleteImageId}
             />
           )}
+
+          {s.mode === "video" && <VideoView />}
         </ChatErrorBoundary>
       </main>
     </div>

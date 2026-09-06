@@ -18,7 +18,7 @@ import type { UserRole } from "./auth";
 
 export type { UserRole } from "./auth";
 
-export type Mode = "chat" | "image";
+export type Mode = "chat" | "image" | "video";
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 /** Client-side user info (no password) */

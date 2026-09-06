@@ -34,6 +34,7 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   - page.tsx # Home page — mode orchestrator (chat/image)
   - (chat)/_components/ # Chat mode components
   - (image)/_components/ # Image generation mode components
+  - (video)/_components/ # Video mode components (placeholder, feature pending)
 - api/ # API routes (chat, image, upload, auth, etc.)
 - hooks/ # Custom React hooks (UI business logic)
 - components/ # Shared UI components (sidebar, chat-message, etc.)

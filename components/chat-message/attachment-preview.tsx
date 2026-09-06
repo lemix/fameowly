@@ -25,14 +25,14 @@ export function AttachmentPreview({ attachments }: { attachments: ChatAttachment
                 <img
                   src={att.url}
                   alt={att.name}
-                  className="h-20 w-20 rounded-lg object-cover border border-th-border-s transition group-hover/att:border-blue-500 group-hover/att:opacity-80"
+                  className="h-20 w-20 rounded-lg object-cover border border-th-border-s transition group-hover/att:border-th-accent group-hover/att:opacity-80"
                 />
               </button>
             ) : (
               <a
                 href={att.url}
                 download={att.name}
-                className="flex items-center gap-2 rounded-lg border border-th-border-s bg-th-subtle/50 px-3 py-2 text-xs text-th-fg-s transition hover:border-blue-500 hover:text-th-accent"
+                className="flex items-center gap-2 rounded-lg border border-th-border-s bg-th-subtle/50 px-3 py-2 text-xs text-th-fg-s transition hover:border-th-accent hover:text-th-accent"
                 title={`Скачать ${att.name}`}
               >
                 <Download className="h-3.5 w-3.5" />

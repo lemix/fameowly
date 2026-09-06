@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import { ChevronUp } from "lucide-react";
 import { SYSTEM_PROMPT_PRESETS } from "@/lib/constants/system-prompts";
-import type { MessageData, ChatStatus, PendingAttachment, SystemPromptPreset } from "@/lib/types";
+import type { MessageData, ChatStatus, PendingAttachment } from "@/lib/types";
 import { ChatMessage } from "@/components/chat-message/chat-message";
 import { ChatEmptyState } from "./chat-empty-state";
 import { SystemPromptDisplay } from "./system-prompt-display";
@@ -107,7 +107,7 @@ export function ChatView({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="chat-scroll flex-1 overflow-y-auto px-3 py-4 md:px-4"
+        className="chat-scroll flex-1 overflow-y-auto px-3 pt-[71px] pb-4 md:px-4"
       >
         <div className="flex min-h-full flex-col">
         {messages.length === 0 && !error && (

@@ -22,7 +22,7 @@ export function ModelBanner({ activeTab }: ModelBannerProps) {
   if (activeTab === "world") {
     return (
       <div
-        className="mx-3 mt-2 mb-2 flex items-start gap-2 rounded-lg bg-blue-500/10 px-3 py-2"
+        className="mx-3 mt-2 mb-2 flex items-start gap-2 rounded-lg bg-th-accent-bg px-3 py-2"
         data-testid="tab-banner-world"
       >
         <p className="text-xs text-th-accent leading-snug">

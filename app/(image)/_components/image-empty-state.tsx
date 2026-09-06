@@ -4,7 +4,7 @@ import { ImageIcon } from "lucide-react";
 export function ImageEmptyState() {
   return (
     <div className="mt-16 flex flex-col items-center justify-center gap-3 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600/20">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-th-accent-bg">
         <ImageIcon className="h-7 w-7 text-th-accent" />
       </div>
       <div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ImageIcon, Trash2 } from "lucide-react";
+import { ImageIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ImageHistoryItemClient } from "@/lib/types";
+import { useScrollRunway } from "@/hooks/use-scroll-runway";
 import { ConfirmModal } from "@/components/confirm-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -11,10 +12,9 @@ import { ConfirmModal } from "@/components/confirm-modal";
 interface ImageHistoryListProps {
   imageHistory: ImageHistoryItemClient[];
   activeImageId: string | null;
+  searchQuery: string;
   onSelectImageItem: (item: ImageHistoryItemClient) => void;
   onDeleteImageHistory: (id: string) => void;
-  onNewImageGeneration: () => void;
-  onClose: () => void;
 }
 
 // ─── Date Grouping ──────────────────────────────────────────────────
@@ -61,78 +61,80 @@ function groupImagesByDate(items: ImageHistoryItemClient[]): DateGroup[] {
 export function ImageHistoryList({
   imageHistory,
   activeImageId,
+  searchQuery,
   onSelectImageItem,
   onDeleteImageHistory,
-  onNewImageGeneration,
-  onClose,
 }: ImageHistoryListProps) {
   const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
-  const groups = groupImagesByDate(imageHistory);
+  const query = searchQuery.trim().toLowerCase();
+  const filtered = query
+    ? imageHistory.filter((i) => i.prompt.toLowerCase().includes(query))
+    : imageHistory;
+  const groups = groupImagesByDate(filtered);
+  const { ref, runway } = useScrollRunway<HTMLDivElement>(filtered);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* New generation button */}
-      <div className="px-3 pt-3 pb-1">
-        <button
-          onClick={() => { onNewImageGeneration(); onClose(); }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-th-accent-bg border border-th-accent-ring px-4 py-3 text-sm font-medium text-th-accent transition-all hover:bg-th-accent-bg/80 active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
-          Новая генерация
-        </button>
-      </div>
+    <div
+      ref={ref}
+      className="flex flex-1 flex-col overflow-y-auto px-[18px]"
+      style={{ paddingBottom: runway || 8 }}
+    >
+      {filtered.length === 0 && (
+        <p className="px-[10px] py-8 text-center text-sm text-th-fg-f">
+          {query ? "Ничего не найдено" : "Нет сгенерированных изображений"}
+        </p>
+      )}
 
-      {/* Image items grouped by date */}
-      <div className="flex-1 overflow-y-auto px-3 pb-2">
-        {imageHistory.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-th-fg-f">
-            Нет сгенерированных изображений
-          </p>
-        )}
-        {groups.map((group) => (
-          <div key={group.label}>
-            <div className="sticky top-0 z-10 bg-th-sidebar px-1 pb-1.5 pt-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-th-fg-f">
-                {group.label}
-              </p>
-            </div>
-            <div className="space-y-0.5">
-              {group.items.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectImageItem(item)}
-                  className={cn(
-                    "group relative flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer",
-                    activeImageId === item.id
-                      ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
-                      : "text-th-fg-s hover:bg-th-subtle/10"
-                  )}
-                >
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <div className="h-10 w-10 rounded-lg bg-th-subtle flex items-center justify-center shrink-0">
-                      <ImageIcon className="h-4 w-4 text-th-fg-f" />
-                    </div>
-                  )}
-                  <span className="flex-1 min-w-0 line-clamp-2 leading-snug">{item.prompt}</span>
-
-                  {/* Delete button */}
-                  <div className="relative mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setDeleteImageId(item.id)}
-                      className="rounded-lg p-2 -mr-1 text-th-fg-f transition-all opacity-40 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 hover:bg-th-subtle hover:text-red-400"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {groups.map((group) => (
+        <div key={group.label}>
+          {/* Top padding belongs to the header, not the container: `top-0` pins
+              to the padding box and would leave rows visible above it */}
+          <div className="sticky top-0 z-20 bg-th-sidebar pt-[20px] pb-[14px] pl-[10px]">
+            <p className="text-[16px] font-semibold leading-none text-th-fg">
+              {group.label}
+            </p>
           </div>
-        ))}
-      </div>
+          {group.items.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectImageItem(item)}
+              className={cn(
+                "group relative z-0 flex cursor-pointer items-start gap-2.5 rounded-[10px] p-[10px] text-sm transition-colors",
+                activeImageId === item.id
+                  ? "bg-th-accent-bg text-th-fg"
+                  : "bg-th-sidebar text-th-fg hover:bg-th-subtle"
+              )}
+            >
+              {item.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.imageUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-th-muted">
+                  <ImageIcon className="h-4 w-4 text-th-fg-f" />
+                </div>
+              )}
+              <span className="line-clamp-2 min-w-0 flex-1 leading-[1.4]">{item.prompt}</span>
+
+              {/* Action strip — inherits the row background so it masks the clamped prompt */}
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute inset-y-px right-px flex items-stretch bg-inherit transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+              >
+                <div className="w-6 bg-inherit [mask-image:linear-gradient(to_right,transparent,#000)]" />
+                <div className="flex items-center rounded-r-[9px] bg-inherit pr-[6px]">
+                  <button
+                    onClick={() => setDeleteImageId(item.id)}
+                    aria-label="Удалить изображение"
+                    className="rounded-lg p-1 text-th-fg-m transition hover:text-th-red"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
 
       {/* Image delete confirmation modal */}
       <ConfirmModal

@@ -1,9 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Github, BarChart3 } from "lucide-react";
+import { Settings, LogOut, Github, BarChart2 } from "lucide-react";
 import { useUserInfo } from "@/hooks/use-user-info";
 import { usePluginCapabilities } from "@/hooks/use-plugin-capabilities";
+
+// ─── Constants ─────────────────────────────────────────────────────────────
+
+const rowCls =
+  "flex w-full items-center gap-[5px] text-left text-sm text-th-fg transition hover:text-th-accent";
+const iconCls = "h-6 w-6 shrink-0 text-th-fg-m";
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -19,47 +25,37 @@ export function SidebarFooter() {
   }
 
   return (
-    <div className="border-t border-th-border/30 p-3 space-y-1">
+    <div className="flex flex-col gap-[10px] border-t border-th-border pl-[26px] pr-5 pt-[29px] pb-[18px]">
       {uiSlots.includes("usage-page") && (
-        <button
-          onClick={() => router.push("/usage")}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-        >
-          <BarChart3 className="h-4 w-4" />
+        <button onClick={() => router.push("/usage")} className={rowCls}>
+          <BarChart2 className={iconCls} strokeWidth={1.5} />
           Потребление
         </button>
       )}
-      <button
-        onClick={handleLogout}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-red-500/10 hover:text-red-400"
-      >
-        <LogOut className="h-4 w-4" />
-        Выйти
-      </button>
-      {isAdmin ? (
-        <button
-          onClick={() => router.push("/admin")}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-        >
-          <Settings className="h-4 w-4" />
+
+      {isAdmin && (
+        <button onClick={() => router.push("/admin")} className={rowCls}>
+          <Settings className={iconCls} strokeWidth={1.5} />
           Админ-панель
         </button>
-      ) : (
-        <a
-          href="https://github.com/lemix/fameowly"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
-        >
-          <Github className="h-4 w-4" />
-          GitHub
-        </a>
       )}
-      {!isAdmin && (
-        <p className="px-3 pt-1 text-xs text-th-fg-f">
-          © 2026 Fameowly
-        </p>
-      )}
+
+      <button onClick={handleLogout} className={rowCls}>
+        <LogOut className={iconCls} strokeWidth={1.5} />
+        Выйти
+      </button>
+
+      <a
+        href="https://github.com/lemix/fameowly"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={rowCls}
+      >
+        <Github className={iconCls} strokeWidth={1.5} />
+        GitHub
+      </a>
+
+      <p className="mt-[14px] pl-1 text-sm leading-[17px] text-th-fg-f">© 2026 Fameowly</p>
     </div>
   );
 }

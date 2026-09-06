@@ -33,7 +33,7 @@ export function UserRow({
       <div className="flex min-w-0 items-center gap-3">
         <div
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-            isAdmin ? "bg-amber-500/20 text-amber-400" : "bg-blue-500/20 text-th-accent"
+            isAdmin ? "bg-amber-500/20 text-amber-400" : "bg-th-accent-bg text-th-accent"
           }`}
         >
           {user.name.charAt(0).toUpperCase()}

@@ -18,7 +18,10 @@ export function usePageState() {
   const { chatModels, imageModels, selectedModel, setSelectedModel, selectedImageModel, setSelectedImageModel } = useModels();
   const { imageHistory, loadImageHistory } = useImageHistory();
 
-  const [mode, setMode] = useState<Mode>(searchParams.get("mode") === "image" ? "image" : "chat");
+  const [mode, setMode] = useState<Mode>(() => {
+    const m = searchParams.get("mode");
+    return m === "image" || m === "video" ? m : "chat";
+  });
   const [selectedPresetId, setSelectedPresetId] = useState("default");
   const [customSystemPrompt, setCustomSystemPrompt] = useState("");
   const [showSystemPromptPanel, setShowSystemPromptPanel] = useState(false);
@@ -70,7 +73,7 @@ export function usePageState() {
   // Route sync: push URL on state change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (mode === "image") params.set("mode", "image");
+    if (mode !== "chat") params.set("mode", mode);
     if (mode === "chat" && chat.activeChatId) params.set("chat", chat.activeChatId);
     const newUrl = params.toString() ? `/?${params.toString()}` : "/";
     if (window.location.pathname + window.location.search !== newUrl) router.replace(newUrl, { scroll: false });

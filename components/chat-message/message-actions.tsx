@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Trash2, X } from "lucide-react";
+import { Copy, Check, Trash2 } from "lucide-react";
+import { ConfirmModal } from "@/components/confirm-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -11,6 +12,11 @@ interface MessageActionsProps {
   messageId: string;
   onDelete?: (messageId: string) => void;
 }
+
+// ─── Constants ───────────────────────────────────────────────────────
+
+const actionCls =
+  "flex h-6 w-6 items-center justify-center text-th-fg-m transition hover:text-th-fg";
 
 // ─── Component ───────────────────────────────────────────────────────
 
@@ -24,60 +30,39 @@ export function MessageActions({ role, content, messageId, onDelete }: MessageAc
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const isUser = role === "user";
-
   return (
-    <div className="flex items-center gap-1">
-      {/* Copy button — assistant only */}
-      {!isUser && (
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-th-fg-f hover:text-th-fg-s hover:bg-th-subtle/50 transition"
-          title="Копировать Markdown"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3 w-3 text-th-green" />
-              <span className="text-th-green">Скопировано</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span>Копировать</span>
-            </>
-          )}
-        </button>
-      )}
+    <div className="flex items-center gap-[10px]">
+      <button
+        onClick={handleCopy}
+        className={actionCls}
+        title={copied ? "Скопировано" : "Копировать"}
+        aria-label="Копировать"
+      >
+        {copied
+          ? <Check className="h-6 w-6 text-th-green" strokeWidth={1.5} />
+          : <Copy className="h-6 w-6" strokeWidth={1.5} />}
+      </button>
 
-      {/* Delete button + inline confirm */}
-      {onDelete && !confirmDelete && (
+      {onDelete && (
         <button
           onClick={() => setConfirmDelete(true)}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-th-fg-f group-hover/msg:opacity-100 hover:text-red-400 hover:bg-th-subtle/50 transition"
+          className={`${actionCls} hover:text-th-red`}
           title="Удалить сообщение"
+          aria-label="Удалить сообщение"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-6 w-6" strokeWidth={1.5} />
         </button>
       )}
-      {onDelete && confirmDelete && (
-        <div className="flex items-center gap-1 ml-1 rounded-md bg-th-subtle/50 px-2 py-1">
-          <span className="text-xs text-red-400">Удалить?</span>
-          <button
-            onClick={() => { onDelete(messageId); setConfirmDelete(false); }}
-            className="rounded p-0.5 text-red-400 hover:bg-red-500/20 transition"
-            title="Подтвердить удаление"
-          >
-            <Check className="h-3 w-3" />
-          </button>
-          <button
-            onClick={() => setConfirmDelete(false)}
-            className="rounded p-0.5 text-th-fg-m hover:bg-th-muted transition"
-            title="Отмена"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      )}
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Удалить сообщение?"
+        message={`Сообщение ${role === "user" ? "пользователя" : "ассистента"} будет удалено без возможности восстановления.`}
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={() => { setConfirmDelete(false); onDelete?.(messageId); }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

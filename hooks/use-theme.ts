@@ -31,7 +31,7 @@ function applyTheme(mode: ThemeMode) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 
   // Update meta theme-color for mobile toolbar tinting
-  const color = resolved === "dark" ? "#0f172a" : "#ffffff";
+  const color = resolved === "dark" ? "#1c263c" : "#ffffff";
   document
     .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
     .forEach((el) => (el.content = color));
