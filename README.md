@@ -3,8 +3,8 @@
 <div align="center">
   <!-- Адаптивный логотип (Светлая/Темная тема GitHub) -->
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./public/fameowly.svg">
-    <img src="./public/fameowly-light.svg" alt="Fameowly Logo" width="350"/>
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/fameowly-wordmark-dark.svg">
+    <img src="./.github/assets/fameowly-wordmark-light.svg" alt="Fameowly Logo" width="380"/>
   </picture>
 
   <br />
@@ -28,17 +28,21 @@
 
 ## Overview
 
-A zero-database AI chat interface for small groups. It allows administrators to share centralized API keys (OpenRouter, Google AI Studio, Local LLAMA) with multiple users without complex infrastructure.
+Self-hosted AI chat for a family or a small team. One host configures the API keys — everyone else just logs in and talks to the models. No database, no cloud account, no per-seat subscriptions.
 
 ## Features
 
-- **Zero-database architecture**: All user accounts and chat histories are stored as local JSON files.
-- **Centralized API management**: API keys are configured by the host. Users authenticate via local passwords.
-- **Admin panel**: Built-in UI for user creation and access management.
-- **Multimodal support**: Image attachments in chat and dedicated image generation.
-- **Formatting**: Renders Markdown, LaTeX, and code blocks with syntax highlighting.
-- **Tech stack**: Built with Next.js 16 and Vercel AI SDK.
-- **Proxy support**: Routes outgoing requests to LLM providers through a SOCKS5 proxy — helps when your ISP blocks access to AI services, or when a provider restricts access from your country.
+- **Zero-database**: users, chats and usage records are plain JSON files under `data/`.
+- **Shared keys**: OpenRouter, Google AI Studio and local LLaMA-compatible endpoints are configured once by the host.
+- **Admin panel**: create users, assign roles, control which models each role can use.
+- **Usage tracking**: per-user token and cost statistics computed from the model price list.
+- **Multimodal**: image and file attachments in chat, plus a dedicated image generation mode.
+- **Rich rendering**: Markdown, LaTeX and syntax-highlighted code blocks.
+- **Installable PWA**: works as a standalone app on desktop and mobile.
+- **Proxy support**: outgoing provider requests can be routed through a SOCKS5 proxy — useful when your ISP or the provider blocks the connection.
+- **Pluggable core**: optional features ship as plugins that override strategies in a DI container, so the open-source build stays lean (`npm run build:os`).
+
+Built with Next.js 16, React 19, the Vercel AI SDK and Tailwind CSS v4.
 
 ## Deployment (Docker)
 
