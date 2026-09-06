@@ -2,7 +2,7 @@ import { Menu, Loader2, RefreshCw, Sun, Moon, SunMoon } from "lucide-react";
 import type { ModelOption, Mode, ChatStatus, UserInfo } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { ModelSelector } from "./model-selector";
-import { ChatUsageBadge } from "./chat-usage-badge";
+import { PluginSlot } from "@/lib/plugin-ui";
 
 interface AppHeaderProps {
   mode: Mode;
@@ -77,7 +77,9 @@ export function AppHeader({
           </span>
         )}
 
-        {mode === "chat" && <ChatUsageBadge chatId={chatId ?? null} status={status} />}
+        {mode === "chat" && (
+          <PluginSlot id="chat-usage" props={{ chatId: chatId ?? null, status }} />
+        )}
       </div>
 
       <div className="flex items-center gap-1">

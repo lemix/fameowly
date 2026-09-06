@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   UserPlus,
@@ -13,7 +12,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import type { PluginAdminTab } from "@/lib/types";
-import { UserUsageModal } from "@/components/usage/user-usage-modal";
+import { PluginSlot } from "@/lib/plugin-ui";
 
 interface UserRecord {
   id: string;
@@ -25,31 +24,7 @@ interface PluginStatus {
   hasPlugins: boolean;
   plugins: string[];
   adminTabs: PluginAdminTab[];
-}
-
-/** Lazily loaded plugin tab components keyed by tab id */
-const pluginComponents: Record<string, React.ComponentType> = {};
-
-function getTabComponent(tab: PluginAdminTab): React.ComponentType | null {
-  if (!pluginComponents[tab.id]) {
-    // Static loader map — bundler requires literal strings for dynamic imports.
-    // When adding a new plugin, also update: lib/plugin-stub-registry.js
-    const loaders: Record<string, () => Promise<Record<string, React.ComponentType>>> = {
-      "providers": () => import("@plugins/ext/providers/components/provider-manager"),
-      "models": () => import("@plugins/ext/providers/components/model-manager"),
-    };
-    const loader = loaders[tab.id];
-    if (!loader) return null;
-    pluginComponents[tab.id] = dynamic(
-      () => loader().then((mod) => {
-        // Find the first exported component
-        const Component = Object.values(mod).find((v) => typeof v === "function") as React.ComponentType;
-        return { default: Component };
-      }),
-      { loading: () => <div className="text-th-fg-m py-8 text-center">Загрузка…</div> },
-    );
-  }
-  return pluginComponents[tab.id];
+  uiSlots: string[];
 }
 
 export default function AdminPage() {
@@ -70,7 +45,7 @@ export default function AdminPage() {
     fetch("/api/plugins/capabilities")
       .then((r) => r.json())
       .then((data: PluginStatus) => setPluginStatus(data))
-      .catch(() => setPluginStatus({ hasPlugins: false, plugins: [], adminTabs: [] }));
+      .catch(() => setPluginStatus({ hasPlugins: false, plugins: [], adminTabs: [], uiSlots: [] }));
   }, []);
 
   const fetchUsers = useCallback(async () => {
@@ -202,13 +177,7 @@ export default function AdminPage() {
       <div className="flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-6 py-8">
         {activeTab !== "users" && pluginStatus ? (
-          (() => {
-            const tab = pluginStatus.adminTabs.find((t) => t.id === activeTab);
-            if (!tab) return null;
-            const TabComponent = getTabComponent(tab);
-            if (!TabComponent) return null;
-            return <TabComponent />;
-          })()
+          <PluginSlot id={activeTab} />
         ) : (
           <>
         {/* Messages */}
@@ -295,13 +264,15 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setUsageUser(u)}
-                    className="rounded p-2 text-th-fg-m transition hover:bg-th-subtle hover:text-th-fg"
-                    title="Потребление"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                  </button>
+                  {pluginStatus?.uiSlots.includes("user-usage") && (
+                    <button
+                      onClick={() => setUsageUser(u)}
+                      className="rounded p-2 text-th-fg-m transition hover:bg-th-subtle hover:text-th-fg"
+                      title="Потребление"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setResetId(u.id);
@@ -368,10 +339,13 @@ export default function AdminPage() {
         )}
 
         {usageUser && (
-          <UserUsageModal
-            userId={usageUser.id}
-            userName={usageUser.name}
-            onClose={() => setUsageUser(null)}
+          <PluginSlot
+            id="user-usage"
+            props={{
+              userId: usageUser.id,
+              userName: usageUser.name,
+              onClose: () => setUsageUser(null),
+            }}
           />
         )}
           </>

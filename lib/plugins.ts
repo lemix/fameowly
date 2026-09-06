@@ -113,6 +113,18 @@ export function getAdminTabs(): PluginAdminTab[] {
   return getPlugins().flatMap((p) => p.adminTabs ?? []);
 }
 
+/** Ids of all UI slots filled by plugins; an admin tab is a slot with a label */
+export function getUiSlots(): string[] {
+  return [
+    ...new Set(
+      getPlugins().flatMap((p) => [
+        ...(p.uiSlots ?? []),
+        ...(p.adminTabs ?? []).map((t) => t.id),
+      ]),
+    ),
+  ];
+}
+
 /** Find a plugin API route handler */
 export function getPluginRoute(
   path: string,

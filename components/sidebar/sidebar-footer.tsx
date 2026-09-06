@@ -10,7 +10,7 @@ import { usePluginCapabilities } from "@/hooks/use-plugin-capabilities";
 export function SidebarFooter() {
   const router = useRouter();
   const user = useUserInfo();
-  const { hasPlugins } = usePluginCapabilities();
+  const { uiSlots } = usePluginCapabilities();
   const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
@@ -20,7 +20,7 @@ export function SidebarFooter() {
 
   return (
     <div className="border-t border-th-border/30 p-3 space-y-1">
-      {hasPlugins && (
+      {uiSlots.includes("usage-page") && (
         <button
           onClick={() => router.push("/usage")}
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-th-fg-m transition hover:bg-th-panel hover:text-th-fg"
