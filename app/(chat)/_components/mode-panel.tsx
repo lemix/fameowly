@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { MOBILE_MEDIA_QUERY } from "@/lib/constants/breakpoints";
 import { Toast } from "@/components/toast";
 
 // ─── Temperature presets ─────────────────────────────────────────────
@@ -67,14 +68,14 @@ export function ModePanel({
 
   const handleTempChange = (preset: TempPreset) => {
     onTemperatureChange(preset.value);
-    if (window.matchMedia("(max-width: 767px)").matches) {
+    if (window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
       setToast(`Режим: ${preset.label}`);
     }
   };
 
   const handleReasoningToggle = () => {
     onReasoningToggle();
-    if (window.matchMedia("(max-width: 767px)").matches) {
+    if (window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
       setToast(reasoningEnabled ? "Режим «Думать» выключен" : "Режим «Думать» включён");
     }
   };

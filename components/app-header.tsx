@@ -52,14 +52,14 @@ export function AppHeader({
 
   return (
     <header
-      className="absolute inset-x-0 top-0 z-20 flex h-[71px] shrink-0 items-center justify-between bg-th-header pl-3 pr-[28px] backdrop-blur-[5px] lg:pl-[31px]"
+      className="absolute inset-x-0 top-0 z-20 flex h-[71px] shrink-0 items-center justify-between bg-th-header pl-3 pr-[28px] backdrop-blur-[5px] md:pl-[31px]"
       data-testid="app-header"
     >
       <div className="flex min-w-0 items-center gap-6">
         <div className="flex min-w-0 items-center gap-2">
           <button
             onClick={onToggleSidebar}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-th-fg-m transition hover:text-th-fg lg:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-th-fg-m transition hover:text-th-fg md:hidden"
             aria-label="Открыть меню"
           >
             <Menu className="h-5 w-5" />

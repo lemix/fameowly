@@ -118,7 +118,7 @@ export function ImageHistoryList({
               {/* Action strip — inherits the row background so it masks the clamped prompt */}
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="absolute inset-y-px right-px flex items-stretch bg-inherit transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                className="absolute inset-y-px right-px flex items-stretch bg-inherit transition-opacity md:opacity-0 md:group-hover:opacity-100"
               >
                 <div className="w-6 bg-inherit [mask-image:linear-gradient(to_right,transparent,#000)]" />
                 <div className="flex items-center rounded-r-[9px] bg-inherit pr-[6px]">

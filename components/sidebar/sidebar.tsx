@@ -59,14 +59,19 @@ export function Sidebar({
 
   return (
     <>
-      {/* Overlay for viewports where the sidebar floats above the content */}
+      {/* Overlay for viewports where the sidebar floats above the content.
+          Must outrank the header (z-20) so the header dims and taps close the menu. */}
       {isOpen && (
-        <div className="fixed inset-0 z-20 bg-black/50 backdrop-blur-[1px] lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-[1px] md:hidden"
+          onClick={onClose}
+          data-testid="sidebar-overlay"
+        />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-[285px] flex-col border-r border-th-border bg-th-sidebar safe-area-top transition-transform lg:relative lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-[285px] flex-col border-r border-th-border bg-th-sidebar safe-area-top transition-transform md:relative md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         data-testid="sidebar"
@@ -79,7 +84,7 @@ export function Sidebar({
           <button
             onClick={onClose}
             aria-label="Скрыть меню"
-            className="mt-0.5 text-th-fg-m transition hover:text-th-fg lg:hidden"
+            className="mt-0.5 text-th-fg-m transition hover:text-th-fg md:hidden"
             data-testid="sidebar-close"
           >
             <PanelLeft className="h-[30px] w-[30px]" strokeWidth={1.5} />
