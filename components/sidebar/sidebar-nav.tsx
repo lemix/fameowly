@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { SquarePen, Search, Folder, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ─── Constants ───────────────────────────────────────────────────────
 
@@ -35,6 +36,9 @@ export function SidebarNav({
 }: SidebarNavProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // While searching on mobile every pixel goes to the results list
+  const secondaryCls = searchOpen ? "hidden md:flex" : "";
+
   useEffect(() => {
     if (searchOpen) inputRef.current?.focus();
   }, [searchOpen]);
@@ -46,7 +50,7 @@ export function SidebarNav({
 
   return (
     <nav className="flex shrink-0 flex-col gap-[10px] pl-[23px] pr-5 pt-[26px]">
-      <button onClick={onNew} className={rowCls} data-testid="nav-new-chat">
+      <button onClick={onNew} className={cn(rowCls, secondaryCls)} data-testid="nav-new-chat">
         <SquarePen className={iconCls} strokeWidth={1.5} />
         {newLabel}
       </button>
@@ -82,7 +86,7 @@ export function SidebarNav({
         </button>
       )}
 
-      <button onClick={onFolders} className={rowCls} data-testid="nav-folders">
+      <button onClick={onFolders} className={cn(rowCls, secondaryCls)} data-testid="nav-folders">
         <Folder className={iconCls} strokeWidth={1.5} />
         Папки
       </button>

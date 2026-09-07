@@ -3,8 +3,8 @@
 <div align="center">
   <!-- Адаптивный логотип (Светлая/Темная тема GitHub) -->
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./public/fameowly.svg">
-    <img src="./public/fameowly-light.svg" alt="Fameowly Logo" width="350"/>
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/fameowly-wordmark-dark.svg">
+    <img src="./.github/assets/fameowly-wordmark-light.svg" alt="Fameowly Logo" width="380"/>
   </picture>
 
   <br />
@@ -28,17 +28,21 @@
 
 ## Overview
 
-A zero-database AI chat interface for small groups. It allows administrators to share centralized API keys (OpenRouter, Google AI Studio, Local LLAMA) with multiple users without complex infrastructure.
+Self-hosted AI chat for a family or a small team. One host configures the API keys — everyone else just logs in and talks to the models. No database, no cloud account, no per-seat subscriptions.
+
+Its main trick: **every outgoing request to an LLM provider can go through a SOCKS5 proxy**. Run the hub on any machine at home and reach OpenAI, Google or OpenRouter even when your ISP blocks them or the provider refuses connections from your country — users never need a VPN themselves.
 
 ## Features
 
-- **Zero-database architecture**: All user accounts and chat histories are stored as local JSON files.
-- **Centralized API management**: API keys are configured by the host. Users authenticate via local passwords.
-- **Admin panel**: Built-in UI for user creation and access management.
-- **Multimodal support**: Image attachments in chat and dedicated image generation.
-- **Formatting**: Renders Markdown, LaTeX, and code blocks with syntax highlighting.
-- **Tech stack**: Built with Next.js 16 and Vercel AI SDK.
-- **Proxy support**: Routes outgoing requests to LLM providers through a SOCKS5 proxy — helps when your ISP blocks access to AI services, or when a provider restricts access from your country.
+- **SOCKS5 proxy for provider traffic**: set `SOCKS_PROXY` (or `ALL_PROXY` / `HTTPS_PROXY`) and all provider calls, including streaming, are tunneled through it. Everything else stays on the direct route.
+- **Zero-database**: users, chats and uploads are plain JSON files under `data/`.
+- **Shared keys**: OpenRouter, Google AI Studio and local LLaMA-compatible endpoints are configured once by the host; users sign in with local passwords.
+- **Admin panel**: built-in UI for creating users and managing access.
+- **Multimodal**: image and file attachments in chat, plus a dedicated image generation mode.
+- **Rich rendering**: Markdown, LaTeX and syntax-highlighted code blocks.
+- **Installable PWA**: works as a standalone app on desktop and mobile.
+
+Built with Next.js 16, React 19, the Vercel AI SDK and Tailwind CSS v4.
 
 ## Deployment (Docker)
 
@@ -59,6 +63,22 @@ services:
     restart: unless-stopped
 ```
 
+### Environment
+
+```env
+JWT_SECRET=change-me-to-a-32-char-random-string
+ADMIN_INIT_PASS=pick-your-first-admin-password
+
+OPENROUTER_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+LOCAL_LLM_URL=http://127.0.0.1:8080/v1
+
+# Route provider traffic through a SOCKS5 proxy
+SOCKS_PROXY=socks5://127.0.0.1:1080
+```
+
+The proxy is read from `SOCKS_PROXY`, `ALL_PROXY`, `HTTPS_PROXY` or `HTTP_PROXY`, in that order; the value must use a `socks` scheme. Leave them unset to connect directly.
+
 ### Models configuration
 
 The available models are defined in `data/models.json` (not included in the repository — listed in `.gitignore`). A reference configuration with all supported fields is provided in `data/models.json.example`.
@@ -71,24 +91,13 @@ cp data/models.json.example data/models.json
 
 When deploying via Docker, mount your `models.json` into the container as shown above.
 
-Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`. Set `availableForClients: true` to expose a model to users with the `client` role (legacy configs that use `clientPrice` are migrated automatically).
+Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
 
-#### Pricing fields
-
-| Field | Meaning |
-|---|---|
-| `inputPricePer1M` | Provider price in USD per 1M prompt tokens |
-| `outputPricePer1M` | Provider price in USD per 1M completion tokens |
-| `pricePerImage` | Provider price in USD per generated image |
-| `markup` | Commercial multiplier applied on top of the provider price (default `1`) |
-
-A request costs `(promptTokens/1M × inputPricePer1M + completionTokens/1M × outputPricePer1M) × markup`. Models without prices are treated as free. The computed cost is stored with each usage record, so later price edits never change already billed requests.
-
-### Running the open-source build locally
+## Local development
 
 ```bash
-npm run dev      # premium build, data/,      http://localhost:3000
-npm run dev:os   # open-source build, data-oss/, http://localhost:3010
+npm install
+npm run dev   # http://localhost:3000
 ```
 
-`dev:os` sets `ENABLE_PLUGINS=false` and `DATA_DIR=./data-oss`, so it never touches premium data. Point `DATA_DIR` at any directory to run additional isolated instances.
+Runtime data lives in `DATA_DIR` (default `./data`). Point it at another directory to run isolated instances side by side.

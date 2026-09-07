@@ -17,14 +17,15 @@ const TABS = [
 interface SidebarTabsProps {
   mode: Mode;
   onModeChange: (mode: Mode) => void;
+  className?: string;
 }
 
-// ─── Component ───────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────
 
 /** Icon-only mode switcher: chat / images / video */
-export function SidebarTabs({ mode, onModeChange }: SidebarTabsProps) {
+export function SidebarTabs({ mode, onModeChange, className }: SidebarTabsProps) {
   return (
-    <div className="flex shrink-0 gap-3 pl-[23px] pr-5 pt-[26px]">
+    <div className={cn("flex shrink-0 gap-3 pl-[23px] pr-5 pt-[26px]", className)}>
       {TABS.map(({ mode: m, icon: Icon, label }) => (
         <button
           key={m}

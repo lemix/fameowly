@@ -87,7 +87,7 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
               "absolute inset-y-px right-px flex items-stretch bg-inherit transition-opacity",
               menuAnchor || isActive
                 ? "opacity-100"
-                : "opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
             )}
           >
             <div className="w-6 bg-inherit [mask-image:linear-gradient(to_right,transparent,#000)]" />

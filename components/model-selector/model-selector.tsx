@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { AlertTriangle, Shield, X } from "lucide-react";
+import { AlertTriangle, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ModelOption } from "@/lib/types";
+import { MOBILE_BREAKPOINT } from "@/lib/constants/breakpoints";
 import { TIER_LABELS, TIER_ORDER, TIER_ICONS } from "@/lib/models";
 import { ModelList, type ModelTab, type TierGroup } from "./model-list";
 import { ModelTabs } from "./model-tabs";
 import { ModelBanner } from "./model-banner";
+import { ModelBottomSheet } from "./model-bottom-sheet";
 
 interface ModelSelectorProps {
   models: ModelOption[];
@@ -28,7 +30,6 @@ export function ModelSelector({ models, selected, onChange, modelUnavailable }: 
   const [isMobile, setIsMobile] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const touchY = useRef(0);
   const locked = useRef(false);
 
   const hasWorld = useMemo(() => models.some((m) => !m.isLocal), [models]);
@@ -90,7 +91,7 @@ export function ModelSelector({ models, selected, onChange, modelUnavailable }: 
     });
   }, [open, activeTab, selectedInTab, isMobile]);
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     check(); window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
@@ -155,39 +156,14 @@ export function ModelSelector({ models, selected, onChange, modelUnavailable }: 
       )}
 
       {open && isMobile && (
-        <>
-          <div className={cn("fixed inset-0 z-40 bg-black/50", closing ? "animate-fade-out" : "modal-overlay")} onClick={close} data-testid="model-sheet-overlay" />
-          <div
-            className={cn("fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[70dvh] rounded-t-2xl bg-th-panel shadow-2xl", closing ? "animate-sheet-out" : "modal-content-mobile")}
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-            onTouchStart={(e) => { touchY.current = e.touches[0].clientY; }}
-            onTouchMove={(e) => {
-              // Prevent sheet drag when list is scrollable and not at top
-              if (scrollRef.current && scrollRef.current.scrollTop > 0) {
-                touchY.current = e.touches[0].clientY;
-              }
-            }}
-            onTouchEnd={(e) => {
-              const dy = e.changedTouches[0].clientY - touchY.current;
-              const atTop = !scrollRef.current || scrollRef.current.scrollTop <= 0;
-              if (atTop && dy > 80) close();
-            }}
-            data-testid="model-bottom-sheet"
-          >
-            <div className="shrink-0">
-              <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-th-muted" /></div>
-              <div className="flex items-center justify-between px-4 pb-2">
-                <h3 className="text-sm font-semibold text-th-fg">Выбор модели</h3>
-                <button onClick={close} className="flex h-8 w-8 items-center justify-center rounded-full text-th-fg-m hover:bg-th-subtle"><X className="h-4 w-4" /></button>
-              </div>
-            </div>
-            <div className="shrink-0">
-              {tabsUI}
-              {bannerUI}
-            </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">{listContent}</div>
-          </div>
-        </>
+        <ModelBottomSheet
+          closing={closing}
+          onClose={close}
+          scrollRef={scrollRef}
+          top={<>{tabsUI}{bannerUI}</>}
+        >
+          {listContent}
+        </ModelBottomSheet>
       )}
     </div>
   );

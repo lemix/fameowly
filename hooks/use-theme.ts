@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -20,10 +20,27 @@ function getSystemTheme(): "light" | "dark" {
 }
 
 function getStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") return "auto";
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "auto") return stored;
   return "auto";
+}
+
+/**
+ * SSR has no localStorage, so it must render the same value the client renders
+ * while hydrating. `useSyncExternalStore` re-reads the real value right after
+ * hydration instead of tripping a hydration mismatch.
+ */
+function getServerTheme(): ThemeMode {
+  return "auto";
+}
+
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 function applyTheme(mode: ThemeMode) {
@@ -42,13 +59,17 @@ function applyTheme(mode: ThemeMode) {
 /**
  * Theme hook with three modes: auto (system), light, dark.
  * Persists choice to localStorage, applies .dark class on <html>.
+ *
+ * The first paint is owned by the anti-FOUC script in `app/layout.tsx`; this
+ * hook only re-applies on an explicit change or a system-preference change,
+ * so the pre-hydration "auto" snapshot can never flash the wrong theme.
  */
 export function useTheme() {
-  const [mode, setModeState] = useState<ThemeMode>(getStoredTheme);
+  const mode = useSyncExternalStore(subscribe, getStoredTheme, getServerTheme);
 
   const setMode = useCallback((m: ThemeMode) => {
-    setModeState(m);
     localStorage.setItem(STORAGE_KEY, m);
+    listeners.forEach((l) => l());
     applyTheme(m);
   }, []);
 
@@ -58,11 +79,6 @@ export function useTheme() {
     const next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
     setMode(next);
   }, [mode, setMode]);
-
-  // Apply on mount
-  useEffect(() => {
-    applyTheme(mode);
-  }, [mode]);
 
   // Listen for system preference changes when in auto mode
   useEffect(() => {
