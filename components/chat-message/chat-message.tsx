@@ -7,6 +7,7 @@ import type { MessageData } from "@/lib/types";
 import { MarkdownContent } from "./markdown-content";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
+import { GroundingPanel } from "./grounding-panel";
 
 // Re-export for backward compatibility
 export type { MessageData } from "@/lib/types";
@@ -115,6 +116,9 @@ export const ChatMessage = memo(function ChatMessage({
             <p className="whitespace-pre-wrap">{m.content}</p>
           )}
         </div>
+
+        {/* Grounding provenance — kept outside `content` so it never reaches the LLM */}
+        {!isUser && m.grounding && <GroundingPanel grounding={m.grounding} />}
 
         {/* Actions — assistant messages with content */}
         {!isUser && m.content && (

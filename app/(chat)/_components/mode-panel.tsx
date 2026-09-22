@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOBILE_MEDIA_QUERY } from "@/lib/constants/breakpoints";
 import { Toast } from "@/components/toast";
@@ -31,6 +32,9 @@ interface ModePanelProps {
   onReasoningToggle: () => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
+  supportsWebSearch: boolean;
+  webSearchEnabled: boolean;
+  onWebSearchToggle: () => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -52,10 +56,13 @@ export function ModePanel({
   onReasoningToggle,
   temperature,
   onTemperatureChange,
+  supportsWebSearch,
+  webSearchEnabled,
+  onWebSearchToggle,
 }: ModePanelProps) {
   const [toast, setToast] = useState<string | null>(null);
 
-  const showControls = supportsTemperature || supportsReasoning;
+  const showControls = supportsTemperature || supportsReasoning || supportsWebSearch;
   if (!showControls) return null;
 
   const activePresetId = TEMP_PRESETS.reduce(
@@ -77,6 +84,13 @@ export function ModePanel({
     onReasoningToggle();
     if (window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
       setToast(reasoningEnabled ? "Режим «Думать» выключен" : "Режим «Думать» включён");
+    }
+  };
+
+  const handleWebSearchToggle = () => {
+    onWebSearchToggle();
+    if (window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
+      setToast(webSearchEnabled ? "Поиск в интернете выключен" : "Поиск в интернете включён");
     }
   };
 
@@ -146,6 +160,32 @@ export function ModePanel({
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Separator */}
+          {supportsWebSearch && (supportsReasoning || supportsTemperature) && (
+            <div className={cn("w-px bg-th-subtle/60", isKeyboardOpen ? "h-4" : "h-6")} />
+          )}
+
+          {/* Web search toggle */}
+          {supportsWebSearch && (
+            <button
+              type="button"
+              onClick={handleWebSearchToggle}
+              title={webSearchEnabled ? "Поиск в интернете включён" : "Поиск в интернете выключен"}
+              aria-pressed={webSearchEnabled}
+              className={cn(
+                "flex items-center rounded-full font-medium transition",
+                isKeyboardOpen ? "h-7 gap-1 px-2 text-xs" : "h-9 gap-1.5 px-3 text-sm",
+                webSearchEnabled
+                  ? "bg-th-accent-bg text-th-accent-fg ring-1 ring-th-accent-ring"
+                  : "text-th-fg-m hover:text-th-fg-s hover:bg-th-subtle/60",
+              )}
+              data-testid="web-search-pill"
+            >
+              <Globe className={isKeyboardOpen ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <span className="hidden md:inline">Поиск</span>
+            </button>
           )}
         </div>
       </div>

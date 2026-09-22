@@ -13,6 +13,7 @@ import { container } from "./container";
 import { VirtualProviderCredentialResolver } from "./strategies/virtual-provider-credential-resolver";
 import { BaseModelFactory } from "./strategies/base-model-factory";
 import { ChatTotalsUsageTracker } from "./strategies/chat-totals-usage-tracker";
+import { GoogleWebToolsProvider } from "./strategies/google-web-tools-provider";
 import {
   NoPricingPolicy,
   OpenModelAccessPolicy,
@@ -37,6 +38,7 @@ export function initializeContainer(): void {
   container.register("pricingPolicy", new NoPricingPolicy());
   container.register("modelAccessPolicy", new OpenModelAccessPolicy());
   container.register("userLifecycle", new NoopUserLifecycle());
+  container.register("webToolsProvider", new GoogleWebToolsProvider());
 
   // Extension plugins override via container.register()
   loadExtensionPlugins();

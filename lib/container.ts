@@ -13,6 +13,7 @@ import type {
   PricingPolicy,
   ModelAccessPolicy,
   UserLifecycle,
+  WebToolsProvider,
 } from "./contracts";
 
 export interface ServiceMap {
@@ -22,6 +23,7 @@ export interface ServiceMap {
   pricingPolicy: PricingPolicy;
   modelAccessPolicy: ModelAccessPolicy;
   userLifecycle: UserLifecycle;
+  webToolsProvider: WebToolsProvider;
 }
 
 /** Registry surface exposed to plugins during register() */

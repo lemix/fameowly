@@ -4,6 +4,13 @@ import { useState, useCallback, useRef } from "react";
 import type { MessageData, ChatAttachment, ChatStatus, ModelOption } from "@/lib/types";
 import { parseSSEStream } from "@/lib/sse-parser";
 import { buildApiMessages, processStreamEvent } from "./streaming-helpers";
+import type { StreamAccumulator } from "./streaming-helpers";
+
+interface LocalOptions {
+  temperature?: number;
+  reasoningEnabled?: boolean;
+  webSearchEnabled?: boolean;
+}
 
 interface UseChatStreamingParams {
   messages: MessageData[];
@@ -23,7 +30,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
 
   const sendMessage = useCallback(async (
     text: string, model: ModelOption, attachments?: ChatAttachment[],
-    systemPrompt?: string, localOptions?: { temperature?: number; reasoningEnabled?: boolean }
+    systemPrompt?: string, localOptions?: LocalOptions
   ) => {
     let chatId = activeChatIdRef.current;
     if (!chatId) { chatId = await createNewChat(model.id, systemPrompt); if (!chatId) return; }
@@ -44,7 +51,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
     await persistMessages(chatId, allMsgs);
 
     // Accumulator declared outside try so it's accessible in catch (abort case)
-    const acc = { text: "", reasoning: "", error: "" };
+    const acc: StreamAccumulator = { text: "", reasoning: "", error: "" };
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -55,7 +62,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
           messages: buildApiMessages(allMsgs), model: model.id, provider: model.provider,
           systemPrompt: systemPrompt || chatSystemPrompt, chatId,
           assistantMessageId: assistantMsg.id,
-          ...(localOptions ? { temperature: localOptions.temperature, reasoningEnabled: localOptions.reasoningEnabled } : {}),
+          ...(localOptions ?? {}),
         }),
         signal: controller.signal,
       });
@@ -88,7 +95,8 @@ export function useChatStreaming(params: UseChatStreamingParams) {
 
       // Persist final messages including AI response
       const finalMessages = [...allMsgs, {
-        ...assistantMsg, content: acc.text, reasoning: acc.reasoning || undefined, error: acc.error || undefined,
+        ...assistantMsg, content: acc.text, reasoning: acc.reasoning || undefined,
+        error: acc.error || undefined, grounding: acc.grounding,
       }];
       await persistMessages(chatId, finalMessages);
     } catch (err: unknown) {
@@ -97,6 +105,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
         if (acc.text) {
           const partialMessages = [...allMsgs, {
             ...assistantMsg, content: acc.text, reasoning: acc.reasoning || undefined,
+            grounding: acc.grounding,
           }];
           await persistMessages(chatId, partialMessages);
         }
@@ -115,7 +124,7 @@ export function useChatStreaming(params: UseChatStreamingParams) {
 
   const stop = useCallback(() => { abortRef.current?.abort(); setStatus("ready"); }, []);
 
-  const retry = useCallback((model: ModelOption, localOptions?: { temperature?: number; reasoningEnabled?: boolean }) => {
+  const retry = useCallback((model: ModelOption, localOptions?: LocalOptions) => {
     setError(null);
     const currentMsgs = messagesRef.current;
     const lastUserIdx = currentMsgs.findLastIndex((m) => m.role === "user");

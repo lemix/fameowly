@@ -91,7 +91,9 @@ cp data/models.json.example data/models.json
 
 When deploying via Docker, mount your `models.json` into the container as shown above.
 
-Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
+Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`, `supportsWebSearch`, `supportsUrlContext`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
+
+`supportsWebSearch` shows the «Поиск» toggle in chat (Grounding with Google Search) and `supportsUrlContext` lets the model read links pasted into a message. Both are served by Google's native tools, so they only take effect on `google` and `google-vertex` models — and not on every model of those providers. Check the model's own documentation before enabling them; on other providers the flags are ignored.
 
 ## Local development
 

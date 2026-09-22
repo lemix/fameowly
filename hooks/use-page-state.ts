@@ -32,7 +32,12 @@ export function usePageState() {
   const chat = usePersistentChat();
 
   // Per-chat settings (Task 4: persisted in localStorage per chat)
-  const { temperature, setTemperature, reasoningEnabled, setReasoningEnabled, resetToDefaults } = useChatSettings(chat.activeChatId);
+  const {
+    temperature, setTemperature,
+    reasoningEnabled, setReasoningEnabled,
+    webSearchEnabled, setWebSearchEnabled,
+    resetToDefaults,
+  } = useChatSettings(chat.activeChatId);
 
   const isLoading = chat.status === "streaming" || chat.status === "submitted";
   const isReasoningPhase = chat.status === "streaming" && (() => {
@@ -52,6 +57,7 @@ export function usePageState() {
   // Model capability flags (Task 3)
   const supportsTemperature = selectedModel.supportsTemperature ?? selectedModel.isLocal ?? false;
   const supportsReasoning = selectedModel.supportsReasoning ?? selectedModel.isLocal ?? false;
+  const supportsWebSearch = selectedModel.supportsWebSearch ?? false;
 
   const fileUpload = useFileUpload(mode);
   const imageGen = useImageGeneration({
@@ -113,22 +119,21 @@ export function usePageState() {
 
     // Task 3: Build localOptions based on model capabilities.
     // Temperature reduction for reasoning happens "under the hood" here, NOT in UI.
-    let localOptions: { temperature?: number; reasoningEnabled?: boolean } | undefined;
-    if (supportsTemperature || supportsReasoning) {
-      let effectiveTemp = temperature;
-      // Business rule: reduce temperature by 0.1 when reasoning is enabled
-      if (supportsReasoning && reasoningEnabled && supportsTemperature) {
-        effectiveTemp = Math.max(0, temperature - 0.1);
-      }
-      localOptions = {
-        temperature: supportsTemperature ? effectiveTemp : undefined,
-        reasoningEnabled: supportsReasoning ? reasoningEnabled : undefined,
-      };
+    let effectiveTemp = temperature;
+    // Business rule: reduce temperature by 0.1 when reasoning is enabled
+    if (supportsReasoning && reasoningEnabled && supportsTemperature) {
+      effectiveTemp = Math.max(0, temperature - 0.1);
     }
+    // Always explicit: a model without web-search support must never attach the tool
+    const localOptions = {
+      temperature: supportsTemperature ? effectiveTemp : undefined,
+      reasoningEnabled: supportsReasoning ? reasoningEnabled : undefined,
+      webSearchEnabled: supportsWebSearch && webSearchEnabled,
+    };
 
     chat.sendMessage(input, selectedModel, attachments.length ? attachments : undefined, sp, localOptions);
     setInput(""); fileUpload.setPendingAttachments([]);
-  }, [input, isLoading, modelUnavailable, fileUpload, chat, currentSystemPrompt, supportsTemperature, supportsReasoning, temperature, reasoningEnabled, selectedModel]);
+  }, [input, isLoading, modelUnavailable, fileUpload, chat, currentSystemPrompt, supportsTemperature, supportsReasoning, supportsWebSearch, temperature, reasoningEnabled, webSearchEnabled, selectedModel]);
 
   const handleNewChat = useCallback(() => {
     chat.clearChat(); setSelectedPresetId("default"); setCustomSystemPrompt("");
@@ -169,6 +174,10 @@ export function usePageState() {
     setReasoningEnabled(!reasoningEnabled);
   }, [reasoningEnabled, setReasoningEnabled]);
 
+  const handleWebSearchToggle = useCallback(() => {
+    setWebSearchEnabled(!webSearchEnabled);
+  }, [webSearchEnabled, setWebSearchEnabled]);
+
   return {
     mode, setMode, sidebarOpen, setSidebarOpen, showAllChats, setShowAllChats,
     chatModels, imageModels, selectedModel, setSelectedModel: handleModelChange, selectedImageModel, setSelectedImageModel,
@@ -177,7 +186,8 @@ export function usePageState() {
     selectedPresetId, setSelectedPresetId, customSystemPrompt, setCustomSystemPrompt,
     showSystemPromptPanel, setShowSystemPromptPanel, currentSystemPrompt,
     reasoningEnabled, temperature, setTemperature, handleReasoningToggle,
-    supportsTemperature, supportsReasoning,
+    webSearchEnabled, handleWebSearchToggle,
+    supportsTemperature, supportsReasoning, supportsWebSearch,
     ...fileUpload, ...imageGen, imageHistory,
     handleChatSubmit, handleNewChat, handleSelectChat, handleSelectImageItem, handleNewImageGeneration,
   };

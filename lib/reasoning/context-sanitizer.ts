@@ -1,7 +1,8 @@
 /**
- * Context sanitizer — strips reasoning blocks from assistant messages
- * before sending them to the LLM, saving context window space
- * and preventing the model from being confused by old reasoning.
+ * Context sanitizer — strips reasoning blocks and neutralizes URLs in assistant
+ * messages before sending them to the LLM. Saves context window space, keeps the
+ * model from re-reading its own old links, and avoids re-fetching expired
+ * grounding redirect URLs (which would be billed as fresh input tokens).
  */
 
 import { getAllKnownTags } from "./reasoning-config";
@@ -43,15 +44,46 @@ export function stripReasoningFromText(text: string): string {
 }
 
 /**
- * Sanitize a messages array for the LLM: strip reasoning content
- * from all assistant messages. User messages are passed through unchanged.
+ * Sanitize a messages array for the LLM: strip reasoning content and
+ * neutralize URLs in all assistant messages.
+ * User messages are passed through unchanged — a link the user just pasted
+ * is exactly what the URL Context tool is supposed to read.
  */
 export function sanitizeMessagesForLLM<
   T extends { role: string; content: string },
 >(messages: T[]): T[] {
   return messages.map((msg) => {
     if (msg.role !== "assistant" || !msg.content) return msg;
-    const cleaned = stripReasoningFromText(msg.content);
+    const cleaned = neutralizeUrlsInText(stripReasoningFromText(msg.content));
     return cleaned !== msg.content ? { ...msg, content: cleaned } : msg;
   });
+}
+
+// ─── URL neutralization ──────────────────────────────────────────────
+
+const MARKDOWN_LINK = /\[([^\]]*)\]\(\s*(https?:\/\/[^\s)]+)\s*\)/gi;
+const BARE_URL = /https?:\/\/[^\s<>"'`)\]}]+/gi;
+
+function sourceLabel(url: string): string {
+  try {
+    return `[источник: ${new URL(url).hostname.replace(/^www\./, "")}]`;
+  } catch {
+    return "[источник]";
+  }
+}
+
+/**
+ * Replace every URL with a domain-only marker.
+ * Keeps attribution readable for the model while making the link unfetchable.
+ */
+export function neutralizeUrlsInText(text: string): string {
+  return text
+    .replace(MARKDOWN_LINK, (_m, label: string, url: string) =>
+      label.trim() ? `${label} ${sourceLabel(url)}` : sourceLabel(url),
+    )
+    .replace(BARE_URL, (url) => {
+      // Keep sentence punctuation that glued onto the end of the link
+      const trailing = url.match(/[.,;:!?]+$/)?.[0] ?? "";
+      return sourceLabel(url.slice(0, url.length - trailing.length)) + trailing;
+    });
 }

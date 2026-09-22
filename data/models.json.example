@@ -11,6 +11,8 @@
       "outputPricePer1M": 2.5,
       "markup": 1,
       "supportsTemperature": true,
+      "supportsWebSearch": true,
+      "supportsUrlContext": true,
       "description": "Мгновенные ответы на каждый день"
     },
     {
