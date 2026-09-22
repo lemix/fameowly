@@ -54,6 +54,15 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   before sending them to the LLM. The client does not send raw data.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
+- **Web tools**: `webToolsProvider` returns the `tools` object for `streamText()`.
+  Google/Vertex share the same tool factories (`@ai-sdk/google-vertex` re-exports them
+  from `@ai-sdk/google`), so one OSS strategy covers both. Web search is an explicit
+  per-chat toggle; URL Context is attached only when the *current* user message
+  contains a public URL.
+- **Grounding hygiene**: grounding metadata travels via `toUIMessageStreamResponse`
+  `messageMetadata` into `ChatMessageData.grounding` — never into `content`.
+  `sanitizeMessagesForLLM()` neutralizes URLs in assistant history so old links
+  are never re-fetched.
 - **Plugin System**: optional features are implemented as plugins in the `extensions/` submodule.
   Behaviour is overridden through the DI container; core routes resolve strategies
   via `container.get(...)`. Admin UI loads plugin tabs from `/api/plugins/capabilities`.
@@ -62,8 +71,8 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 - **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`.
   Behaviour changes go through `register(container)` — never through ad-hoc hooks.
-- **DI Container** (`lib/container.ts`): six strategy slots — `providerResolver`, `modelFactory`,
-  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`.
+- **DI Container** (`lib/container.ts`): seven strategy slots — `providerResolver`, `modelFactory`,
+  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`.
   `lib/plugin-loader.ts` registers OSS defaults first; plugins override. Last register wins.
 - **Adding New Plugins** (no core files to edit):
   1. Create folder `extensions/plugins/{plugin}/`, implement `Plugin`, register in `extensions/index.ts`.

@@ -4,10 +4,14 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type { ChatSettings } from "@/lib/types";
 
 const STORAGE_KEY = "chat-settings";
-const DEFAULT_SETTINGS: ChatSettings = { temperature: 0.6, reasoningEnabled: true };
+const DEFAULT_SETTINGS: ChatSettings = {
+  temperature: 0.6,
+  reasoningEnabled: true,
+  webSearchEnabled: true,
+};
 
 /** Read all per-chat settings from localStorage */
-function readAllSettings(): Record<string, ChatSettings> {
+function readAllSettings(): Record<string, Partial<ChatSettings>> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
@@ -17,14 +21,23 @@ function readAllSettings(): Record<string, ChatSettings> {
 }
 
 /** Write all per-chat settings to localStorage */
-function writeAllSettings(all: Record<string, ChatSettings>) {
+function writeAllSettings(all: Record<string, Partial<ChatSettings>>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   } catch { /* silent — localStorage might be full */ }
 }
 
+/** Fill in defaults for settings saved before a field existed */
+function withDefaults(saved: Partial<ChatSettings>): ChatSettings {
+  return {
+    temperature: saved.temperature ?? DEFAULT_SETTINGS.temperature,
+    reasoningEnabled: saved.reasoningEnabled ?? DEFAULT_SETTINGS.reasoningEnabled,
+    webSearchEnabled: saved.webSearchEnabled ?? DEFAULT_SETTINGS.webSearchEnabled,
+  };
+}
+
 /**
- * Manages per-chat generation settings (temperature, reasoning).
+ * Manages per-chat generation settings (temperature, reasoning, web search).
  * Settings are persisted in localStorage keyed by chatId.
  *
  * Key behavior:
@@ -34,75 +47,59 @@ function writeAllSettings(all: Record<string, ChatSettings>) {
  *   just created the chat): keep current values and persist them (BUG-03 fix)
  */
 export function useChatSettings(activeChatId: string | null) {
-  const [temperature, setTemperatureState] = useState(DEFAULT_SETTINGS.temperature);
-  const [reasoningEnabled, setReasoningEnabledState] = useState(DEFAULT_SETTINGS.reasoningEnabled);
+  const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS);
 
-  // Refs track the latest values so the useEffect can read them
+  // Ref tracks the latest values so the useEffect can read them
   // without being in the dependency array (avoids infinite loops)
-  const temperatureRef = useRef(DEFAULT_SETTINGS.temperature);
-  const reasoningRef = useRef(DEFAULT_SETTINGS.reasoningEnabled);
-  temperatureRef.current = temperature;
-  reasoningRef.current = reasoningEnabled;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   // Load / persist settings when chat changes
   useEffect(() => {
     if (!activeChatId) {
-      // No active chat — reset to defaults
-      setTemperatureState(DEFAULT_SETTINGS.temperature);
-      setReasoningEnabledState(DEFAULT_SETTINGS.reasoningEnabled);
+      setSettings(DEFAULT_SETTINGS);
       return;
     }
     const all = readAllSettings();
     const saved = all[activeChatId];
     if (saved) {
-      // Existing chat with saved settings — restore them
-      setTemperatureState(saved.temperature ?? DEFAULT_SETTINGS.temperature);
-      setReasoningEnabledState(saved.reasoningEnabled ?? DEFAULT_SETTINGS.reasoningEnabled);
+      setSettings(withDefaults(saved));
     } else {
       // New chat (no saved settings) — keep current values and persist them.
       // This prevents the reset-to-defaults bug when the first message creates the chat.
-      all[activeChatId] = {
-        temperature: temperatureRef.current,
-        reasoningEnabled: reasoningRef.current,
-      };
+      all[activeChatId] = settingsRef.current;
       writeAllSettings(all);
     }
   }, [activeChatId]);
 
-  /** Persist current settings for the active chat */
-  const persist = useCallback((temp: number, reasoning: boolean) => {
-    if (!activeChatId) return;
-    const all = readAllSettings();
-    all[activeChatId] = { temperature: temp, reasoningEnabled: reasoning };
-    writeAllSettings(all);
+  const update = useCallback((patch: Partial<ChatSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      if (activeChatId) {
+        const all = readAllSettings();
+        all[activeChatId] = next;
+        writeAllSettings(all);
+      }
+      return next;
+    });
   }, [activeChatId]);
 
-  const setTemperature = useCallback((value: number) => {
-    setTemperatureState(value);
-    setReasoningEnabledState((prev) => {
-      persist(value, prev);
-      return prev;
-    });
-  }, [persist]);
+  const setTemperature = useCallback(
+    (value: number) => update({ temperature: value }), [update]);
+  const setReasoningEnabled = useCallback(
+    (value: boolean) => update({ reasoningEnabled: value }), [update]);
+  const setWebSearchEnabled = useCallback(
+    (value: boolean) => update({ webSearchEnabled: value }), [update]);
 
-  const setReasoningEnabled = useCallback((value: boolean) => {
-    setReasoningEnabledState(value);
-    setTemperatureState((prev) => {
-      persist(prev, value);
-      return prev;
-    });
-  }, [persist]);
-
-  const resetToDefaults = useCallback(() => {
-    setTemperatureState(DEFAULT_SETTINGS.temperature);
-    setReasoningEnabledState(DEFAULT_SETTINGS.reasoningEnabled);
-  }, []);
+  const resetToDefaults = useCallback(() => setSettings(DEFAULT_SETTINGS), []);
 
   return {
-    temperature,
+    temperature: settings.temperature,
     setTemperature,
-    reasoningEnabled,
+    reasoningEnabled: settings.reasoningEnabled,
     setReasoningEnabled,
+    webSearchEnabled: settings.webSearchEnabled,
+    setWebSearchEnabled,
     resetToDefaults,
   };
 }

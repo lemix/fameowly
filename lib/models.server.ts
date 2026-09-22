@@ -13,7 +13,7 @@ const MODELS_JSON_PATH = path.join(DATA_DIR, "models.json");
 /**
  * Apply defaults to a raw model entry from JSON config.
  * - `isLocal` defaults to `true` when provider is "local", `false` otherwise
- * - `supportsReasoning` / `supportsTemperature` default to `false`
+ * - capability flags default to `false`
  * - legacy `pricePer1MTokens` becomes both input and output price
  */
 function normalizeModel(raw: ModelOption): ModelOption {
@@ -23,6 +23,8 @@ function normalizeModel(raw: ModelOption): ModelOption {
     isLocal: raw.isLocal ?? (raw.provider === "local"),
     supportsReasoning: raw.supportsReasoning ?? false,
     supportsTemperature: raw.supportsTemperature ?? false,
+    supportsWebSearch: raw.supportsWebSearch ?? false,
+    supportsUrlContext: raw.supportsUrlContext ?? false,
     inputPricePer1M: raw.inputPricePer1M ?? legacyPrice,
     outputPricePer1M: raw.outputPricePer1M ?? legacyPrice,
   };

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { DATA_DIR } from "./paths";
+import type { MessageGrounding } from "./web-tools/grounding";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ export interface ChatMessageData {
   content: string;
   reasoning?: string;
   attachments?: ChatAttachment[];
+  /** Web-grounding provenance; kept out of `content` so it never reaches the LLM */
+  grounding?: MessageGrounding;
   createdAt: string;
 }
 
@@ -27,6 +30,8 @@ export interface ChatUsageTotals {
   promptTokens: number;
   completionTokens: number;
   requests: number;
+  /** Append-only count of billable Google Search queries */
+  webSearchQueries?: number;
   /** Last exact context size reported by the provider */
   contextTokens: number;
   /** Chat revision the context measurement was taken at */
@@ -250,7 +255,8 @@ export function deleteMessage(
 export function recordChatUsage(
   userId: string,
   chatId: string,
-  usage: { promptTokens: number; completionTokens: number }
+  usage: { promptTokens: number; completionTokens: number },
+  webSearchQueries = 0
 ): void {
   const chat = getChat(userId, chatId);
   if (!chat) return;
@@ -260,6 +266,7 @@ export function recordChatUsage(
     promptTokens: (totals?.promptTokens ?? 0) + usage.promptTokens,
     completionTokens: (totals?.completionTokens ?? 0) + usage.completionTokens,
     requests: (totals?.requests ?? 0) + 1,
+    webSearchQueries: (totals?.webSearchQueries ?? 0) + webSearchQueries,
     contextTokens: usage.promptTokens + usage.completionTokens,
     contextRevision: chat.revision ?? 0,
   };

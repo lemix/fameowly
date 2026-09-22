@@ -61,6 +61,10 @@ export function useChatApi() {
           chatId,
           messages: msgs.map((m) => ({
             id: m.id, role: m.role, content: m.content, reasoning: m.reasoning, attachments: m.attachments,
+            // Suggestion links are Google redirect wrappers that expire — keep only durable provenance
+            grounding: m.grounding
+              ? { queries: m.grounding.queries, sources: m.grounding.sources }
+              : undefined,
             createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt || new Date().toISOString(),
           })),
         }),

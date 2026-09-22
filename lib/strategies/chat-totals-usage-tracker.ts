@@ -11,7 +11,7 @@ import { recordChatUsage } from "../chat-store";
 export class ChatTotalsUsageTracker implements UsageTracker {
   async onChatFinish(context: ChatFinishContext): Promise<void> {
     if (!context.chatId) return;
-    recordChatUsage(context.userId, context.chatId, context.usage);
+    recordChatUsage(context.userId, context.chatId, context.usage, context.webSearchQueries);
   }
 
   async onImageFinish(): Promise<void> {

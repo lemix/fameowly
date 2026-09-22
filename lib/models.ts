@@ -26,6 +26,10 @@ export interface ModelOption {
   supportsReasoning?: boolean;
   /** Defaults to `false` */
   supportsTemperature?: boolean;
+  /** Provider-native live web search (Grounding with Google Search). Defaults to `false` */
+  supportsWebSearch?: boolean;
+  /** Provider-native reading of URLs pasted by the user. Defaults to `false` */
+  supportsUrlContext?: boolean;
   description?: string;
   /** OpenAI-compatible base URL for local models (e.g. http://host:port/v1) */
   baseURL?: string;

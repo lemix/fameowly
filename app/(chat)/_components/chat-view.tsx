@@ -46,6 +46,9 @@ interface ChatViewProps {
   onReasoningToggle: () => void;
   temperature: number;
   onTemperatureChange: (value: number) => void;
+  supportsWebSearch: boolean;
+  webSearchEnabled: boolean;
+  onWebSearchToggle: () => void;
   modelUnavailable?: boolean;
   isKeyboardOpen: boolean;
   chatId: string | null;
@@ -61,6 +64,7 @@ export function ChatView({
   supportsTemperature, supportsReasoning,
   reasoningEnabled, onReasoningToggle,
   temperature, onTemperatureChange,
+  supportsWebSearch, webSearchEnabled, onWebSearchToggle,
   modelUnavailable,
   isKeyboardOpen,
   chatId,
@@ -182,6 +186,9 @@ export function ChatView({
           onReasoningToggle={onReasoningToggle}
           temperature={temperature}
           onTemperatureChange={onTemperatureChange}
+          supportsWebSearch={supportsWebSearch}
+          webSearchEnabled={webSearchEnabled}
+          onWebSearchToggle={onWebSearchToggle}
         />
         <ChatInput
           input={input}

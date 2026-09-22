@@ -16,6 +16,8 @@ export interface ChatFinishContext {
   userMessageId?: string;
   /** Id the client will assign to the assistant reply */
   assistantMessageId?: string;
+  /** Billable Google Search queries the model executed (0 when it did not search) */
+  webSearchQueries?: number;
 }
 
 export interface UsageTracker {

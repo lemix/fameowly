@@ -1,11 +1,12 @@
 import { streamText } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { createLocalLLMResponse } from "@/lib/local-llm-stream";
-import { resizeBase64Image } from "@/lib/image-resize";
-import { resolveFileUrl } from "@/lib/file-storage";
-import type { ChatAttachment } from "@/lib/chat-store";
+import { buildCoreMessages } from "@/lib/chat/build-core-messages";
+import { containsPublicUrl } from "@/lib/web-tools/url-detection";
+import { extractGrounding, countSearchQueries } from "@/lib/web-tools/grounding";
+import type { ApiMessage } from "@/lib/chat/build-core-messages";
 import type { ResolvedCredentials } from "@/lib/types";
-import type { LanguageModel } from "ai";
+import type { LanguageModel, ToolSet } from "ai";
 
 // Initialize DI container on first import
 initializeContainer();
@@ -14,11 +15,11 @@ export const maxDuration = 120;
 
 const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
 
-interface ApiMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  attachments?: ChatAttachment[];
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function POST(req: Request) {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
       systemPrompt,
       temperature: rawTemperature,
       reasoningEnabled: rawReasoningEnabled,
+      webSearchEnabled: rawWebSearchEnabled,
       chatId,
       assistantMessageId,
     } = body as {
@@ -40,161 +42,30 @@ export async function POST(req: Request) {
       systemPrompt?: string;
       temperature?: number;
       reasoningEnabled?: boolean;
+      webSearchEnabled?: boolean;
       chatId?: string;
       assistantMessageId?: string;
     };
 
     if (!messages || !modelId || !provider) {
-      return new Response(
-        JSON.stringify({ error: "Отсутствуют обязательные поля запроса" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return jsonError("Отсутствуют обязательные поля запроса", 400);
     }
 
     // Model access is a plugin concern; the OSS policy grants everything.
     const userRole = req.headers.get("x-user-role") || "user";
-    const requestUserId = req.headers.get("x-user-id") || "unknown";
-    if (!container.get("modelAccessPolicy").canUse(requestUserId, modelId)) {
-      return new Response(
-        JSON.stringify({ error: "Модель недоступна" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
+    const userId = req.headers.get("x-user-id") || "unknown";
+    if (!container.get("modelAccessPolicy").canUse(userId, modelId)) {
+      return jsonError("Модель недоступна", 403);
     }
 
     const system = systemPrompt || DEFAULT_SYSTEM_PROMPT;
-
-    // Build CoreMessage[] directly — resolving file attachments to inline data
-    type ContentPart =
-      | { type: "text"; text: string }
-      | { type: "image"; image: string; mimeType?: string }
-      | { type: "file"; data: string; mediaType: string };
-
-    const coreMessages: Array<
-      | { role: "user"; content: ContentPart[] }
-      | { role: "assistant"; content: string }
-    > = [];
-
-    for (const msg of messages) {
-      if (msg.role === "user") {
-        const contentParts: ContentPart[] = [];
-
-        if (msg.content) {
-          contentParts.push({ type: "text", text: msg.content });
-        }
-
-        if (msg.attachments?.length) {
-          for (const att of msg.attachments) {
-            if (att.mimeType.startsWith("image/")) {
-              // Images: extract raw base64 + mimeType, resize for smaller payload
-              let imgBase64: string | null = null;
-              let imgMime = att.mimeType;
-
-              if (att.url.startsWith("data:")) {
-                const match = att.url.match(/^data:(.*?);base64,(.*)$/);
-                if (match) {
-                  imgBase64 = match[2];
-                  imgMime = match[1];
-                }
-              } else {
-                const resolved = resolveFileUrl(att.url);
-                if (resolved) {
-                  imgBase64 = resolved.data;
-                  imgMime = resolved.mimeType;
-                }
-              }
-
-              if (imgBase64) {
-                try {
-                  const resized = await resizeBase64Image(imgBase64, imgMime);
-                  contentParts.push({
-                    type: "image",
-                    image: resized.data,
-                    mimeType: resized.mimeType,
-                  });
-                } catch {
-                  contentParts.push({
-                    type: "image",
-                    image: imgBase64,
-                    mimeType: imgMime,
-                  });
-                }
-              }
-            } else if (
-              att.mimeType.startsWith("text/") ||
-              att.mimeType === "application/json"
-            ) {
-              // Text files: read content and include as text
-              try {
-                let textContent: string;
-                if (att.url.startsWith("data:")) {
-                  const match = att.url.match(/^data:.*?;base64,(.*)$/);
-                  textContent = match
-                    ? Buffer.from(match[1], "base64").toString("utf-8")
-                    : "";
-                } else {
-                  const resolved = resolveFileUrl(att.url);
-                  textContent = resolved
-                    ? Buffer.from(resolved.data, "base64").toString("utf-8")
-                    : "";
-                }
-                if (textContent) {
-                  contentParts.push({
-                    type: "text",
-                    text: `[Файл: ${att.name}]\n${textContent}`,
-                  });
-                }
-              } catch { /* skip unreadable files */ }
-            } else {
-              // Other files (PDF etc.): send as file part
-              if (att.url.startsWith("data:")) {
-                contentParts.push({
-                  type: "file",
-                  data: att.url,
-                  mediaType: att.mimeType,
-                });
-              } else {
-                const resolved = resolveFileUrl(att.url);
-                if (resolved) {
-                  contentParts.push({
-                    type: "file",
-                    data: `data:${resolved.mimeType};base64,${resolved.data}`,
-                    mediaType: resolved.mimeType,
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        // Skip user messages with no usable content — Vertex/Gemini rejects
-        // requests containing a message with empty `parts`.
-        if (contentParts.length === 0) {
-          continue;
-        }
-
-        coreMessages.push({ role: "user", content: contentParts });
-      } else if (msg.role === "assistant") {
-        // Skip empty assistant messages (interrupted/failed generations).
-        // An empty `parts` array breaks Vertex/Gemini on the next request.
-        if (!msg.content || !msg.content.trim()) {
-          continue;
-        }
-        coreMessages.push({ role: "assistant", content: msg.content });
-      }
-    }
-
-    // Guard against a request with no valid messages at all.
+    const coreMessages = await buildCoreMessages(messages);
     if (coreMessages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Нет сообщений для отправки" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return jsonError("Нет сообщений для отправки", 400);
     }
 
-    let result;
-
-    const userMessageId = messages.findLast((m) => m.role === "user")?.id;
-    const userId = req.headers.get("x-user-id") || "unknown";
+    const lastUserMessage = messages.findLast((m) => m.role === "user");
+    const userMessageId = lastUserMessage?.id;
 
     const credentials: ResolvedCredentials =
       container.get("providerResolver").resolve(modelId, provider, userRole)!;
@@ -225,50 +96,64 @@ export async function POST(req: Request) {
 
     const model = container.get("modelFactory").create(credentials, modelId) as LanguageModel | null;
     if (!model) {
-      return new Response(
-        JSON.stringify({ error: `Не удалось создать провайдер: ${provider}` }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return jsonError(`Не удалось создать провайдер: ${provider}`, 400);
     }
 
-    result = streamText({
+    // URL Context is gated on the *current* message only — attaching it for old
+    // links would re-fetch those pages and bill their content as input tokens.
+    const tools = container.get("webToolsProvider").resolve({
+      baseProvider: credentials.baseProvider,
+      webSearchEnabled: rawWebSearchEnabled !== false,
+      urlContextRequested: containsPublicUrl(lastUserMessage?.content ?? ""),
+    }) as ToolSet | undefined;
+
+    const result = streamText({
       model,
       system,
       messages: coreMessages,
       abortSignal: req.signal,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
-      onFinish({ usage }) {
-        if (usage) {
-          container.get("usageTracker").onChatFinish({
-            userId,
-            modelId,
-            usage: {
-              promptTokens: usage.inputTokens ?? 0,
-              completionTokens: usage.outputTokens ?? 0,
-              totalTokens: usage.totalTokens ?? 0,
-            },
-            chatId,
-            userMessageId,
-            assistantMessageId,
-          }).catch((err) => console.error("[usage-tracker] chat finish error:", err));
-        }
+      ...(tools ? { tools } : {}),
+      onFinish({ usage, steps }) {
+        if (!usage) return;
+        const webSearchQueries = steps.reduce(
+          (sum, step) => sum + countSearchQueries(step.providerMetadata),
+          0,
+        );
+        container.get("usageTracker").onChatFinish({
+          userId,
+          modelId,
+          usage: {
+            promptTokens: usage.inputTokens ?? 0,
+            completionTokens: usage.outputTokens ?? 0,
+            totalTokens: usage.totalTokens ?? 0,
+          },
+          chatId,
+          userMessageId,
+          assistantMessageId,
+          webSearchQueries,
+        }).catch((err) => console.error("[usage-tracker] chat finish error:", err));
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      // Grounding travels on a side channel — never inside message content.
+      messageMetadata({ part }) {
+        if (part.type !== "finish-step") return undefined;
+        const grounding = extractGrounding(part.providerMetadata);
+        return grounding ? { grounding } : undefined;
+      },
+    });
   } catch (error: unknown) {
     console.error("Chat API error:", error);
     const message =
       error instanceof Error ? error.message : "Внутренняя ошибка сервера";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonError(message, 500);
   }
 }
 
 /** Save completed messages after streaming finishes (called from client) */
-export async function PATCH(req: Request) {
+export async function PATCH() {
   // This endpoint is reserved for future server-side message persistence hooks.
   // Currently persistence is handled via /api/chats PATCH.
   return new Response(JSON.stringify({ ok: true }), {

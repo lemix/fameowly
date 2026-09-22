@@ -86,7 +86,11 @@ function ChatPage() {
               onSubmit={s.handleChatSubmit}
               onStop={s.stop}
               onDeleteMessage={s.deleteMessage}
-              onRetry={() => s.retry(s.selectedModel, s.supportsTemperature || s.supportsReasoning ? { temperature: s.temperature, reasoningEnabled: s.reasoningEnabled } : undefined)}
+              onRetry={() => s.retry(s.selectedModel, {
+                temperature: s.supportsTemperature ? s.temperature : undefined,
+                reasoningEnabled: s.supportsReasoning ? s.reasoningEnabled : undefined,
+                webSearchEnabled: s.supportsWebSearch && s.webSearchEnabled,
+              })}
               onDeleteLastExchange={s.deleteLastExchange}
               onUpdateSystemPrompt={s.updateSystemPrompt}
               pendingAttachments={s.pendingAttachments}
@@ -105,6 +109,9 @@ function ChatPage() {
               onReasoningToggle={s.handleReasoningToggle}
               temperature={s.temperature}
               onTemperatureChange={s.setTemperature}
+              supportsWebSearch={s.supportsWebSearch}
+              webSearchEnabled={s.webSearchEnabled}
+              onWebSearchToggle={s.handleWebSearchToggle}
               modelUnavailable={s.modelUnavailable}
               isKeyboardOpen={isKeyboardOpen}
               chatId={s.activeChatId}

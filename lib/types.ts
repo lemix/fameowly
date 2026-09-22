@@ -10,10 +10,12 @@ export type {
   ChatSession,
   ChatMessageData,
 } from "./chat-store";
+export type { MessageGrounding, GroundingSource } from "./web-tools/grounding";
 export type { ImageHistoryItem } from "./image-store";
 
 // Import for local use in type definitions
 import type { ChatAttachment } from "./chat-store";
+import type { MessageGrounding } from "./web-tools/grounding";
 import type { UserRole } from "./auth";
 
 export type { UserRole } from "./auth";
@@ -112,6 +114,7 @@ export interface ResolvedCredentials {
 export interface ChatSettings {
   temperature: number;
   reasoningEnabled: boolean;
+  webSearchEnabled: boolean;
 }
 
 /** Client-side message (createdAt is Date | string | undefined) */
@@ -122,6 +125,7 @@ export interface MessageData {
   reasoning?: string;
   error?: string;
   attachments?: ChatAttachment[];
+  grounding?: MessageGrounding;
   createdAt?: Date | string;
 }
 
