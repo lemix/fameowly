@@ -1,9 +1,10 @@
 "use client";
 
-import { Menu, Loader2, Repeat, Sun, Moon, SunMoon } from "lucide-react";
+import { Menu, Loader2, Repeat, Sun, Moon, SunMoon, FileDown } from "lucide-react";
 import type { ModelOption, Mode, ChatStatus } from "@/lib/types";
 import type { ThemeMode } from "@/hooks/use-theme";
 import { useStandaloneMode } from "@/hooks/use-standalone-mode";
+import { useChatExport } from "@/hooks/use-chat-export";
 import { ModelSelector } from "./model-selector";
 import { ChatTokenBadge } from "./chat-token-badge";
 import { PluginSlot } from "@/lib/plugin-ui";
@@ -49,6 +50,7 @@ export function AppHeader({
   const handleChange = mode === "chat" ? onModelChange : onImageModelChange;
   const ThemeIcon = THEME_META[themeMode].icon;
   const isStandalone = useStandaloneMode();
+  const { exportPdf } = useChatExport();
 
   return (
     <header
@@ -102,6 +104,17 @@ export function AppHeader({
       </div>
 
       <div className="flex shrink-0 items-center gap-5">
+        {mode === "chat" && chatId && (
+          <button
+            onClick={() => exportPdf(chatId)}
+            className={iconBtnCls}
+            title="Скачать чат в PDF"
+            data-testid="export-chat-pdf"
+          >
+            <FileDown className="h-6 w-6" strokeWidth={1.5} />
+          </button>
+        )}
+
         <button
           onClick={onCycleTheme}
           className={iconBtnCls}

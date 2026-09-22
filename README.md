@@ -40,6 +40,7 @@ Its main trick: **every outgoing request to an LLM provider can go through a SOC
 - **Admin panel**: built-in UI for creating users and managing access.
 - **Multimodal**: image and file attachments in chat, plus a dedicated image generation mode.
 - **Rich rendering**: Markdown, LaTeX and syntax-highlighted code blocks.
+- **Chat export**: print any chat to PDF with its original formatting, or download it as Markdown.
 - **Installable PWA**: works as a standalone app on desktop and mobile.
 
 Built with Next.js 16, React 19, the Vercel AI SDK and Tailwind CSS v4.

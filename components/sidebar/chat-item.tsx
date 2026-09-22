@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Check, X, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatListItem } from "@/lib/types";
+import { useChatExport } from "@/hooks/use-chat-export";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ChatItemMenu } from "./chat-item-menu";
 
@@ -25,6 +26,7 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { exportPdf, exportMarkdown } = useChatExport();
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -111,6 +113,8 @@ export function ChatItem({ chat, isActive, onSelect, onDelete, onRename }: ChatI
               onClose={() => setMenuAnchor(null)}
               onRename={() => { setMenuAnchor(null); setEditing(true); }}
               onDelete={() => { setMenuAnchor(null); setConfirmDelete(true); }}
+              onExportPdf={() => { setMenuAnchor(null); exportPdf(chat.id); }}
+              onExportMarkdown={() => { setMenuAnchor(null); exportMarkdown(chat.id); }}
             />
           )}
         </>

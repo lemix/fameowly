@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Trash2 } from "lucide-react";
+import { FileDown, FileText, Pencil, Trash2 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -11,9 +11,11 @@ interface ChatItemMenuProps {
   onClose: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onExportPdf: () => void;
+  onExportMarkdown: () => void;
 }
 
-const MENU_WIDTH = 160;
+const MENU_WIDTH = 190;
 const GAP = 4;
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -24,7 +26,14 @@ const GAP = 4;
  * clipped by it — the portal escapes that and flips above the anchor
  * when the viewport bottom is too close.
  */
-export function ChatItemMenu({ anchor, onClose, onRename, onDelete }: ChatItemMenuProps) {
+export function ChatItemMenu({
+  anchor,
+  onClose,
+  onRename,
+  onDelete,
+  onExportPdf,
+  onExportMarkdown,
+}: ChatItemMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Positioned imperatively so the first paint is already in place
@@ -75,6 +84,20 @@ export function ChatItemMenu({ anchor, onClose, onRename, onDelete }: ChatItemMe
       >
         <Pencil className="h-4 w-4" />
         Переименовать
+      </button>
+      <button
+        onClick={onExportPdf}
+        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-th-fg hover:bg-th-subtle"
+      >
+        <FileDown className="h-4 w-4" />
+        Скачать PDF
+      </button>
+      <button
+        onClick={onExportMarkdown}
+        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-th-fg hover:bg-th-subtle"
+      >
+        <FileText className="h-4 w-4" />
+        Скачать Markdown
       </button>
       <button
         onClick={onDelete}
