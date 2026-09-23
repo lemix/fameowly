@@ -5,17 +5,16 @@
  * so old links never get re-fetched (retrieved content is billed as input tokens).
  */
 
+import { isBlockedIp, normalizeIpLiteral } from "./ip-guard";
+
 const URL_PATTERN = /https?:\/\/[^\s<>"'`)\]}]+/gi;
 
-/** Hosts the Gemini URL Context tool cannot reach; also blocks SSRF-shaped input. */
+/** Hosts no fetcher may reach: loopback, LAN, metadata endpoints, obfuscated IPs. */
 function isPrivateHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h.endsWith(".localhost") || h === "::1") return true;
-  if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (/^169\.254\./.test(h) || /^0\./.test(h)) return true;
-  if (/^(f[cd][0-9a-f]{2}:|fe80:)/.test(h)) return true;
-  return false;
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local")) return true;
+  // A name still has to pass the DNS check later; only literals can be judged here.
+  return normalizeIpLiteral(h) !== null && isBlockedIp(h);
 }
 
 /** Extract publicly fetchable http(s) URLs from free text. */

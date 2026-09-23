@@ -4,7 +4,6 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createVertex } from "@ai-sdk/google-vertex";
-import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { extractReasoningMiddleware, defaultSettingsMiddleware, wrapLanguageModel } from "ai";
 import { proxyFetch } from "../proxy-fetch";
@@ -43,12 +42,16 @@ export class BaseModelFactory implements ModelFactory {
         return vertex(modelId);
       }
       case "openrouter": {
-        const openrouter = createOpenAI({
+        // openai-compatible (not @ai-sdk/openai): only it maps `reasoning_content`
+        // into reasoning parts and passes free-form body fields through providerOptions.
+        const openrouter = createOpenAICompatible({
+          name: "openrouter",
           apiKey: credentials.apiKey,
           baseURL: credentials.baseURL ?? "https://openrouter.ai/api/v1",
           fetch: proxyFetch,
+          includeUsage: true,
         });
-        return openrouter.chat(modelId);
+        return openrouter.chatModel(modelId);
       }
       case "local": {
         // No proxyFetch: local endpoints live on the LAN, a SOCKS proxy would not reach them.

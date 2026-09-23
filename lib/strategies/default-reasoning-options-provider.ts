@@ -1,11 +1,12 @@
 /**
  * Strategy: reasoning options for the OSS providers.
  *
- * Measured behaviour (2026-09-23, gemini-3.1-pro-preview / deepseek-r1-0528):
+ * Measured behaviour (2026-09-23, live fleet):
  *  - Google returns thought summaries only with `includeThoughts`; without it the
  *    thinking tokens are still generated and billed, just never shown.
- *  - `thinkingBudget: 0` genuinely stops thinking (2.3x faster, 2.6x fewer output tokens).
- *  - OpenRouter's `reasoning.exclude` produces an empty answer — never use it.
+ *  - `thinkingBudget: 0` genuinely stops thinking (~2.7x faster, ~4.8x fewer output tokens).
+ *  - OpenRouter: `reasoning.enabled: false` zeroes reasoning tokens and keeps the answer
+ *    intact; `effort: "low"` only shrinks it, and `exclude: true` returns an empty answer.
  *  - llama.cpp ignores `chat_template_kwargs` unless the server runs with `--jinja`;
  *    the option is wired anyway so it starts working the day that flag appears.
  */
@@ -27,7 +28,7 @@ export class DefaultReasoningOptionsProvider implements ReasoningOptionsProvider
         };
 
       case "openrouter":
-        return thinkingOff ? { openrouter: { reasoning: { effort: "low" } } } : undefined;
+        return thinkingOff ? { openrouter: { reasoning: { enabled: false } } } : undefined;
 
       case "local":
         return thinkingOff

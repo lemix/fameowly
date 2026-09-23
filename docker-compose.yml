@@ -10,6 +10,22 @@ services:
   #   volumes:
   #     - ./xray-config.json:/etc/xray/config.json:ro
 
+  # ── Self-hosted metasearch (privacy: queries never leave your network
+  #    with your identity attached) ───────────────────────────────────
+  # Not published to the host: only family-ai-hub reaches it, over the
+  # internal network. Set SEARXNG_URL=http://searxng:8080 in .env.local.
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://searxng:8080/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-change-me}
+    expose:
+      - "8080"
+
   family-ai-hub:
     build: .
     container_name: family-ai-hub
@@ -24,12 +40,16 @@ services:
       - .env.local
     environment:
       - NODE_ENV=production
+      # ── Web search backend ──────────────────────────────────────────
+      - SEARXNG_URL=http://searxng:8080
       # ── SOCKS5 proxy for outgoing LLM / image-gen requests ──────────
       # Set SOCKS_PROXY to route Google & OpenRouter traffic through a
       # SOCKS5 proxy (e.g. Xray, V2Ray, SSH tunnel).
       # Example (using the xray-client service above):
       #   - SOCKS_PROXY=socks5://xray-client:10808
       # You can also use ALL_PROXY, HTTPS_PROXY, or HTTP_PROXY.
+    depends_on:
+      - searxng
     # depends_on:
     #   - xray-client
 
