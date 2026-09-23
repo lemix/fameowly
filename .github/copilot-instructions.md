@@ -48,6 +48,9 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 - **AI SDK v6**: `streamText()` + `toUIMessageStreamResponse()` on the server.
   On the client, use a custom `usePersistentChat` hook with SSE parsing.
+- **Local models**: llama.cpp goes through `createOpenAICompatible` like any other provider,
+  wrapped with `extractReasoningMiddleware({ tagName: "think" })` for servers that inline
+  `<think>` instead of returning `reasoning_content`. There is no bespoke local stream client.
 - **OpenRouter**: use `openrouter.chat(modelId)` (Chat Completions API),
   NOT `openrouter(modelId)` (Responses API is not supported).
 - **Auth**: JWT in httpOnly cookies, middleware for route protection.
@@ -64,6 +67,10 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   `messageMetadata` into `ChatMessageData.grounding` — never into `content`.
   `sanitizeMessagesForLLM()` neutralizes URLs in assistant history so old links
   are never re-fetched.
+- **Reasoning**: two independent concerns. *Visibility* is always on where the provider
+  supports it (`includeThoughts` for Google, tag extraction for local). *Control* is the
+  «Думать» toggle, shown only when `ModelOption.supportsReasoning` is set by the admin.
+  Both travel through the `reasoningOptionsProvider` slot as `providerOptions`.
 - **Plugin System**: optional features are implemented as plugins in the `extensions/` submodule.
   Behaviour is overridden through the DI container; core routes resolve strategies
   via `container.get(...)`. Admin UI loads plugin tabs from `/api/plugins/capabilities`.
@@ -72,8 +79,9 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 - **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`.
   Behaviour changes go through `register(container)` — never through ad-hoc hooks.
-- **DI Container** (`lib/container.ts`): seven strategy slots — `providerResolver`, `modelFactory`,
-  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`.
+- **DI Container** (`lib/container.ts`): eight strategy slots — `providerResolver`, `modelFactory`,
+  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`,
+  `reasoningOptionsProvider`.
   `lib/plugin-loader.ts` registers OSS defaults first; plugins override. Last register wins.
 - **Adding New Plugins** (no core files to edit):
   1. Create folder `extensions/plugins/{plugin}/`, implement `Plugin`, register in `extensions/index.ts`.

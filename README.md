@@ -96,6 +96,8 @@ Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`, `supp
 
 `supportsWebSearch` shows the «Поиск» toggle in chat (Grounding with Google Search) and `supportsUrlContext` lets the model read links pasted into a message. Both are served by Google's native tools, so they only take effect on `google` and `google-vertex` models — and not on every model of those providers. Check the model's own documentation before enabling them; on other providers the flags are ignored.
 
+`supportsReasoning` shows the «Думать» toggle, which lets the user ask the model to *stop* thinking in order to answer faster. Enable it only where the provider can actually honour it — Google (`thinkingConfig.thinkingBudget: 0`) does; a llama.cpp server started without `--jinja` silently ignores every such switch. Displaying the reasoning block itself does not depend on this flag: it is always on wherever the provider exposes reasoning.
+
 ## Local development
 
 ```bash

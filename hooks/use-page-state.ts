@@ -54,9 +54,9 @@ export function usePageState() {
     return !chatModels.some((m) => m.id === selectedModel.id);
   }, [chat.activeChatId, chatModels, selectedModel.id]);
 
-  // Model capability flags (Task 3)
-  const supportsTemperature = selectedModel.supportsTemperature ?? selectedModel.isLocal ?? false;
-  const supportsReasoning = selectedModel.supportsReasoning ?? selectedModel.isLocal ?? false;
+  // Model capability flags — admin-controlled in models.json, no provider hardcoding
+  const supportsTemperature = selectedModel.supportsTemperature ?? false;
+  const supportsReasoning = selectedModel.supportsReasoning ?? false;
   const supportsWebSearch = selectedModel.supportsWebSearch ?? false;
 
   const fileUpload = useFileUpload(mode);
@@ -117,16 +117,9 @@ export function usePageState() {
       .map((pa) => pa.uploaded!);
     const sp = chat.messages.length === 0 ? currentSystemPrompt : undefined;
 
-    // Task 3: Build localOptions based on model capabilities.
-    // Temperature reduction for reasoning happens "under the hood" here, NOT in UI.
-    let effectiveTemp = temperature;
-    // Business rule: reduce temperature by 0.1 when reasoning is enabled
-    if (supportsReasoning && reasoningEnabled && supportsTemperature) {
-      effectiveTemp = Math.max(0, temperature - 0.1);
-    }
     // Always explicit: a model without web-search support must never attach the tool
     const localOptions = {
-      temperature: supportsTemperature ? effectiveTemp : undefined,
+      temperature: supportsTemperature ? temperature : undefined,
       reasoningEnabled: supportsReasoning ? reasoningEnabled : undefined,
       webSearchEnabled: supportsWebSearch && webSearchEnabled,
     };

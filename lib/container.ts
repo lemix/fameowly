@@ -14,6 +14,7 @@ import type {
   ModelAccessPolicy,
   UserLifecycle,
   WebToolsProvider,
+  ReasoningOptionsProvider,
 } from "./contracts";
 
 export interface ServiceMap {
@@ -24,6 +25,7 @@ export interface ServiceMap {
   modelAccessPolicy: ModelAccessPolicy;
   userLifecycle: UserLifecycle;
   webToolsProvider: WebToolsProvider;
+  reasoningOptionsProvider: ReasoningOptionsProvider;
 }
 
 /** Registry surface exposed to plugins during register() */

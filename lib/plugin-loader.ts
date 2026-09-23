@@ -14,6 +14,7 @@ import { VirtualProviderCredentialResolver } from "./strategies/virtual-provider
 import { BaseModelFactory } from "./strategies/base-model-factory";
 import { ChatTotalsUsageTracker } from "./strategies/chat-totals-usage-tracker";
 import { GoogleWebToolsProvider } from "./strategies/google-web-tools-provider";
+import { DefaultReasoningOptionsProvider } from "./strategies/default-reasoning-options-provider";
 import {
   NoPricingPolicy,
   OpenModelAccessPolicy,
@@ -39,6 +40,7 @@ export function initializeContainer(): void {
   container.register("modelAccessPolicy", new OpenModelAccessPolicy());
   container.register("userLifecycle", new NoopUserLifecycle());
   container.register("webToolsProvider", new GoogleWebToolsProvider());
+  container.register("reasoningOptionsProvider", new DefaultReasoningOptionsProvider());
 
   // Extension plugins override via container.register()
   loadExtensionPlugins();

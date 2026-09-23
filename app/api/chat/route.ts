@@ -1,6 +1,5 @@
 import { streamText } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
-import { createLocalLLMResponse } from "@/lib/local-llm-stream";
 import { buildCoreMessages } from "@/lib/chat/build-core-messages";
 import { containsPublicUrl } from "@/lib/web-tools/url-detection";
 import { extractGrounding, countSearchQueries } from "@/lib/web-tools/grounding";
@@ -13,7 +12,14 @@ initializeContainer();
 
 export const maxDuration = 120;
 
+/** Wall-clock cap for a single generation (local reasoning models are slow). */
+const GENERATION_TIMEOUT_MS = 600_000;
+
+const TIMEOUT_NOTICE =
+  "[Превышен лимит времени. Попробуйте упростить запрос или отключить режим размышления.]";
+
 const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
+
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -70,30 +76,6 @@ export async function POST(req: Request) {
     const credentials: ResolvedCredentials =
       container.get("providerResolver").resolve(modelId, provider, userRole)!;
 
-    if (credentials.baseProvider === "local") {
-      // Local provider: fetch directly from llama.cpp (no AI SDK provider needed).
-      const reasoningEnabled = rawReasoningEnabled !== false;
-      const temperature = typeof rawTemperature === "number"
-        ? rawTemperature
-        : reasoningEnabled ? 0.6 : 0.7;
-
-      return createLocalLLMResponse({
-        modelId,
-        system,
-        messages: coreMessages,
-        temperature,
-        reasoningEnabled,
-        maxOutputTokens: 16384,
-        abortSignal: req.signal,
-        ...(credentials.baseURL ? { baseURL: credentials.baseURL } : {}),
-        onFinish(usage) {
-          container.get("usageTracker")
-            .onChatFinish({ userId, modelId, usage, chatId, userMessageId, assistantMessageId })
-            .catch((err) => console.error("[usage-tracker] local chat finish error:", err));
-        },
-      });
-    }
-
     const model = container.get("modelFactory").create(credentials, modelId) as LanguageModel | null;
     if (!model) {
       return jsonError(`Не удалось создать провайдер: ${provider}`, 400);
@@ -107,13 +89,21 @@ export async function POST(req: Request) {
       urlContextRequested: containsPublicUrl(lastUserMessage?.content ?? ""),
     }) as ToolSet | undefined;
 
+    const providerOptions = container.get("reasoningOptionsProvider").resolve({
+      baseProvider: credentials.baseProvider,
+      modelId,
+      reasoningEnabled: rawReasoningEnabled,
+    }) as Parameters<typeof streamText>[0]["providerOptions"];
+
     const result = streamText({
       model,
       system,
       messages: coreMessages,
       abortSignal: req.signal,
+      timeout: GENERATION_TIMEOUT_MS,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       ...(tools ? { tools } : {}),
+      ...(providerOptions ? { providerOptions } : {}),
       onFinish({ usage, steps }) {
         if (!usage) return;
         const webSearchQueries = steps.reduce(
@@ -142,6 +132,12 @@ export async function POST(req: Request) {
         if (part.type !== "finish-step") return undefined;
         const grounding = extractGrounding(part.providerMetadata);
         return grounding ? { grounding } : undefined;
+      },
+      onError(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/timeout|timed out|aborted/i.test(message)) return TIMEOUT_NOTICE;
+        console.error("[chat] stream error:", message);
+        return message;
       },
     });
   } catch (error: unknown) {

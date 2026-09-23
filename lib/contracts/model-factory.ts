@@ -7,7 +7,7 @@ import type { ResolvedCredentials } from "../types";
 export interface ModelFactory {
   /**
    * Create an AI SDK language model from resolved credentials.
-   * @returns model instance, or null if provider is handled externally (e.g. local)
+   * @returns model instance, or null when the credentials cannot produce one
    */
   create(
     credentials: ResolvedCredentials,
