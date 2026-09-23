@@ -37,8 +37,3 @@ export function extractPublicUrls(text: string): string[] {
   }
   return urls;
 }
-
-/** True when the text contains at least one publicly fetchable URL. */
-export function containsPublicUrl(text: string): boolean {
-  return extractPublicUrls(text).length > 0;
-}

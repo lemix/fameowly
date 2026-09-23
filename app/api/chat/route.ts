@@ -1,7 +1,8 @@
 import { streamText } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { buildCoreMessages } from "@/lib/chat/build-core-messages";
-import { containsPublicUrl } from "@/lib/web-tools/url-detection";
+import { applyWebContext } from "@/lib/chat/apply-web-context";
+import { extractPublicUrls } from "@/lib/web-tools/url-detection";
 import { extractGrounding, countSearchQueries } from "@/lib/web-tools/grounding";
 import type { ApiMessage } from "@/lib/chat/build-core-messages";
 import type { ResolvedCredentials } from "@/lib/types";
@@ -83,11 +84,23 @@ export async function POST(req: Request) {
 
     // URL Context is gated on the *current* message only — attaching it for old
     // links would re-fetch those pages and bill their content as input tokens.
-    const tools = container.get("webToolsProvider").resolve({
+    const userText = lastUserMessage?.content ?? "";
+    const urls = extractPublicUrls(userText);
+    const webRequest = {
       baseProvider: credentials.baseProvider,
       webSearchEnabled: rawWebSearchEnabled !== false,
-      urlContextRequested: containsPublicUrl(lastUserMessage?.content ?? ""),
-    }) as ToolSet | undefined;
+      urlContextRequested: urls.length > 0,
+    };
+    const webTools = container.get("webToolsProvider");
+    const tools = webTools.resolve(webRequest) as ToolSet | undefined;
+    const webContext = await webTools.prepareContext?.({
+      ...webRequest,
+      modelId,
+      userMessage: userText,
+      urls,
+      abortSignal: req.signal,
+    });
+    const prompt = applyWebContext(system, coreMessages, webContext);
 
     const providerOptions = container.get("reasoningOptionsProvider").resolve({
       baseProvider: credentials.baseProvider,
@@ -97,8 +110,8 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model,
-      system,
-      messages: coreMessages,
+      system: prompt.system,
+      messages: prompt.messages,
       abortSignal: req.signal,
       timeout: GENERATION_TIMEOUT_MS,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
@@ -128,7 +141,11 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       // Grounding travels on a side channel — never inside message content.
+      // Pre-fetched sources are known up front, so they show while the answer streams.
       messageMetadata({ part }) {
+        if (part.type === "start-step" && webContext?.grounding) {
+          return { grounding: webContext.grounding };
+        }
         if (part.type !== "finish-step") return undefined;
         const grounding = extractGrounding(part.providerMetadata);
         return grounding ? { grounding } : undefined;

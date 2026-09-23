@@ -94,7 +94,18 @@ When deploying via Docker, mount your `models.json` into the container as shown 
 
 Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`, `supportsWebSearch`, `supportsUrlContext`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
 
-`supportsWebSearch` shows the «Поиск» toggle in chat (Grounding with Google Search) and `supportsUrlContext` lets the model read links pasted into a message. Both are served by Google's native tools, so they only take effect on `google` and `google-vertex` models — and not on every model of those providers. Check the model's own documentation before enabling them; on other providers the flags are ignored.
+`supportsWebSearch` shows the «Поиск» toggle in chat and `supportsUrlContext` lets the model read links pasted into a message. On `google` and `google-vertex` both are served by Google's native tools (Grounding with Google Search, URL Context) — and not on every model of those providers, so check the model's own documentation first. On other providers they are served by the `web` plugin of the commercial edition, which pre-fetches pages through a self-hosted SearXNG and injects them into the prompt; in the open-source build the flags have no effect there.
+
+### Web search (SearXNG)
+
+`docker compose up -d` also starts a `searxng` container, reachable only from the hub over the internal network. Its config lives in `searxng/settings.yml`; the JSON API (`formats: [html, json]`) and a disabled `limiter` are both required. Set `SEARXNG_URL` (`http://searxng:8080` inside Docker) and a random `SEARXNG_SECRET` in `.env.local`. For local development run the container by hand and point `SEARXNG_URL` at it:
+
+```bash
+docker run -d --name searxng-dev -p 127.0.0.1:8888:8080 \
+  -v "$PWD/searxng:/etc/searxng:rw" -e SEARXNG_SECRET=dev-only searxng/searxng:latest
+```
+
+Pages are fetched by the hub itself through an SSRF-hardened client (`lib/web-tools/safe-fetch.ts`): only `http`/`https`, every redirect re-validated, connections pinned to a resolved public IP, loopback and private ranges refused.
 
 `supportsReasoning` shows the «Думать» toggle, which lets the user ask the model to *stop* thinking in order to answer faster. Enable it only where the provider can actually honour it — Google (`thinkingConfig.thinkingBudget: 0`) does; a llama.cpp server started without `--jinja` silently ignores every such switch. Displaying the reasoning block itself does not depend on this flag: it is always on wherever the provider exposes reasoning.
 

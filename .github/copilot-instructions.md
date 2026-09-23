@@ -41,7 +41,8 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - components/ # Shared UI components (sidebar, chat-message, etc.)
 - lib/ # Server & shared utilities, types, domain logic
 - data/ # Runtime data (users.json, chats/, uploads/)
-- extensions/ # Git submodule with closed-source plugins (providers, billing, etc.)
+- extensions/ # Git submodule with closed-source plugins (providers, billing, web, etc.)
+- searxng/ # SearXNG config (`settings.yml`) for the `searxng` docker-compose service
 
 
 ## Key Technical Decisions
@@ -58,11 +59,19 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   before sending them to the LLM. The client does not send raw data.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
-- **Web tools**: `webToolsProvider` returns the `tools` object for `streamText()`.
-  Google/Vertex share the same tool factories (`@ai-sdk/google-vertex` re-exports them
-  from `@ai-sdk/google`), so one OSS strategy covers both. Web search is an explicit
-  per-chat toggle; URL Context is attached only when the *current* user message
-  contains a public URL.
+- **Web tools**: two mechanisms behind one `webToolsProvider` slot. `resolve()` returns
+  provider-native `tools` for `streamText()` — Google/Vertex share the same tool factories
+  (`@ai-sdk/google-vertex` re-exports them from `@ai-sdk/google`), so one OSS strategy covers
+  both. Optional `prepareContext()` pre-fetches pages for models without native tools; the
+  route always calls it and `lib/chat/apply-web-context.ts` puts the result into the current
+  user turn. Split: **OSS owns mechanics** (`lib/web-tools/`: SSRF-hardened `safe-fetch`,
+  `ip-guard`, `extract-article`, `searxng` client), **premium owns policy**
+  (`extensions/plugins/web/`: when to search, budgets, injection-resistant prompt block).
+  Web search is an explicit per-chat toggle; URL reading is attached only when the
+  *current* user message contains a public URL.
+- **Fetching untrusted URLs**: always through `lib/web-tools/safe-fetch.ts`, never `fetch`
+  or `proxyFetch` — the hub shares a LAN with the LLM servers. SearXNG itself is trusted
+  infra and is called with plain `fetch`.
 - **Grounding hygiene**: grounding metadata travels via `toUIMessageStreamResponse`
   `messageMetadata` into `ChatMessageData.grounding` — never into `content`.
   `sanitizeMessagesForLLM()` neutralizes URLs in assistant history so old links
