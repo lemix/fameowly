@@ -326,3 +326,61 @@ input:disabled {
 .animate-toast-in {
   animation: toast-in 0.25s ease-out;
 }
+
+/* ─── Chat export (print view) ─── */
+
+/* The app shell locks the viewport to 100dvh; a transcript has to scroll and paginate */
+html:has(.print-root),
+html:has(.print-root) body {
+  height: auto;
+  overflow: visible;
+}
+
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+
+  html:has(.print-root) body {
+    background: #fff;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Syntax colors and code backgrounds are content here, not decoration */
+  .print-root {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Paper has no horizontal scroll — long code lines must wrap instead of being cut off */
+  .print-root .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .print-root pre,
+  .print-root pre code {
+    white-space: pre-wrap !important;
+    word-break: break-word;
+  }
+
+  .print-root pre,
+  .print-root img,
+  .print-root tr,
+  .print-root blockquote,
+  .print-root .katex-display {
+    break-inside: avoid;
+  }
+
+  .print-root h1,
+  .print-root h2,
+  .print-root h3 {
+    break-after: avoid;
+  }
+
+  .print-root a {
+    text-decoration: none;
+  }
+}
+
