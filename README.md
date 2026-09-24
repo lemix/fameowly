@@ -64,6 +64,8 @@ services:
     restart: unless-stopped
 ```
 
+`data/`, `data-oss/` and `.env*` are excluded from the build context by `.dockerignore`, so a locally built image never contains users, chats or credentials — they are supplied at run time through the volume and `env_file`.
+
 ### Environment
 
 ```env

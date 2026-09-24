@@ -48,14 +48,17 @@ function isFetchableResult(rawUrl: string): boolean {
 
 /**
  * Run a web search.
- * @returns ranked, de-duplicated hits; an empty array when search is unavailable.
+ * @returns ranked, de-duplicated hits (possibly none).
+ * @throws when SearXNG is not configured or does not answer — callers must be able
+ *   to tell "nothing found" from "search is down".
  */
 export async function searchWeb(
   query: string,
   options: { limit?: number; signal?: AbortSignal } = {},
 ): Promise<SearchHit[]> {
   const base = getSearxngUrl();
-  if (!base || !query.trim()) return [];
+  if (!base) throw new Error("SEARXNG_URL is not set");
+  if (!query.trim()) return [];
 
   const url = new URL(`${base}/search`);
   url.searchParams.set("q", query);

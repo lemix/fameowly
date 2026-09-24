@@ -1,0 +1,16 @@
+# Runtime data and secrets must never be baked into the image:
+# `data/` is mounted as a volume, secrets come from env_file at run time.
+data
+data-oss
+.env*
+!.env.example
+
+# Host artefacts — the Dockerfile installs its own node_modules in the deps stage.
+node_modules
+.next
+.git
+playwright-report
+test-results
+tsconfig.tsbuildinfo
+tmp-*.mjs
+*.bak*
