@@ -1,0 +1,55 @@
+# SearXNG configuration for the Family AI Hub.
+#
+# The hub talks to this instance over the internal Docker network only; it is not
+# published to the host. Two settings differ from the SearXNG defaults and both
+# are required:
+#   * `formats` must include `json` — the JSON API is disabled out of the box;
+#   * `limiter: false` — the bot limiter would throttle our own server-side calls.
+# Never expose this container to the internet with these settings.
+
+use_default_settings: true
+
+general:
+  instance_name: "Family AI Hub Search"
+  # Keep the usage/stats endpoints off: nothing renders them here.
+  enable_metrics: false
+
+server:
+  # Override with SEARXNG_SECRET in .env.local — a fixed default would be a known key.
+  secret_key: "change-me"
+  limiter: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  safe_search: 1
+  autocomplete: ""
+  default_lang: "ru"
+  formats:
+    - html
+    - json
+
+ui:
+  static_use_hash: true
+
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 10.0
+  pool_connections: 20
+  pool_maxsize: 10
+
+engines:
+  # Engines that regularly answer CAPTCHAs to datacenter IPs are disabled so a
+  # single blocked upstream cannot empty the whole result set.
+  - name: google
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: brave
+    disabled: false
+  - name: wikipedia
+    disabled: false
+  - name: yandex
+    disabled: true

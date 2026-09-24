@@ -63,3 +63,6 @@ data/vertex-sa.json
 
 # generated plugin slot map
 /lib/generated
+
+# ad-hoc probe scripts
+tmp-*.mjs

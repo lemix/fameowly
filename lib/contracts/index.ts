@@ -9,4 +9,13 @@ export type { UsageTracker, ChatFinishContext } from "./usage-tracker";
 export type { PricingPolicy, CostSnapshot } from "./pricing-policy";
 export type { ModelAccessPolicy } from "./model-access-policy";
 export type { UserLifecycle } from "./user-lifecycle";
-export type { WebToolsProvider, WebToolsRequest } from "./web-tools-provider";
+export type {
+  WebToolsProvider,
+  WebToolsRequest,
+  WebContextRequest,
+  WebContextResult,
+} from "./web-tools-provider";
+export type {
+  ReasoningOptionsProvider,
+  ReasoningOptionsRequest,
+} from "./reasoning-options-provider";

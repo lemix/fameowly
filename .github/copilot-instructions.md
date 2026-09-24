@@ -41,13 +41,17 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - components/ # Shared UI components (sidebar, chat-message, etc.)
 - lib/ # Server & shared utilities, types, domain logic
 - data/ # Runtime data (users.json, chats/, uploads/)
-- extensions/ # Git submodule with closed-source plugins (providers, billing, etc.)
+- extensions/ # Git submodule with closed-source plugins (providers, billing, web, etc.)
+- searxng/ # SearXNG config (`settings.yml`) for the `searxng` docker-compose service
 
 
 ## Key Technical Decisions
 
 - **AI SDK v6**: `streamText()` + `toUIMessageStreamResponse()` on the server.
   On the client, use a custom `usePersistentChat` hook with SSE parsing.
+- **Local models**: llama.cpp goes through `createOpenAICompatible` like any other provider,
+  wrapped with `extractReasoningMiddleware({ tagName: "think" })` for servers that inline
+  `<think>` instead of returning `reasoning_content`. There is no bespoke local stream client.
 - **OpenRouter**: use `openrouter.chat(modelId)` (Chat Completions API),
   NOT `openrouter(modelId)` (Responses API is not supported).
 - **Auth**: JWT in httpOnly cookies, middleware for route protection.
@@ -55,15 +59,27 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   before sending them to the LLM. The client does not send raw data.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
-- **Web tools**: `webToolsProvider` returns the `tools` object for `streamText()`.
-  Google/Vertex share the same tool factories (`@ai-sdk/google-vertex` re-exports them
-  from `@ai-sdk/google`), so one OSS strategy covers both. Web search is an explicit
-  per-chat toggle; URL Context is attached only when the *current* user message
-  contains a public URL.
+- **Web tools**: two mechanisms behind one `webToolsProvider` slot. `resolve()` returns
+  provider-native `tools` for `streamText()` — Google/Vertex share the same tool factories
+  (`@ai-sdk/google-vertex` re-exports them from `@ai-sdk/google`), so one OSS strategy covers
+  both. Optional `prepareContext()` pre-fetches pages for models without native tools; the
+  route always calls it and `lib/chat/apply-web-context.ts` puts the result into the current
+  user turn. Split: **OSS owns mechanics** (`lib/web-tools/`: SSRF-hardened `safe-fetch`,
+  `ip-guard`, `extract-article`, `searxng` client), **premium owns policy**
+  (`extensions/plugins/web/`: when to search, budgets, injection-resistant prompt block).
+  Web search is an explicit per-chat toggle; URL reading is attached only when the
+  *current* user message contains a public URL.
+- **Fetching untrusted URLs**: always through `lib/web-tools/safe-fetch.ts`, never `fetch`
+  or `proxyFetch` — the hub shares a LAN with the LLM servers. SearXNG itself is trusted
+  infra and is called with plain `fetch`.
 - **Grounding hygiene**: grounding metadata travels via `toUIMessageStreamResponse`
   `messageMetadata` into `ChatMessageData.grounding` — never into `content`.
   `sanitizeMessagesForLLM()` neutralizes URLs in assistant history so old links
   are never re-fetched.
+- **Reasoning**: two independent concerns. *Visibility* is always on where the provider
+  supports it (`includeThoughts` for Google, tag extraction for local). *Control* is the
+  «Думать» toggle, shown only when `ModelOption.supportsReasoning` is set by the admin.
+  Both travel through the `reasoningOptionsProvider` slot as `providerOptions`.
 - **Plugin System**: optional features are implemented as plugins in the `extensions/` submodule.
   Behaviour is overridden through the DI container; core routes resolve strategies
   via `container.get(...)`. Admin UI loads plugin tabs from `/api/plugins/capabilities`.
@@ -72,8 +88,9 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 - **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`.
   Behaviour changes go through `register(container)` — never through ad-hoc hooks.
-- **DI Container** (`lib/container.ts`): seven strategy slots — `providerResolver`, `modelFactory`,
-  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`.
+- **DI Container** (`lib/container.ts`): eight strategy slots — `providerResolver`, `modelFactory`,
+  `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`,
+  `reasoningOptionsProvider`.
   `lib/plugin-loader.ts` registers OSS defaults first; plugins override. Last register wins.
 - **Adding New Plugins** (no core files to edit):
   1. Create folder `extensions/plugins/{plugin}/`, implement `Plugin`, register in `extensions/index.ts`.

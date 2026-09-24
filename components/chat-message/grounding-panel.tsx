@@ -16,6 +16,16 @@ function safeHttpsUrl(value: string): string | null {
   }
 }
 
+/** Sources may be plain http: the server read them, so hiding them would misreport provenance. */
+function safeWebUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function hostLabel(uri: string): string {
   try {
     return new URL(uri).hostname.replace(/^www\./, "");
@@ -42,13 +52,15 @@ function suggestionChips(grounding: MessageGrounding): Array<{ url: string; labe
 }
 
 /**
- * Renders Google Search Suggestions and grounding sources.
- * Suggestions are required by the Grounding with Google Search terms of use.
+ * Renders grounding sources and, for Google only, Search Suggestions chips
+ * (required by the Grounding with Google Search terms of use). Pre-fetched
+ * search for other providers reports sources without queries, so no chips
+ * are drawn and nothing is mislabelled as Google.
  */
 export function GroundingPanel({ grounding }: GroundingPanelProps) {
   const chips = suggestionChips(grounding);
   const sources = (grounding.sources ?? [])
-    .map((source) => ({ ...source, href: safeHttpsUrl(source.uri) }))
+    .map((source) => ({ ...source, href: safeWebUrl(source.uri) }))
     .filter((source) => source.href !== null);
 
   if (chips.length === 0 && sources.length === 0) return null;
