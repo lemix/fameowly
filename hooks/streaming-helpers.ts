@@ -13,6 +13,31 @@ export interface StreamAccumulator {
   reasoning: string;
   error: string;
   grounding?: MessageGrounding;
+  activity?: string;
+}
+
+/** Tools are plugin-defined, so the label is derived from the input shape, not the tool name. */
+function describeToolCall(input: unknown): string {
+  const args = (input ?? {}) as { query?: unknown; url?: unknown };
+  if (typeof args.query === "string") return `Ищу: ${args.query}`;
+  if (typeof args.url === "string") {
+    try {
+      return `Читаю: ${new URL(args.url).hostname}`;
+    } catch { /* not a URL — fall through */ }
+  }
+  return "Использую инструмент…";
+}
+
+function patchLastAssistant(
+  setMessages: React.Dispatch<React.SetStateAction<MessageData[]>>,
+  patch: Partial<MessageData>,
+) {
+  setMessages((prev) => {
+    const updated = [...prev];
+    const last = updated[updated.length - 1];
+    if (last?.role === "assistant") updated[updated.length - 1] = { ...last, ...patch };
+    return updated;
+  });
 }
 
 /** Process a single SSE event, updating accumulated text/reasoning/grounding */
@@ -58,6 +83,15 @@ export function processStreamEvent(
       });
       break;
     }
+    case "tool-input-available":
+      acc.activity = describeToolCall(event.input);
+      patchLastAssistant(setMessages, { activity: acc.activity });
+      break;
+    case "tool-output-available":
+    case "tool-output-error":
+      acc.activity = undefined;
+      patchLastAssistant(setMessages, { activity: undefined });
+      break;
     case "error":
       acc.error = (event.errorText as string) || "Неизвестная ошибка";
       break;

@@ -75,6 +75,15 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   search hits, injection-resistant blocks). Web search is an explicit per-chat toggle; URL
   reading is attached only when the *current* user message contains a public URL.
   Never send `tool_choice: "required" | "none"` or a named tool to ik_llama — measured broken.
+- **Timeouts**: every generation is capped at 10 min; cloud providers also get stall
+  detection (`stepMs` / `chunkMs` of AI SDK `timeout`), local servers do not — long prompt
+  processing is legitimately silent. Each web tool call has a 30 s deadline, and `safeFetch`
+  bounds DNS and the TCP/TLS handshake itself (its custom connector bypasses undici's timeout).
+- **Streaming through a reverse proxy**: `/api/chat` wraps the response in
+  `lib/chat/sse-heartbeat.ts` — an SSE comment every 15 s. Without it nginx
+  (`proxy_read_timeout`, 60 s default) drops the stream while a local model silently
+  processes a long prompt, and the browser sees a normal, truncated end. Cancelling that
+  response also aborts the generation (second stop path besides `req.signal`).
 - **Fetching untrusted URLs**: always through `lib/web-tools/safe-fetch.ts`, never `fetch`
   or `proxyFetch` — the hub shares a LAN with the LLM servers. SearXNG itself is trusted
   infra and is called with plain `fetch`.

@@ -137,6 +137,18 @@ export function isBlockedIp(ip: string): boolean {
   return BLOCKED_V6.some((cidr) => matchesV6(bytes, cidr));
 }
 
+/** `dns.lookup` cannot be aborted and has no timeout of its own. */
+const DNS_TIMEOUT_MS = 5000;
+
+function lookupWithTimeout(hostname: string) {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Таймаут DNS: ${hostname}`)), DNS_TIMEOUT_MS);
+  });
+  return Promise.race([dns.lookup(hostname, { all: true, verbatim: true }), timeout])
+    .finally(() => clearTimeout(timer));
+}
+
 /**
  * Resolve a hostname and return its addresses only when **every** one of them is
  * public. Rejecting on any blocked answer closes the DNS-rebinding hole where a
@@ -149,7 +161,7 @@ export async function resolvePublicIps(hostname: string): Promise<string[]> {
     return [literal];
   }
 
-  const records = await dns.lookup(hostname, { all: true, verbatim: true });
+  const records = await lookupWithTimeout(hostname);
   if (records.length === 0) throw new Error(`Не удалось разрешить хост: ${hostname}`);
   for (const record of records) {
     if (isBlockedIp(record.address)) throw new Error(`Адрес заблокирован: ${hostname}`);

@@ -35,19 +35,34 @@ function pinnedAgent(ip: string): Agent {
     const isTls = options.protocol === "https:";
     const port = parseInt(options.port, 10) || (isTls ? 443 : 80);
     const socket = net.connect({ host: ip, port });
+    // A custom connector bypasses undici's `connectTimeout`; a DPI-throttled TLS
+    // handshake would otherwise hang until the whole answer times out.
+    socket.setTimeout(TIMEOUT_MS, () => socket.destroy(new Error("Таймаут соединения")));
+    let settled = false;
+    const connected = (s: net.Socket) => {
+      if (settled) return;
+      settled = true;
+      socket.setTimeout(0);
+      callback(null, s);
+    };
+    const failed = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      callback(err, null);
+    };
 
-    socket.once("error", (err) => callback(err, null));
+    socket.once("error", failed);
     socket.once("connect", () => {
       if (!isTls) {
-        callback(null, socket);
+        connected(socket);
         return;
       }
       const secure = tls.connect({
         socket,
         servername: options.servername ?? options.hostname,
       });
-      secure.once("secureConnect", () => callback(null, secure));
-      secure.once("error", (err) => callback(err, null));
+      secure.once("secureConnect", () => connected(secure));
+      secure.once("error", failed);
     });
   };
 
