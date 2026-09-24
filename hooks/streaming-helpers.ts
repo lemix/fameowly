@@ -22,6 +22,11 @@ export function processStreamEvent(
   setMessages: React.Dispatch<React.SetStateAction<MessageData[]>>
 ) {
   switch (event.type) {
+    case "start-step":
+      // Multi-step (tool) answers: keep each step's reasoning/text in its own paragraph.
+      if (acc.reasoning && !acc.reasoning.endsWith("\n\n")) acc.reasoning += "\n\n";
+      if (acc.text && !acc.text.endsWith("\n\n")) acc.text += "\n\n";
+      break;
     case "text-delta":
       acc.text += event.delta as string;
       setMessages((prev) => {

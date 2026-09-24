@@ -53,5 +53,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=premium
-          cache-to: type=gha,mode=max,scope=premium
+          # No gha cache: PR runs can read base-branch caches, which would expose premium code.
+          no-cache: true

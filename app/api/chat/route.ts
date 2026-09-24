@@ -1,9 +1,10 @@
-import { streamText } from "ai";
+import { streamText, stepCountIs } from "ai";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { buildCoreMessages } from "@/lib/chat/build-core-messages";
 import { applyWebContext } from "@/lib/chat/apply-web-context";
+import { createGroundingTracker, countStepSearchQueries } from "@/lib/chat/stream-grounding";
 import { extractPublicUrls } from "@/lib/web-tools/url-detection";
-import { extractGrounding, countSearchQueries } from "@/lib/web-tools/grounding";
+import { isArchivedModel } from "@/lib/models.server";
 import type { ApiMessage } from "@/lib/chat/build-core-messages";
 import type { ResolvedCredentials } from "@/lib/types";
 import type { LanguageModel, ToolSet } from "ai";
@@ -20,6 +21,10 @@ const TIMEOUT_NOTICE =
   "[Превышен лимит времени. Попробуйте упростить запрос или отключить режим размышления.]";
 
 const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
+
+// Without it a model stripped of tools tends to write a fake tool call as plain text.
+const FINAL_STEP_NOTE =
+  "Инструменты больше недоступны. Не пытайся их вызывать. Сразу ответь пользователю обычным текстом по уже полученным данным; если их не хватает — так и скажи.";
 
 
 function jsonError(message: string, status: number) {
@@ -61,7 +66,7 @@ export async function POST(req: Request) {
     // Model access is a plugin concern; the OSS policy grants everything.
     const userRole = req.headers.get("x-user-role") || "user";
     const userId = req.headers.get("x-user-id") || "unknown";
-    if (!container.get("modelAccessPolicy").canUse(userId, modelId)) {
+    if (isArchivedModel(modelId) || !container.get("modelAccessPolicy").canUse(userId, modelId)) {
       return jsonError("Модель недоступна", 403);
     }
 
@@ -88,11 +93,13 @@ export async function POST(req: Request) {
     const urls = extractPublicUrls(userText);
     const webRequest = {
       baseProvider: credentials.baseProvider,
+      modelId,
       webSearchEnabled: rawWebSearchEnabled !== false,
       urlContextRequested: urls.length > 0,
     };
     const webTools = container.get("webToolsProvider");
     const tools = webTools.resolve(webRequest) as ToolSet | undefined;
+    const maxSteps = tools ? webTools.maxSteps?.(webRequest) ?? 1 : 1;
     const webContext = await webTools.prepareContext?.({
       ...webRequest,
       modelId,
@@ -108,6 +115,8 @@ export async function POST(req: Request) {
       reasoningEnabled: rawReasoningEnabled,
     }) as Parameters<typeof streamText>[0]["providerOptions"];
 
+    const trackGrounding = createGroundingTracker(webContext?.grounding);
+
     const result = streamText({
       model,
       system: prompt.system,
@@ -116,13 +125,20 @@ export async function POST(req: Request) {
       timeout: GENERATION_TIMEOUT_MS,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       ...(tools ? { tools } : {}),
+      ...(maxSteps > 1
+        ? {
+            stopWhen: stepCountIs(maxSteps),
+            // The last step must answer: a model that still wants to search would end with no text.
+            prepareStep: ({ stepNumber }) =>
+              stepNumber === maxSteps - 1
+                ? { activeTools: [], system: `${prompt.system}\n\n${FINAL_STEP_NOTE}` }
+                : undefined,
+          }
+        : {}),
       ...(providerOptions ? { providerOptions } : {}),
       onFinish({ usage, steps }) {
         if (!usage) return;
-        const webSearchQueries = steps.reduce(
-          (sum, step) => sum + countSearchQueries(step.providerMetadata),
-          0,
-        );
+        const webSearchQueries = steps.reduce((sum, step) => sum + countStepSearchQueries(step), 0);
         container.get("usageTracker").onChatFinish({
           userId,
           modelId,
@@ -141,13 +157,8 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       // Grounding travels on a side channel — never inside message content.
-      // Pre-fetched sources are known up front, so they show while the answer streams.
       messageMetadata({ part }) {
-        if (part.type === "start-step" && webContext?.grounding) {
-          return { grounding: webContext.grounding };
-        }
-        if (part.type !== "finish-step") return undefined;
-        const grounding = extractGrounding(part.providerMetadata);
+        const grounding = trackGrounding(part);
         return grounding ? { grounding } : undefined;
       },
       onError(error) {

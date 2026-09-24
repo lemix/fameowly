@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
-import { readModelsConfig } from "@/lib/models.server";
+import { readModelsConfig, withoutArchived, isArchivedModel } from "@/lib/models.server";
 import { initializeContainer, container } from "@/lib/plugin-loader";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import { resizeToTarget } from "@/lib/image-resize";
@@ -42,10 +42,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { imageModels } = readModelsConfig();
+    const { imageModels } = withoutArchived(readModelsConfig());
     const modelId = model || imageModels[0]?.id;
     const modelInfo =
       imageModels.find((m) => m.id === modelId) || imageModels[0];
+
+    if (model && isArchivedModel(model)) {
+      return NextResponse.json({ error: "Модель недоступна" }, { status: 403 });
+    }
 
     if (!modelInfo) {
       return NextResponse.json(

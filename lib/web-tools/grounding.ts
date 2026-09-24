@@ -112,3 +112,32 @@ export function countSearchQueries(providerMetadata: RawMetadata): number {
   if (!raw || !Array.isArray(raw.webSearchQueries)) return 0;
   return raw.webSearchQueries.filter((q) => typeof q === "string" && q.length > 0).length;
 }
+
+function mergeUnique<T>(a: T[] | undefined, b: T[] | undefined, key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of [...(a ?? []), ...(b ?? [])]) {
+    const k = key(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(item);
+    if (out.length >= MAX_ITEMS) break;
+  }
+  return out;
+}
+
+/** Combine grounding from several steps or tool calls, de-duplicated. */
+export function mergeGrounding(
+  a: MessageGrounding | undefined,
+  b: MessageGrounding | undefined,
+): MessageGrounding | undefined {
+  if (!a || !b) return a ?? b;
+  const queries = mergeUnique(a.queries, b.queries, (q) => q);
+  const sources = mergeUnique(a.sources, b.sources, (s) => s.uri);
+  const suggestions = mergeUnique(a.suggestions, b.suggestions, (s) => s.url);
+  return {
+    ...(queries.length ? { queries } : {}),
+    ...(sources.length ? { sources } : {}),
+    ...(suggestions.length ? { suggestions } : {}),
+  };
+}

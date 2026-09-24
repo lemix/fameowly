@@ -30,11 +30,15 @@ export interface ModelOption {
   supportsWebSearch?: boolean;
   /** Provider-native reading of URLs pasted by the user. Defaults to `false` */
   supportsUrlContext?: boolean;
+  /** Model can call function tools (llama.cpp needs `--jinja`). Defaults to `false` */
+  supportsToolCalling?: boolean;
   description?: string;
   /** OpenAI-compatible base URL for local models (e.g. http://host:port/v1) */
   baseURL?: string;
   /** Links this model to a virtual provider (from admin panel) */
   virtualProviderId?: string;
+  /** Hidden from every catalogue (admins included) and refused by generation routes */
+  archived?: boolean;
 }
 
 export interface ModelsConfig {

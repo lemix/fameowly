@@ -25,6 +25,7 @@ function normalizeModel(raw: ModelOption): ModelOption {
     supportsTemperature: raw.supportsTemperature ?? false,
     supportsWebSearch: raw.supportsWebSearch ?? false,
     supportsUrlContext: raw.supportsUrlContext ?? false,
+    supportsToolCalling: raw.supportsToolCalling ?? false,
     inputPricePer1M: raw.inputPricePer1M ?? legacyPrice,
     outputPricePer1M: raw.outputPricePer1M ?? legacyPrice,
   };
@@ -70,6 +71,19 @@ export function saveModelsConfig(config: ModelsConfig): void {
     fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
   }
   fs.writeFileSync(MODELS_JSON_PATH, JSON.stringify(config, null, 2));
+}
+
+/** Drop archived models — they must not be offered to anyone, admins included */
+export function withoutArchived(config: ModelsConfig): ModelsConfig {
+  return {
+    chatModels: config.chatModels.filter((m) => !m.archived),
+    imageModels: config.imageModels.filter((m) => !m.archived),
+  };
+}
+
+export function isArchivedModel(modelId: string): boolean {
+  const { chatModels, imageModels } = readModelsConfig();
+  return [...chatModels, ...imageModels].some((m) => m.id === modelId && m.archived);
 }
 
 /** Strip internal cost fields — only admins may see them */

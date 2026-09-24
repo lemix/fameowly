@@ -5,6 +5,7 @@ import {
   readModelsConfig,
   stripPricingForNonAdmin,
   saveModelsConfig,
+  withoutArchived,
 } from "@/lib/models.server";
 import type { ModelsConfig } from "@/lib/models";
 
@@ -12,14 +13,19 @@ initializeContainer();
 
 const COOKIE_NAME = "session";
 
-/** GET /api/models — the catalogue this user may choose from */
+/**
+ * GET /api/models — the catalogue this user may choose from.
+ * `?all=1` (admin only) also returns archived models, for the model editor.
+ */
 export async function GET(req: NextRequest) {
   const user = await authorize(req.cookies.get(COOKIE_NAME)?.value);
   if (!user) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
-  const config = container.get("modelAccessPolicy").filter(user.id, readModelsConfig());
+  const includeArchived = user.role === "admin" && req.nextUrl.searchParams.get("all") === "1";
+  const catalogue = includeArchived ? readModelsConfig() : withoutArchived(readModelsConfig());
+  const config = container.get("modelAccessPolicy").filter(user.id, catalogue);
   return NextResponse.json(stripPricingForNonAdmin(config, user.role === "admin"));
 }
 
