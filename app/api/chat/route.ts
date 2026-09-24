@@ -4,6 +4,7 @@ import { buildCoreMessages } from "@/lib/chat/build-core-messages";
 import { applyWebContext } from "@/lib/chat/apply-web-context";
 import { createGroundingTracker, countStepSearchQueries } from "@/lib/chat/stream-grounding";
 import { extractPublicUrls } from "@/lib/web-tools/url-detection";
+import { isArchivedModel } from "@/lib/models.server";
 import type { ApiMessage } from "@/lib/chat/build-core-messages";
 import type { ResolvedCredentials } from "@/lib/types";
 import type { LanguageModel, ToolSet } from "ai";
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
     // Model access is a plugin concern; the OSS policy grants everything.
     const userRole = req.headers.get("x-user-role") || "user";
     const userId = req.headers.get("x-user-id") || "unknown";
-    if (!container.get("modelAccessPolicy").canUse(userId, modelId)) {
+    if (isArchivedModel(modelId) || !container.get("modelAccessPolicy").canUse(userId, modelId)) {
       return jsonError("Модель недоступна", 403);
     }
 

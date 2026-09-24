@@ -37,6 +37,8 @@ export interface ModelOption {
   baseURL?: string;
   /** Links this model to a virtual provider (from admin panel) */
   virtualProviderId?: string;
+  /** Hidden from every catalogue (admins included) and refused by generation routes */
+  archived?: boolean;
 }
 
 export interface ModelsConfig {
