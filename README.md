@@ -94,9 +94,9 @@ cp data/models.json.example data/models.json
 
 When deploying via Docker, mount your `models.json` into the container as shown above.
 
-Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`, `supportsWebSearch`, `supportsUrlContext`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
+Boolean properties (`isLocal`, `supportsTemperature`, `supportsReasoning`, `supportsWebSearch`, `supportsUrlContext`, `supportsToolCalling`) default to `false`. The `isLocal` flag is automatically inferred as `true` when `provider` is `"local"`.
 
-`supportsWebSearch` shows the «Поиск» toggle in chat and `supportsUrlContext` lets the model read links pasted into a message. On `google` and `google-vertex` both are served by Google's native tools (Grounding with Google Search, URL Context) — and not on every model of those providers, so check the model's own documentation first. On other providers they are served by the `web` plugin of the commercial edition, which pre-fetches pages through a self-hosted SearXNG and injects them into the prompt; in the open-source build the flags have no effect there.
+`supportsWebSearch` shows the «Поиск» toggle in chat and `supportsUrlContext` lets the model read links pasted into a message. On `google` and `google-vertex` both are served by Google's native tools (Grounding with Google Search, URL Context) — and not on every model of those providers, so check the model's own documentation first. On other providers they are served by the `web` plugin of the commercial edition: pasted links are pre-fetched and injected into the prompt, while search is a tool the model calls itself through a self-hosted SearXNG — so it also needs `supportsToolCalling` (a llama.cpp server must run with `--jinja`, otherwise requests with tools fail). In the open-source build the flags have no effect there.
 
 ### Web search (SearXNG)
 

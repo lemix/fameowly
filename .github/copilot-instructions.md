@@ -60,15 +60,21 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
 - **Web tools**: two mechanisms behind one `webToolsProvider` slot. `resolve()` returns
-  provider-native `tools` for `streamText()` — Google/Vertex share the same tool factories
-  (`@ai-sdk/google-vertex` re-exports them from `@ai-sdk/google`), so one OSS strategy covers
-  both. Optional `prepareContext()` pre-fetches pages for models without native tools; the
-  route always calls it and `lib/chat/apply-web-context.ts` puts the result into the current
-  user turn. Split: **OSS owns mechanics** (`lib/web-tools/`: SSRF-hardened `safe-fetch`,
-  `ip-guard`, `extract-article`, `searxng` client), **premium owns policy**
-  (`extensions/plugins/web/`: when to search, budgets, injection-resistant prompt block).
-  Web search is an explicit per-chat toggle; URL reading is attached only when the
-  *current* user message contains a public URL.
+  `tools` for `streamText()` — provider-native for Google/Vertex (they share the same tool
+  factories: `@ai-sdk/google-vertex` re-exports them from `@ai-sdk/google`, so one OSS strategy
+  covers both), or premium `web_search` / `fetch_url` function tools for models flagged
+  `supportsToolCalling` (llama.cpp needs `--jinja`). Executed tools run as a multi-step loop:
+  optional `maxSteps()` → `stopWhen: stepCountIs(n)`, the last step runs without tools and
+  with an "answer now" note; tool budgets, not the step cap, are what stop the model.
+  `lib/chat/stream-grounding.ts` merges grounding from pre-fetch, tool results and Google
+  metadata. Optional `prepareContext()` pre-fetches **pasted links only** (there is no
+  pre-fetched search); the route always calls it and `lib/chat/apply-web-context.ts` puts
+  the result into the current user turn. Split: **OSS owns mechanics** (`lib/web-tools/`:
+  SSRF-hardened `safe-fetch`, `ip-guard`, `extract-article`, `searxng` client), **premium owns
+  policy** (`extensions/plugins/web/`: tools, budgets, `fetch_url` allowlist = this answer's
+  search hits, injection-resistant blocks). Web search is an explicit per-chat toggle; URL
+  reading is attached only when the *current* user message contains a public URL.
+  Never send `tool_choice: "required" | "none"` or a named tool to ik_llama — measured broken.
 - **Fetching untrusted URLs**: always through `lib/web-tools/safe-fetch.ts`, never `fetch`
   or `proxyFetch` — the hub shares a LAN with the LLM servers. SearXNG itself is trusted
   infra and is called with plain `fetch`.

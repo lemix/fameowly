@@ -25,6 +25,7 @@ function normalizeModel(raw: ModelOption): ModelOption {
     supportsTemperature: raw.supportsTemperature ?? false,
     supportsWebSearch: raw.supportsWebSearch ?? false,
     supportsUrlContext: raw.supportsUrlContext ?? false,
+    supportsToolCalling: raw.supportsToolCalling ?? false,
     inputPricePer1M: raw.inputPricePer1M ?? legacyPrice,
     outputPricePer1M: raw.outputPricePer1M ?? legacyPrice,
   };

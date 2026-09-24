@@ -14,6 +14,7 @@ export type {
   WebToolsRequest,
   WebContextRequest,
   WebContextResult,
+  WebToolOutput,
 } from "./web-tools-provider";
 export type {
   ReasoningOptionsProvider,
