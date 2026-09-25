@@ -71,9 +71,12 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
   pre-fetched search); the route always calls it and `lib/chat/apply-web-context.ts` puts
   the result into the current user turn. Split: **OSS owns mechanics** (`lib/web-tools/`:
   SSRF-hardened `safe-fetch`, `ip-guard`, `extract-article`, `searxng` client), **premium owns
-  policy** (`extensions/plugins/web/`: tools, budgets, `fetch_url` allowlist = this answer's
-  search hits, injection-resistant blocks). Web search is an explicit per-chat toggle; URL
-  reading is attached only when the *current* user message contains a public URL.
+  policy** (`extensions/plugins/web/`: tools, budgets, `fetch_url` allowlist = links the user
+  pasted anywhere in the chat + this answer's search hits, injection-resistant blocks).
+  Web search is an explicit per-chat toggle; a pasted link is pre-fetched once for the
+  message that contains it, and afterwards stays re-readable through `fetch_url`.
+  When it is, the plugin also appends an English note to the system prompt: earlier turns
+  may come from another model or from pages no longer in context — re-open, don't guess.
   Never send `tool_choice: "required" | "none"` or a named tool to ik_llama — measured broken.
 - **Timeouts**: every generation is capped at 10 min; cloud providers also get stall
   detection (`stepMs` / `chunkMs` of AI SDK `timeout`), local servers do not — long prompt

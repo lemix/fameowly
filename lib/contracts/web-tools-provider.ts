@@ -17,6 +17,8 @@ export interface WebToolsRequest {
   webSearchEnabled: boolean;
   /** The current user message contains at least one fetchable public URL */
   urlContextRequested: boolean;
+  /** Public URLs the user pasted anywhere in this chat, SSRF host gate applied. Never from assistant replies. */
+  chatUrls?: string[];
 }
 
 export interface WebContextRequest extends WebToolsRequest {
@@ -29,9 +31,9 @@ export interface WebContextRequest extends WebToolsRequest {
 }
 
 export interface WebContextResult {
-  /** Appended to the system prompt: how to treat the injected content */
+  /** Appended to the system prompt, also when `contextText` is empty */
   systemNote: string;
-  /** Untrusted web content, prepended to the current user message */
+  /** Untrusted web content, prepended to the current user message; may be empty */
   contextText: string;
   /** Provenance for the UI; never sent back to the LLM */
   grounding?: MessageGrounding;

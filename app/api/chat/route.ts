@@ -98,11 +98,13 @@ export async function POST(req: Request) {
     // links would re-fetch those pages and bill their content as input tokens.
     const userText = lastUserMessage?.content ?? "";
     const urls = extractPublicUrls(userText);
+    const chatUrls = [...new Set(messages.filter((m) => m.role === "user").flatMap((m) => extractPublicUrls(m.content)))];
     const webRequest = {
       baseProvider: credentials.baseProvider,
       modelId,
       webSearchEnabled: rawWebSearchEnabled !== false,
       urlContextRequested: urls.length > 0,
+      chatUrls,
     };
     const webTools = container.get("webToolsProvider");
     const tools = webTools.resolve(webRequest) as ToolSet | undefined;
@@ -124,8 +126,7 @@ export async function POST(req: Request) {
 
     const trackGrounding = createGroundingTracker(webContext?.grounding);
 
-    // Two independent stop paths: the request signal and the response stream being
-    // cancelled. An orphaned local generation blocks the single llama slot for minutes.
+    // Second stop path besides req.signal: an orphaned local generation blocks the single llama slot.
     const generation = new AbortController();
     req.signal.addEventListener("abort", () => generation.abort(), { once: true });
 
