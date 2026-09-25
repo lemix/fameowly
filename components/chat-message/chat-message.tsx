@@ -106,8 +106,10 @@ export const ChatMessage = memo(function ChatMessage({
               </div>
             ) : (isLoading || isStreaming) ? (
               <div className="flex items-center gap-2 text-th-fg-m">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{isReasoning ? "Ожидание ответа..." : "Генерация ответа..."}</span>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                <span className="min-w-0 truncate">
+                  {m.activity ?? (isReasoning ? "Ожидание ответа..." : "Генерация ответа...")}
+                </span>
               </div>
             ) : m.error ? null : (
               <div className="text-xs italic text-th-fg-f">Пустой ответ</div>
@@ -117,11 +119,19 @@ export const ChatMessage = memo(function ChatMessage({
           )}
         </div>
 
+        {/* Text can arrive before the work is done: a lead-in, then tool calls and more steps */}
+        {!isUser && m.content && isStreaming && (
+          <div className="flex items-center gap-2 text-xs text-th-fg-m">
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+            <span className="min-w-0 truncate">{m.activity ?? "Модель продолжает работу..."}</span>
+          </div>
+        )}
+
         {/* Grounding provenance — kept outside `content` so it never reaches the LLM */}
         {!isUser && m.grounding && <GroundingPanel grounding={m.grounding} />}
 
-        {/* Actions — assistant messages with content */}
-        {!isUser && m.content && (
+        {/* Actions — assistant messages with content, once the answer is complete */}
+        {!isUser && m.content && !isStreaming && (
           <MessageActions role="assistant" content={m.content} messageId={m.id} onDelete={onDelete} />
         )}
 

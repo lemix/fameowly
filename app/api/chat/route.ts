@@ -3,6 +3,7 @@ import { initializeContainer, container } from "@/lib/plugin-loader";
 import { buildCoreMessages } from "@/lib/chat/build-core-messages";
 import { applyWebContext } from "@/lib/chat/apply-web-context";
 import { createGroundingTracker, countStepSearchQueries } from "@/lib/chat/stream-grounding";
+import { withHeartbeat } from "@/lib/chat/sse-heartbeat";
 import { extractPublicUrls } from "@/lib/web-tools/url-detection";
 import { isArchivedModel } from "@/lib/models.server";
 import type { ApiMessage } from "@/lib/chat/build-core-messages";
@@ -16,9 +17,15 @@ export const maxDuration = 120;
 
 /** Wall-clock cap for a single generation (local reasoning models are slow). */
 const GENERATION_TIMEOUT_MS = 600_000;
+/**
+ * Cloud stall detection: a request that never gets a first byte (e.g. a stuck
+ * proxy tunnel) or a stream that goes silent. Not applied to local servers —
+ * prompt processing there can legitimately stay silent for minutes.
+ */
+const CLOUD_TIMEOUT = { totalMs: GENERATION_TIMEOUT_MS, stepMs: 240_000, chunkMs: 90_000 };
 
 const TIMEOUT_NOTICE =
-  "[Превышен лимит времени. Попробуйте упростить запрос или отключить режим размышления.]";
+  "[Превышен лимит времени. Повторите запрос; если не поможет — упростите его или отключите «Думать».]";
 
 const DEFAULT_SYSTEM_PROMPT = `Ты — полезный AI-ассистент в семейном хабе. Отвечай на русском языке, если пользователь пишет на русском. Будь дружелюбным и полезным.`;
 
@@ -91,11 +98,13 @@ export async function POST(req: Request) {
     // links would re-fetch those pages and bill their content as input tokens.
     const userText = lastUserMessage?.content ?? "";
     const urls = extractPublicUrls(userText);
+    const chatUrls = [...new Set(messages.filter((m) => m.role === "user").flatMap((m) => extractPublicUrls(m.content)))];
     const webRequest = {
       baseProvider: credentials.baseProvider,
       modelId,
       webSearchEnabled: rawWebSearchEnabled !== false,
       urlContextRequested: urls.length > 0,
+      chatUrls,
     };
     const webTools = container.get("webToolsProvider");
     const tools = webTools.resolve(webRequest) as ToolSet | undefined;
@@ -117,12 +126,16 @@ export async function POST(req: Request) {
 
     const trackGrounding = createGroundingTracker(webContext?.grounding);
 
+    // Second stop path besides req.signal: an orphaned local generation blocks the single llama slot.
+    const generation = new AbortController();
+    req.signal.addEventListener("abort", () => generation.abort(), { once: true });
+
     const result = streamText({
       model,
       system: prompt.system,
       messages: prompt.messages,
-      abortSignal: req.signal,
-      timeout: GENERATION_TIMEOUT_MS,
+      abortSignal: generation.signal,
+      timeout: credentials.baseProvider === "local" ? GENERATION_TIMEOUT_MS : CLOUD_TIMEOUT,
       ...(typeof rawTemperature === "number" ? { temperature: rawTemperature } : {}),
       ...(tools ? { tools } : {}),
       ...(maxSteps > 1
@@ -155,7 +168,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return result.toUIMessageStreamResponse({
+    return withHeartbeat(result.toUIMessageStreamResponse({
       // Grounding travels on a side channel — never inside message content.
       messageMetadata({ part }) {
         const grounding = trackGrounding(part);
@@ -167,7 +180,7 @@ export async function POST(req: Request) {
         console.error("[chat] stream error:", message);
         return message;
       },
-    });
+    }), () => generation.abort());
   } catch (error: unknown) {
     console.error("Chat API error:", error);
     const message =

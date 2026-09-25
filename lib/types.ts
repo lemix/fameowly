@@ -126,6 +126,8 @@ export interface MessageData {
   error?: string;
   attachments?: ChatAttachment[];
   grounding?: MessageGrounding;
+  /** What the model is waiting on right now (a tool call). Live only, never persisted. */
+  activity?: string;
   createdAt?: Date | string;
 }
 

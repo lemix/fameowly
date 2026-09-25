@@ -14,10 +14,12 @@ export function applyWebContext(
   messages: CoreChatMessage[],
   context: WebContextResult | undefined,
 ): { system: string; messages: CoreChatMessage[] } {
-  if (!context?.contextText) return { system, messages };
+  if (!context) return { system, messages };
+  const withNote = context.systemNote ? `${system}\n\n${context.systemNote}` : system;
+  if (!context.contextText) return { system: withNote, messages };
 
   const lastUser = messages.findLastIndex((m) => m.role === "user");
-  if (lastUser === -1) return { system, messages };
+  if (lastUser === -1) return { system: withNote, messages };
 
   const target = messages[lastUser] as Extract<CoreChatMessage, { role: "user" }>;
   const patched = [...messages];
@@ -27,5 +29,5 @@ export function applyWebContext(
     content: [{ type: "text", text: context.contextText }, ...target.content],
   };
 
-  return { system: `${system}\n\n${context.systemNote}`, messages: patched };
+  return { system: withNote, messages: patched };
 }
