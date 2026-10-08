@@ -82,6 +82,23 @@ SOCKS_PROXY=socks5://127.0.0.1:1080
 
 The proxy is read from `SOCKS_PROXY`, `ALL_PROXY`, `HTTPS_PROXY` or `HTTP_PROXY`, in that order; the value must use a `socks` scheme. Leave them unset to connect directly.
 
+### Company details
+
+`/requisites` is a public page with the operator's legal details, which payment
+providers require on the site. It is read from the environment at request time,
+so the data never lands in git or in the image:
+
+```env
+COMPANY_NAME=ИП Иванов Иван Иванович
+COMPANY_INN=
+COMPANY_OGRN=
+# Optional: COMPANY_KPP, COMPANY_ADDRESS, COMPANY_EMAIL, COMPANY_PHONE
+```
+
+The page (and its link on the login screen) exists only when `COMPANY_NAME`,
+`COMPANY_INN` and `COMPANY_OGRN` are all set; otherwise it returns 404.
+A 15-digit OGRN is labelled ОГРНИП.
+
 ### Models configuration
 
 The available models are defined in `data/models.json` (not included in the repository — listed in `.gitignore`). A reference configuration with all supported fields is provided in `data/models.json.example`.
