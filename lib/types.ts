@@ -152,6 +152,16 @@ export type PluginRouteHandler = (
   req: import("next/server").NextRequest,
 ) => Promise<import("next/server").NextResponse> | import("next/server").NextResponse;
 
+/** A server-rendered page open to guests; see lib/plugins.ts */
+export interface PluginPublicPage {
+  /** Browser tab title */
+  title: string;
+  /** Link text in the public footer; omit to keep the page out of it */
+  footerLabel?: string;
+  /** Server component with the page content; the core supplies header and footer */
+  load: () => Promise<import("react").ComponentType>;
+}
+
 /** Plugin interface — every extension plugin implements this */
 export interface Plugin {
   /** Unique plugin id, e.g. "providers", "billing" */
@@ -176,4 +186,10 @@ export interface Plugin {
     string,
     Record<string, PluginRouteHandler>
   >;
+
+  /**
+   * Public pages: id "home" replaces the login redirect on `/` for guests,
+   * any other id is served at `/info/<id>`.
+   */
+  publicPages?: Record<string, PluginPublicPage>;
 }

@@ -12,6 +12,7 @@
 import type {
   Plugin,
   PluginAdminTab,
+  PluginPublicPage,
   PluginRouteHandler,
 } from "./types";
 
@@ -58,4 +59,25 @@ export function getPluginRoute(
     if (handler) return handler;
   }
   return null;
+}
+
+/** Public page id rendered on `/` for guests */
+export const HOME_PAGE_ID = "home";
+
+/** Find a public page; `id` comes from the URL, so prototype keys must not match */
+export function getPublicPage(id: string): PluginPublicPage | null {
+  for (const plugin of getPlugins()) {
+    const pages = plugin.publicPages;
+    if (pages && Object.hasOwn(pages, id)) return pages[id];
+  }
+  return null;
+}
+
+/** Footer links to public pages, in plugin registration order */
+export function getPublicPageLinks(): Array<{ href: string; label: string }> {
+  return getPlugins().flatMap((p) =>
+    Object.entries(p.publicPages ?? {})
+      .filter(([id, page]) => id !== HOME_PAGE_ID && page.footerLabel)
+      .map(([id, page]) => ({ href: `/info/${id}`, label: page.footerLabel as string })),
+  );
 }

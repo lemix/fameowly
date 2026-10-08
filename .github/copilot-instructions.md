@@ -31,15 +31,16 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 ## Project Structure
 - app/ # Next.js App Router pages & API routes
-  - page.tsx # Home page — mode orchestrator (chat/image)
+  - page.tsx # Home: signed-in → `_components/chat-app.tsx` (mode orchestrator), guest → plugin `home` page or /login
   - (chat)/_components/ # Chat mode components
   - (image)/_components/ # Image generation mode components
   - (video)/_components/ # Video mode components (placeholder, feature pending)
   - print/[chatId]/ # Printable chat transcript (PDF export via browser print)
   - requisites/ # Public company details page, from `COMPANY_*` env (404 when unset)
+  - info/[page]/ # Host for plugin public pages (`Plugin.publicPages`), open to guests
 - api/ # API routes (chat, image, upload, auth, etc.)
 - hooks/ # Custom React hooks (UI business logic)
-- components/ # Shared UI components (sidebar, chat-message, etc.)
+- components/ # Shared UI components (sidebar, chat-message, etc.); `public/` = guest page frame + footer
 - lib/ # Server & shared utilities, types, domain logic
 - data/ # Runtime data (users.json, chats/, uploads/)
 - extensions/ # Git submodule with closed-source plugins (providers, billing, web, etc.)
@@ -105,8 +106,11 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 
 ## Plugin System
 
-- **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`.
+- **Plugin Interface** (`lib/types.ts`): `id`, `name`, `register`, `adminTabs`, `uiSlots`, `apiRoutes`, `publicPages`.
   Behaviour changes go through `register(container)` — never through ad-hoc hooks.
+- **Public pages**: `publicPages` are server components for guests. Id `home` renders on `/`
+  for guests (otherwise `/` redirects to /login), other ids at `/info/<id>`. The core wraps them
+  in `components/public/public-shell.tsx`; `footerLabel` adds a link to the public footer.
 - **DI Container** (`lib/container.ts`): eight strategy slots — `providerResolver`, `modelFactory`,
   `usageTracker`, `pricingPolicy`, `modelAccessPolicy`, `userLifecycle`, `webToolsProvider`,
   `reasoningOptionsProvider`.
