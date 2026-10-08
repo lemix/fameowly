@@ -5,7 +5,7 @@ const JWT_SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-me-please-32chars"
 );
 
-const publicPaths = ["/login", "/requisites", "/api/auth/login", "/manifest.json", "/sw.js"];
+const publicPaths = ["/login", "/requisites", "/info/", "/api/auth/login", "/manifest.json", "/sw.js"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,6 +24,8 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("session")?.value;
 
   if (!token) {
+    // The home page decides itself: a plugin landing for guests or a redirect to /login
+    if (pathname === "/") return NextResponse.next();
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
