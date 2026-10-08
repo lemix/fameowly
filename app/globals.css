@@ -3,6 +3,9 @@
 
 @plugin "@tailwindcss/typography";
 
+/* The theme is the `.dark` class set from localStorage, not the OS preference */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Theme custom properties ─── */
 :root {
   --th-page: #ffffff;
