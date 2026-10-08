@@ -18,7 +18,9 @@ export default async function LoginPage() {
           <LoginForm />
         </div>
 
-        <PublicFooter />
+        <div className="w-full max-w-4xl">
+          <PublicFooter />
+        </div>
       </div>
     </div>
   );

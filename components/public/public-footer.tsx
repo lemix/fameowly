@@ -10,19 +10,18 @@ export function PublicFooter() {
   if (links.length === 0) return null;
 
   return (
-    <footer className="flex flex-col items-center gap-2 py-6 text-center text-xs text-th-fg-m">
-      <nav className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+    <footer className="mt-10 w-full space-y-4 border-t border-th-border py-6 text-xs text-th-fg-m">
+      <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2">
         {links.map((link) => (
           <Link key={link.href} href={link.href} className="hover:text-th-fg hover:underline">
             {link.label}
           </Link>
         ))}
       </nav>
-      {company && (
-        <p className="text-th-fg-f">
-          {company.name}, ИНН {company.inn}, {ogrnLabel(company.ogrn)} {company.ogrn}
-        </p>
-      )}
+      <p className="text-center text-th-fg-f">
+        © {new Date().getFullYear()} FaMeowly
+        {company && ` · ${company.name}, ИНН ${company.inn}, ${ogrnLabel(company.ogrn)} ${company.ogrn}`}
+      </p>
     </footer>
   );
 }
