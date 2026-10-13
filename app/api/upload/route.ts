@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const url = saveUploadedFile(buffer, fileName, mimeType, session.userId);
+    const url = saveUploadedFile(buffer, fileName, session.userId);
 
     return NextResponse.json({
       url,

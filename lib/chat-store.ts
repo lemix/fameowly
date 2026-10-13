@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { DATA_DIR } from "./paths";
+import { externalizeAttachments } from "./file-storage";
 import type { MessageGrounding } from "./web-tools/grounding";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -86,6 +87,11 @@ function getChatFilePath(userId: string, chatId: string): string {
   return path.join(getUserDir(userId), `${chatId}.json`);
 }
 
+function writeChat(userId: string, chat: ChatSession): void {
+  externalizeAttachments(chat.messages, userId);
+  fs.writeFileSync(getChatFilePath(userId, chat.id), JSON.stringify(chat, null, 2));
+}
+
 // ─── CRUD Operations ─────────────────────────────────────────────────
 
 /** Get list of all chats for a user (sorted by updatedAt desc) */
@@ -124,7 +130,12 @@ export function getChat(userId: string, chatId: string): ChatSession | null {
   if (!fs.existsSync(filePath)) return null;
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw) as ChatSession;
+    const chat = JSON.parse(raw) as ChatSession;
+    // Older chats carry inline base64 images that push requests past the body limit
+    if (externalizeAttachments(chat.messages, userId)) {
+      fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+    }
+    return chat;
   } catch {
     return null;
   }
@@ -149,8 +160,7 @@ export function createChat(
     revision: 0,
     messages: [],
   };
-  const filePath = getChatFilePath(userId, chat.id);
-  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+  writeChat(userId, chat);
   return chat;
 }
 
@@ -189,8 +199,7 @@ export function updateChat(
 
   chat.updatedAt = new Date().toISOString();
 
-  const filePath = getChatFilePath(userId, chatId);
-  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+  writeChat(userId, chat);
   return chat;
 }
 
@@ -221,8 +230,7 @@ export function appendMessages(
     chat.title = autoTitle(chat.messages);
   }
 
-  const filePath = getChatFilePath(userId, chatId);
-  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+  writeChat(userId, chat);
   return chat;
 }
 
@@ -242,8 +250,7 @@ export function deleteMessage(
   chat.messages = remaining;
   chat.updatedAt = new Date().toISOString();
 
-  const filePath = getChatFilePath(userId, chatId);
-  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+  writeChat(userId, chat);
   return chat;
 }
 
@@ -271,8 +278,7 @@ export function recordChatUsage(
     contextRevision: chat.revision ?? 0,
   };
 
-  const filePath = getChatFilePath(userId, chatId);
-  fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+  writeChat(userId, chat);
 }
 
 /** Delete a chat session */
