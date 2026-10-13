@@ -59,6 +59,9 @@ Self-hosted family AI hub on Next.js 16 with support for multiple LLM providers.
 - **Auth**: JWT in httpOnly cookies, middleware for route protection.
 - **File attachments**: the server resolves files from `data/uploads/` into base64/text
   before sending them to the LLM. The client does not send raw data.
+  Uploads are never inlined as `data:` URLs — the client resends the whole history on
+  every request and Next.js middleware truncates bodies above 10 MB (`Unterminated string
+  in JSON`). `chat-store` moves legacy inline attachments to disk on read and on write.
 - **File security**: files are stored in `data/uploads/{userId}/`, 
   access is verified by `userId` from the session.
 - **Web tools**: two mechanisms behind one `webToolsProvider` slot. `resolve()` returns
